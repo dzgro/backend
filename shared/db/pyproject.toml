@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "db"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "db", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+motor = "*"
+mypy_boto3_cognito_idp = "*"
+pydantic = "*"
+boto3 = "*"
+botocore = "*"
+models = { path = "../models", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

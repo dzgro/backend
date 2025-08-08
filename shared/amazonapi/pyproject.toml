@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "amazonapi"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "amazonapi", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+httpx = "*"
+backoff = "*"
+pydantic = "*"
+models = { path = "../models", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+

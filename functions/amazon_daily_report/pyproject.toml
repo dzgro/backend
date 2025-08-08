@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "amazon-daily-report"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "amazon_daily_report", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+requests = "*"
+db = { path = "../../shared/db", develop = true }
+sqs = { path = "../../shared/sqs", develop = true }
+storage = { path = "../../shared/storage", develop = true }
+amazonapi = { path = "../../shared/amazonapi", develop = true }
+dzgrosecrets = { path = "../../shared/dzgrosecrets", develop = true }
+date_util = { path = "../../shared/date_util", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+

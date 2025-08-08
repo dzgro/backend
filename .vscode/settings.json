@@ -1,0 +1,12 @@
+{
+  "python.defaultInterpreterPath": "C:\\Users\\Kshitiz\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\api-v2GU_GZ9-py3.12\\Scripts\\python.exe",
+  "python.venvFolders": [
+    "C:\\Users\\Kshitiz\\AppData\\Local\\pypoetry\\Cache\\virtualenvs"
+  ],
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/api/src",
+    "${workspaceFolder}/shared/*/src",
+    "${workspaceFolder}/functions/*/src"
+  ]
+}

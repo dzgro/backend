@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.api.main:app", "--reload"],
+      "cwd": "${workspaceFolder}/api",
+      "jinja": true
+    },
+    {
+      "name": "Debug Amazon Daily Report",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/functions/amazon_daily_report/src/amazon_daily_report/handler.py",
+      "cwd": "${workspaceFolder}/functions/amazon_daily_report",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Debug Current Python File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}

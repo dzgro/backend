@@ -1,0 +1,61 @@
+from datetime import datetime
+from models.model import ErrorDetail
+from models.extras.amazon_daily_report import AmazonParentReport, AmazonSpapiReport, AmazonAdReport, AmazonExportReport, AmazonDataKioskReport
+from pymongo.collection import ObjectId
+from db.DbUtils import DbManager
+from models.enums import AmazonParentReportTaskStatus, AmazonReportType, CollectionType
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+class AmazonDailyReportHelper:
+    childDB: DbManager
+    groupDB: DbManager
+    marketplace: ObjectId
+    uid: str
+    
+    def __init__(self, db:AsyncIOMotorDatabase, uid: str, marketplace: ObjectId) -> None:
+        self.marketplace = marketplace
+        self.uid = uid
+        self.childDB = DbManager(db.get_collection(CollectionType.AMAZON_CHILD_REPORT.value), uid=self.uid, marketplace=self.marketplace)
+        self.groupDB = DbManager(db.get_collection(CollectionType.AMAZON_CHILD_REPORT_GROUP.value), uid=self.uid, marketplace=self.marketplace)
+
+    async def insertParentReport(self, startdate: datetime, enddate: datetime, reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]]):
+        childReports: list[dict] = []
+        id = await self.groupDB.insertOne({'status':AmazonParentReportTaskStatus.PROCESSING.value, 'startdate': startdate, 'enddate': enddate}, withUidMarketplace=True, timestampkey='createdat')
+        for k,v in reports.items(): childReports.extend([{'parent': id, 'reporttype': k.value, "report": x.model_dump(mode="json", exclude_none=True, exclude_defaults=True)} for x in v])
+        await self.childDB.insertMany(childReports)
+        return id
+
+    async def updateParentReportStatus(self, id: ObjectId, status: AmazonParentReportTaskStatus):
+        await self.childDB.updateOne({"_id": id}, setDict={'status': status.value})
+
+    async def markReportsComplete(self, id: ObjectId):
+        await self.groupDB.updateOne({"_id": id}, setDict={'reportsComplete': True})
+
+    async def markProductsComplete(self, id: ObjectId):
+        await self.groupDB.updateOne({"_id": id}, setDict={'productsComplete': True})
+
+    async def getParentReport(self, id: ObjectId):
+        pipeline = [ { '$match': { '_id': id, 'uid': self.groupDB.uid, 'marketplace': self.groupDB.marketplace, 'status': AmazonParentReportTaskStatus.PROCESSING.value } }, { '$lookup': { 'from': 'amazon_child_reports', 'localField': '_id', 'foreignField': 'parent', 'as': 'result' } }, { '$set': { 'progress': { '$let': { 'vars': { 'total': { '$size': '$result' }, 'completed': { '$size': { '$filter': { 'input': '$result', 'as': 'f', 'cond': { '$ne': [ { '$ifNull': [ '$$f.report.filePath', None ] }, None ] } } } } }, 'in': { '$cond': { 'if': { '$eq': [ '$$total', 0 ] }, 'then': 0, 'else': { '$multiply': [ { '$round': [ { '$divide': [ '$$completed', '$$total' ] }, 2 ] }, 100 ] } } } } } } },{ '$replaceRoot': { 'newRoot': { '$mergeObjects': [ { '$unsetField': { 'input': '$$ROOT', 'field': 'result' } }, { '$arrayToObject': { '$reduce': { 'input': '$result', 'initialValue': [], 'in': { '$cond': [ { '$eq': [ { '$indexOfArray': [ '$$value.k', '$$this.reporttype' ] }, -1 ] }, { '$concatArrays': [ '$$value', [ { 'k': '$$this.reporttype', 'v': [ { '$mergeObjects': [ '$$this.report', { '_id': '$$this._id' } ] } ] } ] ] }, { '$map': { 'input': '$$value', 'as': 'v', 'in': { '$cond': [ { '$ne': [ '$$v.k', '$$this.reporttype' ] }, '$$v', { '$mergeObjects': [ '$$v', { 'v': { '$concatArrays': [ '$$v.v', [ { '$mergeObjects': [ '$$this.report', { '_id': '$$this._id', 'filePath': "$$this.filePath" } ] } ] ] } } ] } ] } } } ] } } } } ] } } } ]
+        data = await self.groupDB.aggregate(pipeline)
+        if len(data)==0: raise ValueError("No Pending Group Report")
+        return AmazonParentReport(**data[0])
+
+    async def terminateParent(self, id: str, error):
+        await self.groupDB.updateOne({"_id": ObjectId(id)}, setDict={'error': error})
+
+    async def markParentAsCompleted(self, id: str):
+        await self.groupDB.updateOne({"_id": ObjectId(id)}, setDict={'status':AmazonParentReportTaskStatus.COMPLETED.value})
+
+
+    async def deleteChildReports(self, id: str):
+        await self.childDB.deleteMany({"parent": ObjectId(id)})
+
+    async def updateChildReport(self, id: str, data: dict):
+        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={f'report.{k}': v for k,v in data.items()})
+
+    async def addFilePathToChildReport(self, id:str, filePath: str):
+        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'filePath': filePath})
+
+    async def addErrorToChildReport(self, id:str, error: dict):
+        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'error': error})
+

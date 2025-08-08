@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Auto-generated SAM template with layers
+Resources:
+  FunctionAmazonScraper:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AmazonScraper
+      CodeUri: D:\github\sam-app\functions\AmazonScraper\src
+      Handler: AmazonScraper.handler.handler
+      Runtime: python3.12
+      Timeout: 10
+      Layers:
+      - '!Ref dbLayer'
+  amazonapiLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: amazonapi
+      ContentUri: D:\github\sam-app\.layers\amazonapi.zip
+      CompatibleRuntimes:
+      - python3.12
+  cognitoLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: cognito
+      ContentUri: D:\github\sam-app\.layers\cognito.zip
+      CompatibleRuntimes:
+      - python3.12
+  dbLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: db
+      ContentUri: D:\github\sam-app\.layers\db.zip
+      CompatibleRuntimes:
+      - python3.12
+  dzgrosecretsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: dzgrosecrets
+      ContentUri: D:\github\sam-app\.layers\dzgrosecrets.zip
+      CompatibleRuntimes:
+      - python3.12
+  modelsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: models
+      ContentUri: D:\github\sam-app\.layers\models.zip
+      CompatibleRuntimes:
+      - python3.12
+  razorpayLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: razorpay
+      ContentUri: D:\github\sam-app\.layers\razorpay.zip
+      CompatibleRuntimes:
+      - python3.12
+  sqsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: sqs
+      ContentUri: D:\github\sam-app\.layers\sqs.zip
+      CompatibleRuntimes:
+      - python3.12
+  storageLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: storage
+      ContentUri: D:\github\sam-app\.layers\storage.zip
+      CompatibleRuntimes:
+      - python3.12

@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "api"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "api", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+fastapi = { version = "*", extras = ["standard"] }
+uvicorn = "*"
+pyjwt = "*"
+cryptography = "*"
+pytz = "*"
+jwt = "*"
+models = { path = "../shared/models", develop = true }
+dzgrosecrets = { path = "../shared/dzgrosecrets", develop = true }
+amazonapi = { path = "../shared/amazonapi", develop = true }
+db = { path = "../shared/db", develop = true }
+razorpay = { path = "../shared/razorpay", develop = true }
+cognito = { path = "../shared/cognito", develop = true }
+storage = { path = "../shared/storage", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
