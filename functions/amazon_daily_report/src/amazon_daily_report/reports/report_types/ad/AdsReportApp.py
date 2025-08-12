@@ -130,6 +130,9 @@ class AmazonAdsReportManager:
             if self.createThrottle: return None
             return (await self.api.common.reportClient.create_report(req))
         except APIError as e:
+            if e.status_code==425 and e.error_list.errors[0].details:
+                reportid = json.loads(e.error_list.errors[0].details)['detail'].split(':')[1].strip()
+                return await self.__getReport(reportid)
             if e.status_code==429:
                 self.createThrottle = True
                 return None
@@ -167,17 +170,18 @@ class AmazonAdsReportManager:
         db = self.dbClient.amazon_daily_reports(self.marketplace.uid, ObjectId(str(self.marketplace.id)))
         shouldContinue = True
         for report in reports:
+            processedReport = report.__deepcopy__()
             if shouldContinue and not report.filepath:
                 try:
-                    processedReport, shouldContinue = await self.__processAdReport(report)
+                    processedReport, shouldContinue = await self.__processAdReport(processedReport)
                     if processedReport.req and processedReport.res and processedReport.res.url: 
                         key = f'ad/{processedReport.req.configuration.reportTypeId}/{processedReport.res.reportId}'
-                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.res.url, False)
+                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.res.url, True)
                         await self.__convertAdReport(processedReport.req.configuration.reportTypeId, dataStr)
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await db.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True))
+                    await db.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:
         return json.loads(dataStr)

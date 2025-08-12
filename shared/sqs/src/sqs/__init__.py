@@ -2,7 +2,7 @@
 from db.collections.queue_messages import QueueMessagesHelper
 from pydantic import BaseModel
 import json
-from sqs.model import aws_error_handler, SendMessageRequest, SQSSendMessageResponse
+from models.sqs import aws_error_handler, SendMessageRequest, SQSSendMessageResponse
 import uuid
 from mypy_boto3_sqs import SQSClient
 from db import DbClient

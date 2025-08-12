@@ -457,3 +457,25 @@ class AdReportType(str, Enum):
     SPGROSSANDINVALIDS = "spGrossAndInvalids"
     SBGROSSANDINVALIDS = "sbGrossAndInvalids"
     SDGROSSANDINVALIDS = "sdGrossAndInvalids"
+
+class Region(str, Enum):
+    NA = "NA"
+    EU = "EU"
+    FE = "FE"
+
+class AMSDataSet(Enum):
+    CAMPAIGNS = "campaigns"
+    AD_GROUPS = "ad-groups"
+    TARGETS = "targets"
+    ADS = "ads"
+    SP_TRAFFIC = "sp-traffic"
+    SP_CONVERSIONS = "sp-conversion"
+    SB_TRAFFIC = "sb-traffic"
+    SB_CLICKSTREAM = "sb-clickstream"
+    SD_TRAFFIC = "sd-traffic"
+    SD_CONVERSIONS = "sd-conversion"
+    SB_CONVERSIONS = "sb-conversion"
+    SB_RICH_MEDIA = "sb-rich-media"
+    BUDGET_USAGE = "budget-usage"
+    CAMPAIGN_DIAGNOSTICS = "campaign-diagnostics"
+    SP_BUDGET_RECOMMENDATIONS = "sp-budget-recommendations"

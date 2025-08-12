@@ -43,10 +43,11 @@ class AmazonReportManager:
         self.context = context
         self.message = message
         self.helper = DateHelper()
+        self.secrets = SecretManager()
         self.sqsDb = self.getDb().sqs_messages()
+        self.sqs = SqsHelper(self.secrets.MONGO_DB_CONNECT_URI)
         self.reportsDb = self.getDb().amazon_daily_reports(self.message.uid, self.message.marketplace)
         self.productsDb = self.getDb().products(self.message.uid, self.message.marketplace)
-        self.secrets = SecretManager()
 
     def __getattr__(self, item):
         return None
@@ -55,14 +56,14 @@ class AmazonReportManager:
         try:
             dbMessageStatus = await self.sqsDb.getMessageStatus(self.messageId)
             if dbMessageStatus==SQSMessageStatus.PENDING: 
-                await self.sqsDb.setMessageAsProcessing(self.messageId)
-                
+                # await self.sqsDb.setMessageAsProcessing(self.messageId)
+                await self.setUserMarketplace()
                 return await self.executeMessage()
             return None
         except Exception as e:
             error = e.args[0] if len(e.args)>0 else "Some error Occurred"
             await self.sqsDb.setMessageAsFailed(self.messageId, error)
-            await self.reportsDb.terminateParent(self.report.id, error)
+            if self.report: await self.reportsDb.terminateParent(self.report.id, error)
     
     async def setUserMarketplace(self):
         self.userMarketplace = MarketplaceObjectForReport(**await self.getDb().marketplaces(self.message.uid).getMarketplaceObjectForReport(ObjectId(self.message.marketplace)))
@@ -93,7 +94,8 @@ class AmazonReportManager:
                 else:
                     await self.reportsDb.markReportsComplete(reportid)
                     # if self.report.productsComplete: return self.sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS)
-                    return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS)
+                    # return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS)
+                    return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_PORTFOLIOS:
                 if not self.report.productsComplete or self.report.progress!=100:
                     return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS, delay=60)
@@ -135,7 +137,7 @@ class AmazonReportManager:
                 await self.reportsDb.markParentAsCompleted(self.message.index)
                 if self.report.createdat:
                     await self.getDb().marketplaces(self.userMarketplace.uid).completeReportProcessing(
-                            self.userMarketplace.id, self.report.startdate, self.report.enddate, self.report.createdat, reportid
+                            self.userMarketplace.id, self.report.dates[0], self.report.dates[-1], self.report.createdat, reportid
                         )
                 return None
 
@@ -205,10 +207,10 @@ class AmazonReportManager:
         kioskReports = (await self.getDataKioskReportManager()).getDataKioskReportsConf(months)
         # reports: list[dict] = []
         reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]] = {
-            AmazonReportType.SPAPI: spapiReports,
+            # AmazonReportType.SPAPI: spapiReports,
             AmazonReportType.AD: adReports,
-            AmazonReportType.AD_EXPORT: adExports,
-            AmazonReportType.KIOSK: kioskReports
+            # AmazonReportType.AD_EXPORT: adExports,
+            # AmazonReportType.KIOSK: kioskReports
         }
         self.message.index = str(await self.getAmazonDailyReportDbHelper().insertParentReport(startDate, endDate, reports))
         await self.sqsDb.addIndex(self.messageId,self.message.index)
@@ -216,11 +218,12 @@ class AmazonReportManager:
         # self.marketplace.startDate = SellerManager(self.user).updateMarketplaceStartDate(self.marketplace.id, startDate)
 
     async def processReports(self):
-        shouldContinue = any(x.error is not None for x in self.report.spapi+self.report.ad+self.report.adexport+self.report.kiosk)
-        reportUtil = ReportUtil(self.userMarketplace)
-        while shouldContinue:
+        shouldContinue = any(x.error is None for x in self.report.spapi+self.report.ad+self.report.adexport+self.report.kiosk)
+        if shouldContinue:
+            reportUtil = ReportUtil(self.userMarketplace)
+            print("Progress: ", self.report.progress)
             isListingFileProcessed = await (await self.getSPAPIReportManager()).processSpapiReports(self.report.spapi, reportUtil, self.getDb(), self.report.id)
-            if isListingFileProcessed: await self.startProductsParallel()
+            # if isListingFileProcessed: await self.startProductsParallel()
             await (await self.getDataKioskReportManager()).processDataKioskReports(self.report.kiosk, reportUtil, self.getDb(), self.report.id)
             await (await self.getAdExportManager()).processExportReports(self.report.adexport, reportUtil, self.getDb(), self.report.id)
             await (await self.getAdReportManager()).processAdReports(self.report.ad, reportUtil, self.getDb(), self.report.id)

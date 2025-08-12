@@ -55,9 +55,16 @@ class AmazonAdsExportManager:
                 return None
             raise e
     
-    async def getExport(self, exportId: str) -> ExportResponse|None:
+    async def getExport(self, exportType: AdExportType, exportId:str) -> ExportResponse|None:
         try:
-            return await self.api.common.exportsClient.get_campaign_export_status(exportId)
+            if exportType == AdExportType.CAMPAIGN:
+                return await self.api.common.exportsClient.get_campaign_export_status(exportId)
+            elif exportType == AdExportType.AD:
+                return await self.api.common.exportsClient.get_ads_export_status(exportId)
+            elif exportType == AdExportType.AD_GROUP:
+                return await self.api.common.exportsClient.get_adgroup_export_status(exportId)
+            elif exportType == AdExportType.TARGET:
+                return await self.api.common.exportsClient.get_targets_export_status(exportId)
         except APIError as e:
             if e.status_code==429:
                 self.getThrottle = True
@@ -72,7 +79,7 @@ class AmazonAdsExportManager:
                 return report, not self.createThrottle
             else:
                 if not self.getThrottle:
-                    report.res = (await self.getExport(report.res.exportId)) or report.res
+                    report.res = (await self.getExport(report.exportType, report.res.exportId)) or report.res
                 return report, not self.getThrottle
         except APIError as e:
             raise e
@@ -87,17 +94,18 @@ class AmazonAdsExportManager:
         db = self.dbClient.amazon_daily_reports(self.marketplace.uid, ObjectId(str(self.marketplace.id)))
         shouldContinue = True
         for report in reports:
+            processedReport = report.__deepcopy__()
             if shouldContinue and not report.filepath:
                 try:
-                    processedReport, shouldContinue = await self.__processAdExport(report)
+                    processedReport, shouldContinue = await self.__processAdExport(processedReport)
                     if processedReport.res and processedReport.res.url: 
                         key = f'adexport/{report.exportType.value}/{processedReport.res.exportId}'
-                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.res.url, False)
+                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.res.url, True)
                         await self.__convertExportReport(report.exportType, dataStr)
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await db.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True))
+                    await db.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:
         data: list[dict] = []
@@ -108,6 +116,6 @@ class AmazonAdsExportManager:
 
     async def __convertExportReport(self, exportType: AdExportType, dataStr: str):
         from amazon_daily_report.reports.report_types.adexport.AdsExportConvertor import AdsExportConvertor
-        data = self.__convertExportFileToList(dataStr)
+        data = json.loads(dataStr)
         exports = AdsExportConvertor().getExportData(exportType, data, str(self.marketplace.id))
         await self.reportUtil.update(self.dbClient, CollectionType.ADV_ASSETS, exports, self.reportId)

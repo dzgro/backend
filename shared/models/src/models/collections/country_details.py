@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field
 from pydantic import HttpUrl
 from models.model import CountryDetails
-from models.enums import CountryCode
+from models.enums import CountryCode, Region
 
 class BidMinMax(BaseModel):
     min: float = 0
@@ -51,5 +51,5 @@ class CountryCodeNameWithAuthUrl(BaseModel):
     url: HttpUrl
 
 class CountriesByRegion(BaseModel):
-    region: str
+    region: Region
     countries: list[CountryCodeNameWithAuthUrl]

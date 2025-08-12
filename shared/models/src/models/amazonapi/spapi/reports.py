@@ -73,10 +73,10 @@ class SPAPIReportDocument(BaseModel):
 # Request models
 class SPAPICreateReportSpecification(BaseModel):
     """Specification for creating a report."""
-    report_options: ReportOptions|SkipJsonSchema[None] = Field(default=None, alias="reportOptions")
+    report_options: ReportOptions|SkipJsonSchema[None] = Field(None, alias="reportOptions")
     report_type: SPAPIReportType = Field(..., alias="reportType")
-    data_start_time: datetime|SkipJsonSchema[None] = Field(default=None, alias="dataStartTime")
-    data_end_time: datetime|SkipJsonSchema[None] = Field(default=None, alias="dataEndTime")
+    data_start_time: datetime|SkipJsonSchema[None] = Field(None, alias="dataStartTime")
+    data_end_time: datetime|SkipJsonSchema[None] = Field(None, alias="dataEndTime")
     marketplace_ids: List[str] = Field(..., alias="marketplaceIds")
 
 class SPAPICreateReportScheduleSpecification(BaseModel):

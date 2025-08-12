@@ -1,6 +1,6 @@
 from datetime import datetime
 from models.model import ErrorDetail
-from models.extras.amazon_daily_report import AmazonParentReport, AmazonSpapiReport, AmazonAdReport, AmazonExportReport, AmazonDataKioskReport
+from models.extras.amazon_daily_report import AmazonParentReport, AmazonSpapiReport, AmazonAdReport, AmazonExportReport, AmazonDataKioskReport, AmazonSpapiReportDB
 from pymongo.collection import ObjectId
 from db.DbUtils import DbManager
 from models.enums import AmazonParentReportTaskStatus, AmazonReportType, CollectionType
@@ -21,7 +21,7 @@ class AmazonDailyReportHelper:
     async def insertParentReport(self, startdate: datetime, enddate: datetime, reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]]):
         childReports: list[dict] = []
         id = await self.groupDB.insertOne({'status':AmazonParentReportTaskStatus.PROCESSING.value, 'startdate': startdate, 'enddate': enddate}, withUidMarketplace=True, timestampkey='createdat')
-        for k,v in reports.items(): childReports.extend([{'parent': id, 'reporttype': k.value, "report": x.model_dump(mode="json", exclude_none=True, exclude_defaults=True)} for x in v])
+        for k,v in reports.items(): childReports.extend([{'parent': id, 'reporttype': k.value, "report": x.model_dump(mode="json", exclude_none=True, exclude_defaults=True, by_alias=True)} for x in v])
         await self.childDB.insertMany(childReports)
         return id
 
@@ -35,10 +35,11 @@ class AmazonDailyReportHelper:
         await self.groupDB.updateOne({"_id": id}, setDict={'productsComplete': True})
 
     async def getParentReport(self, id: ObjectId):
-        pipeline = [ { '$match': { '_id': id, 'uid': self.groupDB.uid, 'marketplace': self.groupDB.marketplace, 'status': AmazonParentReportTaskStatus.PROCESSING.value } }, { '$lookup': { 'from': 'amazon_child_reports', 'localField': '_id', 'foreignField': 'parent', 'as': 'result' } }, { '$set': { 'progress': { '$let': { 'vars': { 'total': { '$size': '$result' }, 'completed': { '$size': { '$filter': { 'input': '$result', 'as': 'f', 'cond': { '$ne': [ { '$ifNull': [ '$$f.report.filePath', None ] }, None ] } } } } }, 'in': { '$cond': { 'if': { '$eq': [ '$$total', 0 ] }, 'then': 0, 'else': { '$multiply': [ { '$round': [ { '$divide': [ '$$completed', '$$total' ] }, 2 ] }, 100 ] } } } } } } },{ '$replaceRoot': { 'newRoot': { '$mergeObjects': [ { '$unsetField': { 'input': '$$ROOT', 'field': 'result' } }, { '$arrayToObject': { '$reduce': { 'input': '$result', 'initialValue': [], 'in': { '$cond': [ { '$eq': [ { '$indexOfArray': [ '$$value.k', '$$this.reporttype' ] }, -1 ] }, { '$concatArrays': [ '$$value', [ { 'k': '$$this.reporttype', 'v': [ { '$mergeObjects': [ '$$this.report', { '_id': '$$this._id' } ] } ] } ] ] }, { '$map': { 'input': '$$value', 'as': 'v', 'in': { '$cond': [ { '$ne': [ '$$v.k', '$$this.reporttype' ] }, '$$v', { '$mergeObjects': [ '$$v', { 'v': { '$concatArrays': [ '$$v.v', [ { '$mergeObjects': [ '$$this.report', { '_id': '$$this._id', 'filePath': "$$this.filePath" } ] } ] ] } } ] } ] } } } ] } } } } ] } } } ]
+        pipeline = [ { '$match': { '_id': id, 'uid': self.groupDB.uid, 'marketplace': self.groupDB.marketplace, 'status': AmazonParentReportTaskStatus.PROCESSING.value } }, { '$lookup': { 'from': 'amazon_child_reports', 'localField': '_id', 'foreignField': 'parent', 'as': 'result' } }, { '$set': { 'progress': { '$let': { 'vars': { 'total': { '$size': '$result' }, 'completed': { '$size': { '$filter': { 'input': '$result', 'as': 'f', 'cond': { '$ne': [ { '$ifNull': [ '$$f.report.filepath', None ] }, None ] } } } } }, 'in': { '$cond': { 'if': { '$eq': [ '$$total', 0 ] }, 'then': 0, 'else': { '$multiply': [ { '$round': [ { '$divide': [ '$$completed', '$$total' ] }, 2 ] }, 100 ] } } } } } } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ { '$unsetField': { 'input': '$$ROOT', 'field': 'result' } }, { '$arrayToObject': { '$reduce': { 'input': '$result', 'initialValue': [], 'in': { '$let': { 'vars': { 'key': { '$toLower': { '$replaceAll': { 'input': '$$this.reporttype', 'find': '_', 'replacement': '' } } } }, 'in': { '$cond': [ { '$eq': [ { '$indexOfArray': [ '$$value.k', '$$key' ] }, -1 ] }, { '$concatArrays': [ '$$value', [ { 'k': '$$key', 'v': [ { '$mergeObjects': [ '$$this.report', { '_id': '$$this._id' } ] } ] } ] ] }, { '$map': { 'input': '$$value', 'as': 'v', 'in': { '$cond': [ { '$ne': [ '$$v.k', '$$key' ] }, '$$v', { '$mergeObjects': [ '$$v', { 'v': { '$concatArrays': [ '$$v.v', [ { '$mergeObjects': [ '$$this.report', { '_id': '$$this._id', 'filepath': '$$this.filepath' } ] } ] ] } } ] } ] } } } ] } } } } } } ] } } } ]
         data = await self.groupDB.aggregate(pipeline)
         if len(data)==0: raise ValueError("No Pending Group Report")
         return AmazonParentReport(**data[0])
+        
 
     async def terminateParent(self, id: str, error):
         await self.groupDB.updateOne({"_id": ObjectId(id)}, setDict={'error': error})
@@ -53,8 +54,8 @@ class AmazonDailyReportHelper:
     async def updateChildReport(self, id: str, data: dict):
         await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={f'report.{k}': v for k,v in data.items()})
 
-    async def addFilePathToChildReport(self, id:str, filePath: str):
-        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'filePath': filePath})
+    async def addfilepathToChildReport(self, id:str, filepath: str):
+        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'filepath': filepath})
 
     async def addErrorToChildReport(self, id:str, error: dict):
         await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'error': error})

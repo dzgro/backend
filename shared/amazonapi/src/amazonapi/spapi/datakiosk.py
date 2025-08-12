@@ -1,9 +1,7 @@
 ﻿from amazonapi.client import BaseClient
 from models.amazonapi.spapi.datakiosk import (
-    CreateQueryRequest, CreateQueryResponse,
-    GetQueryResponse, ListQueriesResponse, CancelQueryResponse,
-    GetQueryResultResponse, GetQueryResultDocumentResponse,
-    GetSchemaResponse, ListSchemasResponse
+    DataKioskCreateQueryRequest, DataKioskCreateQueryResponse, GetQueriesResponse, DataKioskQueryResponse, DataKioskDocumentResponse
+    
 )
 from typing import Optional
 
@@ -11,71 +9,38 @@ class DataKioskClient(BaseClient):
     """Client for the Amazon Data Kiosk API."""
     BASE_URL = "https://sellingpartnerapi-na.amazon.com"
 
-    async def create_query(self, request: CreateQueryRequest) -> CreateQueryResponse:
+    async def create_query(self, request: DataKioskCreateQueryRequest) -> DataKioskCreateQueryResponse:
         return await self._request(
             method="POST",
             path="/dataKiosk/2023-11-15/queries",
             operation="createQuery",
-            data=request.model_dump(by_alias=True),
-            response_model=CreateQueryResponse,
+            data=request.body.model_dump(exclude_none=True),
+            response_model=DataKioskCreateQueryResponse,
         )
 
-    async def get_query(self, query_id: str) -> GetQueryResponse:
+    async def get_query(self, query_id: str) -> DataKioskQueryResponse:
         return await self._request(
             method="GET",
             path=f"/dataKiosk/2023-11-15/queries/{query_id}",
             operation="getQuery",
-            response_model=GetQueryResponse,
+            response_model=DataKioskQueryResponse,
         )
 
-    async def list_queries(self, next_token: Optional[str] = None) -> ListQueriesResponse:
+    async def list_queries(self, next_token: Optional[str] = None) -> GetQueriesResponse:
         params = {"nextToken": next_token} if next_token else None
         return await self._request(
             method="GET",
             path="/dataKiosk/2023-11-15/queries",
             operation="listQueries",
             params=params,
-            response_model=ListQueriesResponse,
+            response_model=GetQueriesResponse,
         )
 
-    async def cancel_query(self, query_id: str) -> CancelQueryResponse:
-        return await self._request(
-            method="POST",
-            path=f"/dataKiosk/2023-11-15/queries/{query_id}/cancel",
-            operation="cancelQuery",
-            response_model=CancelQueryResponse,
-        )
 
-    async def get_query_result(self, query_id: str) -> GetQueryResultResponse:
+    async def get_query_result_document(self, result_document_id: str) -> DataKioskDocumentResponse:
         return await self._request(
             method="GET",
-            path=f"/dataKiosk/2023-11-15/queries/{query_id}/result",
-            operation="getQueryResult",
-            response_model=GetQueryResultResponse,
-        )
-
-    async def get_query_result_document(self, result_document_id: str) -> GetQueryResultDocumentResponse:
-        return await self._request(
-            method="GET",
-            path=f"/dataKiosk/2023-11-15/resultDocuments/{result_document_id}",
+            path=f"/dataKiosk/2023-11-15/documents/{result_document_id}",
             operation="getQueryResultDocument",
-            response_model=GetQueryResultDocumentResponse,
+            response_model=DataKioskDocumentResponse,
         )
-
-    async def get_schema(self, schema_name: str) -> GetSchemaResponse:
-        return await self._request(
-            method="GET",
-            path=f"/dataKiosk/2023-11-15/schemas/{schema_name}",
-            operation="getSchema",
-            response_model=GetSchemaResponse,
-        )
-
-    async def list_schemas(self, next_token: Optional[str] = None) -> ListSchemasResponse:
-        params = {"nextToken": next_token} if next_token else None
-        return await self._request(
-            method="GET",
-            path="/dataKiosk/2023-11-15/schemas",
-            operation="listSchemas",
-            params=params,
-            response_model=ListSchemasResponse,
-        ) 

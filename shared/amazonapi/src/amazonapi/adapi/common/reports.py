@@ -13,7 +13,7 @@ class ReportsClient(BaseClient):
             method="POST",
             path="/reporting/reports",
             operation="create_report",
-            data=request.model_dump(exclude_none=True, by_alias=True),
+            data=request.model_dump(mode="json",exclude_none=True, by_alias=True),
             response_model=AdReport,
             headers={
                 "Content-Type": "application/vnd.createAdReportrequest.v3+json",

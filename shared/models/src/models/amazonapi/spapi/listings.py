@@ -88,6 +88,10 @@ class ItemRelationshipsByMarketplace(BaseModel):
     marketplace_id: str = Field(..., alias="marketplaceId")
     relationships: List[Dict[str, Any]]
 
+class ItemProductTypeByMarketplace(BaseModel):
+    marketplace_id: str = Field(..., alias="marketplaceId")
+    product_type: str = Field(..., alias="productType")
+
 class Item(BaseModel):
     sku: str
     summaries: Optional[List[ItemSummaryByMarketplace]] = None
@@ -97,7 +101,7 @@ class Item(BaseModel):
     fulfillment_availability: Optional[List[FulfillmentAvailability]] = Field(None, alias="fulfillmentAvailability")
     procurement: Optional[List[Dict[str, Any]]] = None
     relationships: Optional[List[ItemRelationshipsByMarketplace]] = None
-    product_types: Optional[List[str]] = Field(None, alias="productTypes")
+    product_types: Optional[List[ItemProductTypeByMarketplace]] = Field(None, alias="productTypes")
 
 class Pagination(BaseModel):
     next_token: Optional[str] = Field(None, alias="nextToken")

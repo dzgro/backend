@@ -15,6 +15,7 @@ class ListingReportConvertor:
             item = {
                 '_id': f'{str(self.marketplace.id)}_{listing["seller-sku"]}',
                 "sku": listing['seller-sku'],
+                "asin": listing['asin1'],
                 "quantity": int(listing['quantity']) if len(listing['quantity'])>0 else 0,
                 "price": float(listing['price']) if len(listing['price'])>0 else None,
                 "fulfillment": listing['fulfillment-channel'],

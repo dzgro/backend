@@ -29,14 +29,21 @@ class QueueMessagesHelper:
 
     async def addIndex(self, messageid:str, index):
         return await self.dbManager.updateOne({"_id": messageid},setDict={"body.index": index})
+    
+    def __deserialize_message(self, doc: dict) -> BaseModel:
+        model_name = doc.get("model")
+        body = doc.get("body")
+        if model_name not in MODEL_REGISTRY:
+            raise ValueError(f"Unknown model: {model_name}")
+        model_cls = MODEL_REGISTRY[model_name]
+        return model_cls.model_validate(body)
 
     async def getMessagesByIndex(self, index:str):
-        def deserialize_message(doc: dict) -> BaseModel:
-            model_name = doc.get("model_name")
-            body = doc.get("body")
-            if model_name not in MODEL_REGISTRY:
-                raise ValueError(f"Unknown model: {model_name}")
-            model_cls = MODEL_REGISTRY[model_name]
-            return model_cls.model_validate(body)
-        result = await self.dbManager.find({"index": index})
-        return [deserialize_message(doc) for doc in result]
+        result = await self.dbManager.find({"body.index": index})
+        return [self.__deserialize_message(doc) for doc in result]
+    
+    async def getMessage(self, messageid:str, status: SQSMessageStatus|None = None) -> BaseModel:
+        filterdict = {"_id": messageid}
+        if status: filterdict["status"] = status.value
+        message = await self.dbManager.findOne(filterdict)
+        return self.__deserialize_message(message)

@@ -31,7 +31,8 @@ class AmazonSpapiReportManager:
         return None
 
     async def getSPAPIReportsConf(self, startdate: datetime, months: int)->list[AmazonSpapiReport]:
-        reports: list[AmazonSpapiReport] = await self.__getSettlementReports(startdate)
+        reports: list[AmazonSpapiReport] = []
+        # reports: list[AmazonSpapiReport] = await self.__getSettlementReports(startdate)
         dates = Utility.getConfDatesByMonths(months, self.timezone, 'spapi', 30)
         reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
         reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
@@ -44,12 +45,16 @@ class AmazonSpapiReportManager:
             report_types=['GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2'],
             created_since=startdate
         )).reports
-        return [AmazonSpapiReport(res=report) for report in reports]
+        dummy = self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2)
+        return [AmazonSpapiReport(req=dummy.req, res=report) for report in reports]
 
     def __createSPAPIReportConf(self, reportType: SPAPIReportType, startDate: datetime|None=None, endDate: datetime|None=None):
         req = SPAPICreateReportSpecification(
             reportType=reportType,
-            marketplaceIds=[self.spapi.object.marketplaceid]
+            marketplaceIds=[self.spapi.object.marketplaceid],
+            dataEndTime=None,
+            dataStartTime=None,
+            reportOptions=None
         )
         if startDate: req.data_start_time = startDate
         if endDate: req.data_end_time = endDate
@@ -95,18 +100,19 @@ class AmazonSpapiReportManager:
         shouldContinue = True
         isListingFileProcessed = False
         for report in reports:
-            if shouldContinue and not report.filepath:
+            processedReport = report.__deepcopy__()
+            if shouldContinue and not processedReport.filepath:
                 try:
-                    processedReport, shouldContinue = await self.__processSpapiReport(report)
-                    if processedReport.document and processedReport.req: 
-                        key = f'spapi/{processedReport.req.report_type}/{id}'
+                    processedReport, shouldContinue = await self.__processSpapiReport(processedReport)
+                    if processedReport.document and processedReport.req and processedReport.res: 
+                        key = f'spapi/{processedReport.req.report_type.value}/{processedReport.res.report_id}'
                         dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.document.url, processedReport.document.compression_algorithm is not None)
                         await self.__addSPAPIReport(dataStr, processedReport.req.report_type)
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await db.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True))
-                    if not isListingFileProcessed and report.req and report.req.report_type == SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA:
+                    await db.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    if not isListingFileProcessed and report.req and report.req.report_type == SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA and report.document:
                         isListingFileProcessed = True
         return isListingFileProcessed
 
@@ -156,17 +162,16 @@ class AmazonSpapiReportManager:
         reportid: str|None = report.res.report_id if report.res else None
         reportDocId: str|None = report.res.report_document_id if report.res else None
         try:
-            if not reportid and report.req: reportid = (await self.__createReport(report.req))
-            if reportid and not report.res: report.res = await self.__getReport(reportid)
-            else:
-                if reportid is not None and reportDocId is None: 
-                    report.res = await self.__getReport(reportid)
-                    if report.res:
-                        if report.res.processing_status==ProcessingStatus.DONE:
-                            if report.res.report_document_id and report.req: 
-                                report.document = await self.__getDocument(report.res.report_document_id)
-                        elif report.res.processing_status == ProcessingStatus.FATAL:
-                            raise APIError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in {report.res.processing_status} status")]))
+            if not reportid and report.req: 
+                reportid = (await self.__createReport(report.req))
+                if reportid: report.res = await self.__getReport(reportid)
+            elif reportid and (not report.res or reportDocId is None): report.res = await self.__getReport(reportid)
+            elif report.res:
+                if report.res.processing_status==ProcessingStatus.DONE:
+                    if report.res.report_document_id: 
+                        report.document = await self.__getDocument(report.res.report_document_id)
+                elif report.res.processing_status == ProcessingStatus.FATAL:
+                    raise APIError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in {report.res.processing_status} status")]))
             return report, True
         except APIError as e:
             raise e

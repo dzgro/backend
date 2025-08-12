@@ -49,8 +49,7 @@ class MarketplaceHelper:
         pipeline = [ 
             self.marketplaceDB.pp.matchMarketplace({'_id': self.marketplaceDB.convertToObjectId(id)}),
             self.marketplaceDB.pp.lookup(collection, 'result', localField=objKey, foreignField='_id', pipeline=[ { '$lookup': { 'from': 'country_details', 'localField': 'countrycode', 'foreignField': '_id', 'pipeline': [ { '$project': { 'url': urlKey, '_id': 0 } } ], 'as': 'url' } }, { '$unwind': { 'path': '$url' } }, { '$replaceWith': { '_id': '$_id', 'sellerid': '$sellerid', 'url': '$url.url', "refreshtoken": "$refreshtoken" } } ]),
-            self.marketplaceDB.pp.replaceRoot(self.marketplaceDB.pp.mergeObjects([{ '$first': '$result' }, { 'marketplaceid': '$marketplaceid', 'profileid': '$profileid' }])) ]
-        print(pipeline)
+            self.marketplaceDB.pp.replaceRoot(self.marketplaceDB.pp.mergeObjects([{ '$first': '$result' }, { 'marketplaceid': '$marketplaceid', 'profile': '$profileid', 'region': '$region' }])) ]
         data = await self.marketplaceDB.aggregate(pipeline)
         if len(data)==0: raise ValueError("Invalid Seller Configuration")
         return {**data[0], 'client_id': client_id, 'client_secret': client_secret, "isad": accountType==AmazonAccountType.ADVERTISING}

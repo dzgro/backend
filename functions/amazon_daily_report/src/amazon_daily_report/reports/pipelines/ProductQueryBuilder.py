@@ -91,5 +91,6 @@ class QueryBuilder:
         pipeline.extend([createCurrPreObjects, addCalculatedFields, addCurrPre, addGrowth])
         pipeline.extend([{ '$set': { 'uid': self.marketplace.uid, 'marketplace': self.marketplace.id, 'queryid': '$_id', '_id': { '$concat': [ { '$toString': '$marketplace' }, '_', { '$toString': '$_id' }, '_', '$collatetype', '_', { '$toString': '$value' } ] }, 'parent': { '$switch': { 'branches': [ { 'case': { '$eq': [ '$collatetype', 'sku' ] }, 'then': '$asin' }, { 'case': { '$eq': [ '$collatetype', 'asin' ] }, 'then': '$parentsku' }, { 'case': { '$eq': [ '$collatetype', 'parentsku' ] }, 'then': '$producttype' } ], 'default': None } } } }, { '$project': { 'data': 1, 'queryid': 1, 'value': 1, 'collatetype': 1, 'parent': 1 } }])
         pipeline.append(self.queryDb.db.pp.merge(CollectionType.QUERY_RESULTS, 'replace', 'insert'))
+        print(pipeline)
         await self.queryDb.db.aggregate(pipeline)
         return await self.getNextQuery(query)

@@ -124,7 +124,7 @@ class MockLambdaContext:
         self.startTime = startTime
 
     def get_remaining_time_in_millis(self) -> int:
-        remaining = 200000 - (int(datetime.now().timestamp()*1000)-self.startTime)
+        remaining = 900000 - (int(datetime.now().timestamp()*1000)-self.startTime)
         print(remaining)
         return remaining
 

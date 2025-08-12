@@ -8,7 +8,7 @@ from pydantic.json_schema import SkipJsonSchema
 from models.amazonapi.adapi.common.reports import AdReportRequest, AdReport
 from models.amazonapi.adapi.common.exports import ExportRequest, ExportResponse
 from models.amazonapi.spapi.reports import SPAPIReport, SPAPICreateReportSpecification, SPAPIReportDocument
-from models.amazonapi.spapi.datakiosk import CreateQueryRequest, GetQueryResponse, GetQueryResultDocumentResponse, GetQueryResultResponse
+from models.amazonapi.spapi.datakiosk import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse
 
 class AdUnitParents(BaseModel):
     portfolioId: str|SkipJsonSchema[None]=None
@@ -81,9 +81,9 @@ class AmazonSpapiReport(BaseModel):
     document: SPAPIReportDocument|SkipJsonSchema[None]=None
     
 class AmazonDataKioskReport(BaseModel):
-    req: CreateQueryRequest|SkipJsonSchema[None]=None
-    res: GetQueryResultResponse|SkipJsonSchema[None]=None 
-    document: GetQueryResultDocumentResponse|SkipJsonSchema[None]=None
+    req: DataKioskCreateQueryRequest|SkipJsonSchema[None]=None
+    res: DataKioskQueryResponse|SkipJsonSchema[None]=None
+    document: DataKioskDocumentResponse|SkipJsonSchema[None]=None
 
 class AmazonSpapiReportDB(AmazonSpapiReport, ReportStatus):
     pass
@@ -115,12 +115,12 @@ class AmazonParentReport(ItemIdWithDate):
     kiosk: list[AmazonDataKioskReportDB] = []
     messages: list[AmazonDailyReportMessages] = []
     dates: list[datetime] = []
-    progress: int = 100
+    progress: float
     productsComplete: bool = False
 
     @model_validator(mode="after")
     def setStatus(self):
-        if self.startdate and self.enddate: self.dates = [self.startdate+timedelta(days=i) for i in range((self.enddate-self.startdate).days+1)]
+        if self.startdate and self.enddate: self.dates = [self.startdate+timedelta(days=i, milliseconds=1) for i in range((self.enddate-self.startdate).days+1)]
         return self
 
 

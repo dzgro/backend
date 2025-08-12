@@ -16,7 +16,7 @@ class QueryHelper:
         self.uid = uid
         self.marketplace = marketplace
         self.marketplaceHelper = MarketplaceHelper(db, uid)
-        self.db = DbManager(db.get_collection(CollectionType.QUERIES), uid, marketplace)
+        self.db = DbManager(db.get_collection(CollectionType.QUERIES))
 
     def __get_month_datetimes_till(self, date_input: datetime) -> list[datetime]:
         first_day = date_input.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

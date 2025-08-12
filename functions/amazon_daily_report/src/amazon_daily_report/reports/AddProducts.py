@@ -42,15 +42,15 @@ class ListingsBuilder:
                 for item in res.items:
                     product = self.convertItemToDict(item)
                     if product: items.append(product)
-                    print(f'Items : {len(items)}, Remaining: {res.number_of_results-20}')
+                print(f'Items : {len(items)}, Remaining: {res.number_of_results-len(items)}')
                 token = res.pagination.next_token if res.pagination and res.pagination.next_token else None
-                date = datetime.strptime(items[-1]['lastUpdatedDate'], self.dateFormat)
             except APIError as e:
                 if e.status_code==429:
                     await asyncio.sleep(1)
                     continue
                 else: raise e
-        return await self.complete(items, date, token is not None)
+        date = items[-1]['lastUpdatedDate'] if items else date
+        return await self.complete(items, date, res.number_of_results>len(items))
 
     async def complete(self, items: list[dict], date: datetime|None, hasMore: bool):
         if len(items)>0:
@@ -65,9 +65,9 @@ class ListingsBuilder:
             return (await self.spapi.listings.search_listings_items(
                 seller_id=self.marketplace.sellerid,
                 included_data=[
-                    'summaries', 'attributes', 'relationships', 'images', 'productTypes', 'fulfillmentAvailability', 'offers'
+                    'summaries', 'attributes', 'relationships', 'productTypes', 'fulfillmentAvailability', 'offers'
                 ],
-                lastUpdatedAfter=date, pageToken=token
+                lastUpdatedAfter=date, pageToken=token, sortOrder="ASC"
             ))
         except APIError as e:
             if e.status_code==429:

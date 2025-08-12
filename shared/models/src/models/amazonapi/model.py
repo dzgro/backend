@@ -1,6 +1,8 @@
 ﻿from typing import List, Literal, Optional, Any
+from models.enums import Region
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
+from models.enums import Region
 
 
 class AmazonApiObject(BaseModel):
@@ -12,6 +14,7 @@ class AmazonApiObject(BaseModel):
     sellerid:str
     client_id:str
     client_secret:str
+    region: Region|SkipJsonSchema[None]=None
     scope: str|SkipJsonSchema[None]=None
 
     @model_validator(mode="before")

@@ -10,6 +10,7 @@ from amazonapi.adapi.common.products import ProductsMetadataClient
 from amazonapi.adapi.common.reports import ReportsClient
 from amazonapi.adapi.common.exports import ExportsClient
 from amazonapi.adapi.common.portfolios import PortfoliosClient
+from amazonapi.adapi.common.ams import AMSClient
 
 class AdApiCommonClient:
     def __init__(self, object: AmazonApiObject):
@@ -34,3 +35,7 @@ class AdApiCommonClient:
     @cached_property
     def portfoliosClient(self):
         return PortfoliosClient(self.object)
+
+    @cached_property
+    def amsClient(self):
+        return AMSClient(self.object)

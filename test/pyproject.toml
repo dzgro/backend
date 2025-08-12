@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "test"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{include = "test", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+requests = "*"
+db = { path = "../shared/db", develop = true }
+dzgrosecrets = { path = "../shared/dzgrosecrets", develop = true }
+sqs = { path = "../shared/sqs", develop = true }
+storage = { path = "../shared/storage", develop = true }
+amazonapi = { path = "../shared/amazonapi", develop = true }
+razorpay = { path = "../shared/razorpay", develop = true }
+date_util = { path = "../shared/date_util", develop = true }
+cognito = { path = "../shared/cognito", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+

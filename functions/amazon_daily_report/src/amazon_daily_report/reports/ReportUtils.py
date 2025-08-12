@@ -28,7 +28,7 @@ class ReportUtil:
         from storage.model import S3PutObjectModel
         data = self.fetchData(url, compressionAlgorithm)
         S3Storage().put_object(
-            S3PutObjectModel(Key=key, Body=data, ContentType='application/json')
+            S3PutObjectModel(Key=path, Body=data, ContentType='application/json')
         )
         return data, path
     

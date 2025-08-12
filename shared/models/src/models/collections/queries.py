@@ -6,12 +6,12 @@ from datetime import datetime
 class QueryPeriod(BaseModel):
     start: datetime
     end: datetime
-    label: str
+    label: str = ''
 
-    @model_validator(mode="before")
-    def setLabel(cls, data):
-        data['label'] = f'{data['start'].strftime("%b %d, %Y")} - {data['end'].strftime("%b %d, %Y")}'
-        return data
+    @model_validator(mode="after")
+    def setLabel(self):
+        self.label = f'{self.start.strftime("%b %d, %Y")} - {self.end.strftime("%b %d, %Y")}'
+        return self
 class Query(ItemId):
     tag: CollateTypeTag
     curr: QueryPeriod
