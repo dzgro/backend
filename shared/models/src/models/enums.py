@@ -365,6 +365,7 @@ class CollectionType(str,Enum):
     PAYMENTS = 'payments'
     SUBSCRIPTIONS = 'subscriptions'
     EVENTS = 'events'
+    DEFAULTS = 'defaults'
     CREDITS = 'credits'
     PRODUCTS = 'products'
     ORDERS = 'orders'
@@ -408,9 +409,9 @@ class SQSMessageStatus(str, Enum):
     FAILED = "FAILED"
     
 class QueueUrl(str, Enum):
-    RAZORPAY = "https://sqs.ap-south-1.amazonaws.com/522814698847/Razorpay"
     NEW_USER = "https://sqs.ap-south-1.amazonaws.com/522814698847/NewUser"
     AMAZON_REPORTS = "https://sqs.ap-south-1.amazonaws.com/522814698847/AmazonReports"
+    PAYMENT = "https://sqs.ap-south-1.amazonaws.com/522814698847/Payment"
 
 class PlanDuration(str, Enum):
     MONTHLY = "monthly"

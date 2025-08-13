@@ -7,9 +7,9 @@ readme = "README.md"
 packages = [{ include = "razorpay", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12"
-pydantic = "*"
-httpx = "*"
+python = ">=3.12,<4.0"
+pydantic = "2.11.7"
+httpx = "0.28.1"
 models = { path = "../models", develop = true }
 
 [build-system]

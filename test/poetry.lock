@@ -5,16 +5,16 @@ name = "amazonapi"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-backoff = "*"
-httpx = "*"
+backoff = "2.2.1"
+httpx = "0.28.1"
 models = {path = "../models", develop = true}
-pydantic = "*"
+pydantic = "2.11.7"
 
 [package.source]
 type = "directory"
@@ -54,46 +54,46 @@ trio = ["trio (>=0.26.1)"]
 
 [[package]]
 name = "backoff"
-version = "1.11.1"
+version = "2.2.1"
 description = "Function decoration for backoff and retry"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.7,<4.0"
 groups = ["main"]
 files = [
-    {file = "backoff-1.11.1-py2.py3-none-any.whl", hash = "sha256:61928f8fa48d52e4faa81875eecf308eccfb1016b018bb6bd21e05b5d90a96c5"},
-    {file = "backoff-1.11.1.tar.gz", hash = "sha256:ccb962a2378418c667b3c979b504fdeb7d9e0d29c0579e3b13b86467177728cb"},
+    {file = "backoff-2.2.1-py3-none-any.whl", hash = "sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8"},
+    {file = "backoff-2.2.1.tar.gz", hash = "sha256:03f829f5bb1923180821643f8753b0502c3b682293992485b0eef2807afa5cba"},
 ]
 
 [[package]]
 name = "boto3"
-version = "1.40.7"
+version = "1.34.113"
 description = "The AWS SDK for Python"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "boto3-1.40.7-py3-none-any.whl", hash = "sha256:8727cac601a679d2885dc78b8119a0548bbbe04e49b72f7d94021a629154c080"},
-    {file = "boto3-1.40.7.tar.gz", hash = "sha256:61b15f70761f1eadd721c6ba41a92658f003eaaef09500ca7642f5ae68ec8945"},
+    {file = "boto3-1.34.113-py3-none-any.whl", hash = "sha256:7e59f0a848be477a4c98a90e7a18a0e284adfb643f7879d2b303c5f493661b7a"},
+    {file = "boto3-1.34.113.tar.gz", hash = "sha256:009cd143509f2ff4c37582c3f45d50f28c95eed68e8a5c36641206bdb597a9ea"},
 ]
 
 [package.dependencies]
-botocore = ">=1.40.7,<1.41.0"
+botocore = ">=1.34.113,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
-s3transfer = ">=0.13.0,<0.14.0"
+s3transfer = ">=0.10.0,<0.11.0"
 
 [package.extras]
 crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.40.7"
+version = "1.34.113"
 description = "Low-level, data-driven core of boto 3."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "botocore-1.40.7-py3-none-any.whl", hash = "sha256:a06956f3d7222e80ef6ae193608f358c3b7898e1a2b88553479d8f9737fbb03e"},
-    {file = "botocore-1.40.7.tar.gz", hash = "sha256:33793696680cf3a0c4b5ace4f9070c67c4d4fcb19c999fd85cfee55de3dcf913"},
+    {file = "botocore-1.34.113-py3-none-any.whl", hash = "sha256:8ca87776450ef41dd25c327eb6e504294230a5756940d68bcfdedc4a7cdeca97"},
+    {file = "botocore-1.34.113.tar.gz", hash = "sha256:449912ba3c4ded64f21d09d428146dd9c05337b2a112e15511bf2c4888faae79"},
 ]
 
 [package.dependencies]
@@ -102,7 +102,7 @@ python-dateutil = ">=2.1,<3.0.0"
 urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >= \"3.10\""}
 
 [package.extras]
-crt = ["awscrt (==0.23.8)"]
+crt = ["awscrt (==0.20.9)"]
 
 [[package]]
 name = "certifi"
@@ -210,14 +210,14 @@ name = "cognito"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-boto3 = "*"
-mypy_boto3_cognito_idp = "*"
+boto3 = "1.34.113"
+mypy_boto3_cognito_idp = "1.39.0"
 
 [package.source]
 type = "directory"
@@ -241,13 +241,13 @@ name = "date-util"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-pytz = "*"
+pytz = "2024.1"
 
 [package.source]
 type = "directory"
@@ -258,18 +258,18 @@ name = "db"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-boto3 = "*"
-botocore = "*"
+boto3 = "1.34.113"
+botocore = "1.34.113"
 models = {path = "../models", develop = true}
-motor = "*"
-mypy_boto3_cognito_idp = "*"
-pydantic = "*"
+motor = "3.7.1"
+mypy_boto3_cognito_idp = "1.39.0"
+sqs = {path = "../sqs", develop = true}
 
 [package.source]
 type = "directory"
@@ -301,19 +301,37 @@ name = "dzgrosecrets"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-boto3 = "*"
-pydantic = "*"
-pytest = "*"
+boto3 = "1.34.113"
+pydantic = "2.11.7"
+pytest = "8.2.2"
 
 [package.source]
 type = "directory"
 url = "../shared/dzgrosecrets"
+
+[[package]]
+name = "fed-db"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = ">=3.12,<4.0"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+models = {path = "../models", develop = true}
+motor = "3.7.1"
+
+[package.source]
+type = "directory"
+url = "../shared/fed_db"
 
 [[package]]
 name = "h11"
@@ -418,13 +436,13 @@ name = "models"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-pydantic = "*"
+pydantic = "2.11.7"
 
 [package.source]
 type = "directory"
@@ -457,14 +475,14 @@ zstd = ["pymongo[zstd] (>=4.5,<5)"]
 
 [[package]]
 name = "mypy-boto3-cognito-idp"
-version = "1.40.7"
-description = "Type annotations for boto3 CognitoIdentityProvider 1.40.7 service generated with mypy-boto3-builder 8.11.0"
+version = "1.39.0"
+description = "Type annotations for boto3 CognitoIdentityProvider 1.39.0 service generated with mypy-boto3-builder 8.11.0"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "mypy_boto3_cognito_idp-1.40.7-py3-none-any.whl", hash = "sha256:e3dbc6242270eb54ade6cb6372289d2c63303a7b2eb02dda80f975c19678236e"},
-    {file = "mypy_boto3_cognito_idp-1.40.7.tar.gz", hash = "sha256:9f59f63b99348541cb88c10fd9fade4c331c60ac62991b7ec96b7ce811238fd2"},
+    {file = "mypy_boto3_cognito_idp-1.39.0-py3-none-any.whl", hash = "sha256:c0589f9c9f5081d0ea2df8a14c0dc6dcbe4a1c37b758fcc362c528efe540e1df"},
+    {file = "mypy_boto3_cognito_idp-1.39.0.tar.gz", hash = "sha256:03a5f2876f61b638966ed85db49f64c2aa8c166b1fb4d3310759b5b0fa1dd335"},
 ]
 
 [[package]]
@@ -642,21 +660,6 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
-name = "pygments"
-version = "2.19.2"
-description = "Pygments is a syntax highlighting package written in Python."
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"},
-    {file = "pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"},
-]
-
-[package.extras]
-windows-terminal = ["colorama (>=0.4.6)"]
-
-[[package]]
 name = "pymongo"
 version = "4.14.0"
 description = "PyMongo - the Official MongoDB Python driver"
@@ -738,25 +741,24 @@ zstd = ["zstandard"]
 
 [[package]]
 name = "pytest"
-version = "8.4.1"
+version = "8.2.2"
 description = "pytest: simple powerful testing with Python"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "pytest-8.4.1-py3-none-any.whl", hash = "sha256:539c70ba6fcead8e78eebbf1115e8b589e7565830d7d006a8723f19ac8a0afb7"},
-    {file = "pytest-8.4.1.tar.gz", hash = "sha256:7c67fd69174877359ed9371ec3af8a3d2b04741818c51e5e99cc1742251fa93c"},
+    {file = "pytest-8.2.2-py3-none-any.whl", hash = "sha256:c434598117762e2bd304e526244f67bf66bbd7b5d6cf22138be51ff661980343"},
+    {file = "pytest-8.2.2.tar.gz", hash = "sha256:de4bb8104e201939ccdc688b27a89a7be2079b22e2bd2b07f806b6ba71117977"},
 ]
 
 [package.dependencies]
-colorama = {version = ">=0.4", markers = "sys_platform == \"win32\""}
-iniconfig = ">=1"
-packaging = ">=20"
-pluggy = ">=1.5,<2"
-pygments = ">=2.7.2"
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+iniconfig = "*"
+packaging = "*"
+pluggy = ">=1.5,<2.0"
 
 [package.extras]
-dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests", "setuptools", "xmlschema"]
+dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
 name = "python-dateutil"
@@ -775,14 +777,14 @@ six = ">=1.5"
 
 [[package]]
 name = "pytz"
-version = "2025.2"
+version = "2024.1"
 description = "World timezone definitions, modern and historical"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
-    {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
+    {file = "pytz-2024.1-py2.py3-none-any.whl", hash = "sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319"},
+    {file = "pytz-2024.1.tar.gz", hash = "sha256:2a29735ea9c18baf14b448846bde5a48030ed267578472d8955cd0e7443a9812"},
 ]
 
 [[package]]
@@ -790,15 +792,15 @@ name = "razorpay"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-httpx = "*"
+httpx = "0.28.1"
 models = {path = "../models", develop = true}
-pydantic = "*"
+pydantic = "2.11.7"
 
 [package.source]
 type = "directory"
@@ -828,21 +830,21 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "s3transfer"
-version = "0.13.1"
+version = "0.10.4"
 description = "An Amazon S3 Transfer Manager"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "s3transfer-0.13.1-py3-none-any.whl", hash = "sha256:a981aa7429be23fe6dfc13e80e4020057cbab622b08c0315288758d67cabc724"},
-    {file = "s3transfer-0.13.1.tar.gz", hash = "sha256:c3fdba22ba1bd367922f27ec8032d6a1cf5f10c934fb5d68cf60fd5a23d936cf"},
+    {file = "s3transfer-0.10.4-py3-none-any.whl", hash = "sha256:244a76a24355363a68164241438de1b72f8781664920260c48465896b712a41e"},
+    {file = "s3transfer-0.10.4.tar.gz", hash = "sha256:29edc09801743c21eb5ecbc617a152df41d3c287f67b615f73e5f750583666a7"},
 ]
 
 [package.dependencies]
-botocore = ">=1.37.4,<2.0a.0"
+botocore = ">=1.33.2,<2.0a.0"
 
 [package.extras]
-crt = ["botocore[crt] (>=1.37.4,<2.0a.0)"]
+crt = ["botocore[crt] (>=1.33.2,<2.0a.0)"]
 
 [[package]]
 name = "six"
@@ -873,17 +875,17 @@ name = "sqs"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-boto3 = "*"
-botocore = "*"
+boto3 = "1.34.113"
+botocore = "1.34.113"
 db = {path = "../db", develop = true}
-mypy_boto3_sqs = "*"
-pydantic = "*"
+mypy_boto3_sqs = "1.40.0"
+pydantic = "2.11.7"
 
 [package.source]
 type = "directory"
@@ -894,15 +896,16 @@ name = "storage"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = ">=3.12"
+python-versions = ">=3.12,<4.0"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-boto3 = "*"
-botocore = "*"
-pydantic = "*"
+boto3 = "1.34.113"
+botocore = "1.34.113"
+models = {path = "../models", develop = true}
+pydantic = "2.11.7"
 
 [package.source]
 type = "directory"
@@ -955,5 +958,5 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.12"
-content-hash = "8d8eb3a317e07a3e22dd618333bb020de69b7af64e927ff6aebeea07b3d53480"
+python-versions = ">=3.12,<4.0"
+content-hash = "238897864de61c3cb44b265b948d0dc396a851bcce868389ddb58a573c1c3d04"

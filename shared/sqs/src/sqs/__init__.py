@@ -5,7 +5,6 @@ import json
 from models.sqs import aws_error_handler, SendMessageRequest, SQSSendMessageResponse
 import uuid
 from mypy_boto3_sqs import SQSClient
-from db import DbClient
 
 class SqsManager:
     client: SQSClient
@@ -22,9 +21,9 @@ class SqsManager:
 
 class SqsHelper(SqsManager):
     sqsDB: QueueMessagesHelper
-    def __init__(self, MONGODB_URI: str) -> None:
+    def __init__(self, helper: QueueMessagesHelper) -> None:
         super().__init__()
-        self.sqsDB = DbClient(MONGODB_URI).sqs_messages()
+        self.sqsDB = helper
 
     @aws_error_handler()
     async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel)->SQSSendMessageResponse:

@@ -7,13 +7,13 @@ readme = "README.md"
 packages = [{ include = "db", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12"
-motor = "*"
-mypy_boto3_cognito_idp = "*"
-pydantic = "*"
-boto3 = "*"
-botocore = "*"
+python = ">=3.12,<4.0"
+boto3 = "1.34.113"
+botocore = "1.34.113"
 models = { path = "../models", develop = true }
+sqs = { path = "../sqs", develop = true }
+motor = "3.7.1"
+mypy_boto3_cognito_idp = "1.39.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

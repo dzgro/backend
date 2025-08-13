@@ -106,6 +106,13 @@ class DbManager:
         result = await self.collection.update_one(filterDict, {"$set": setDict, "$unset": {f: "" for f in unsetFields}}, upsert=upsert)
         return result.modified_count, result.upserted_id
     
+
+    async def findOneAndUpdate(self, filterDict: dict = {}, setDict: dict = {})->dict:
+        filterDict = self.getFilterDict(filterDict)
+        return await self.collection.find_one_and_update(filterDict, {"$set": setDict}, return_document=True)
+    
+    
+    
     async def incOne(self, filterDict: dict = {}, incDict: dict = {})->tuple[int, ObjectId|None]:
         filterDict = self.getFilterDict(filterDict)
         result = await self.collection.update_one(filterDict, {"$inc": incDict})

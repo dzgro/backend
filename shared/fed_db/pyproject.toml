@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "fed-db"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "fed_db", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+models = { path = "../models", develop = true }
+motor = "3.7.1"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -185,11 +185,4 @@ class PipelineProcessor:
     
     def getAdColumns(self):
         return [{ '$lookup': { 'from': 'analytics_calculation', 'pipeline': [ { '$match': { '$expr': { '$eq': [ '$value', 'ad' ] } } }, { '$replaceWith': { 'items': '$items' } }, { '$unwind': '$items' }, { '$replaceWith': '$items' }, { '$project': { 'querygroup': 0 } } ], 'as': 'columns' } }, { '$set': { 'columns': { '$reduce': { 'input': '$columns', 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$let': { 'vars': { 'val': { '$replaceOne': { 'input': '$$this.label', 'find': 'Ad ', 'replacement': '' } }, 'leftparenthesesPos': { '$indexOfBytes': [ '$$this.label', '(' ] }, 'rightparenthesesPos': { '$indexOfBytes': [ '$$this.label', ')' ] } }, 'in': [ { '$mergeObjects': [ '$$this', { 'label': { '$cond': [ { '$eq': [ '$$leftparenthesesPos', -1 ] }, '$$val', { '$substr': [ '$$val', { '$sum': [ '$$leftparenthesesPos', 1 ] }, { '$subtract': [ { '$subtract': [ '$$rightparenthesesPos', '$$leftparenthesesPos' ] }, 1 ] } ] } ] } } ] } ] } } ] } } } } }]
-
-    async def execute(self, collection: CollectionType, pipeline: list[dict]):
-        try:
-            from db.DbUtils import DbManager
-            return await DbManager(collection).aggregate(pipeline)
-        except Exception as e:
-            raise ValueError(e.args[0])
         

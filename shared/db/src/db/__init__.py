@@ -1,3 +1,4 @@
+from db.collections.defaults import DefaultsHelper
 from db.collections.order_items import OrderItemsHelper
 from db.collections.orders import OrdersHelper
 from db.collections.products import ProductHelper
@@ -40,12 +41,16 @@ class DbClient:
         self.client = AsyncIOMotorClient(MONGO_DB_CONNECT_URI)
         self.db = self.client['dzgro-dev']
 
+    
     def country_details(self):
         return CountryDetailsHelper(self.db)
 
     def pricing(self):
         return PricingHelper(self.db)
-    
+
+    def defaults(self):
+        return DefaultsHelper(self.db)
+
     def sqs_messages(self):
         return QueueMessagesHelper(self.db)
 
@@ -82,8 +87,8 @@ class DbClient:
     def queries(self, uid:str, marketplace: ObjectId):
         return QueryHelper(self.db, uid, marketplace)
 
-    def reports(self, uid:str, marketplace: ObjectId):
-        return DzgroReportHelper(self.db, uid, marketplace)
+    def dzgro_reports(self, uid:str, marketplace: ObjectId):
+        return DzgroReportHelper(self.db, uid, marketplace, self.sqs_messages())
 
     def query_results(self, uid:str, marketplace: ObjectId):
         return QueryResultsHelper(self.db, uid, marketplace)

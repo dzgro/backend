@@ -2,7 +2,7 @@ from botocore.exceptions import ClientError
 import boto3
 from botocore.config import Config
 from models.model import CustomError
-from storage.model import S3PutObjectModel, S3GetObjectModel, S3Bucket
+from models.s3 import S3PutObjectModel, S3GetObjectModel, S3Bucket
 
 my_config = Config(
     region_name = 'ap-south-1'

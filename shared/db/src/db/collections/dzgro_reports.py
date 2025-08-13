@@ -1,10 +1,8 @@
 from bson import ObjectId
-from models.collections.dzgro_reports import ListDzgroReportsRequest, CreateDzgroReportRequest, DzgroReport, DzgroReportType
-from db.collections.pipelines import PaymentReconciliation, InventoryPlanning, OutOfStock
+from db.collections.queue_messages import QueueMessagesHelper
+from models.collections.dzgro_reports import ListDzgroReportsRequest, CreateDzgroReportRequest, DzgroReport
 from db.DbUtils import DbManager
-from db.FedDbUtils import FedDbManager
-from models.enums import CollectionType, FederationCollectionType
-
+from models.enums import CollectionType
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
@@ -12,11 +10,12 @@ class DzgroReportHelper:
     db: DbManager
     marketplace: ObjectId
     uid: str
-    
-    def __init__(self, db: AsyncIOMotorDatabase, uid: str, marketplace: ObjectId) -> None:
+
+    def __init__(self, db: AsyncIOMotorDatabase, uid: str, marketplace: ObjectId, sqsHelper: QueueMessagesHelper) -> None:
         self.uid = uid
         self.marketplace = marketplace
         self.db = DbManager(db.get_collection(CollectionType.DZGRO_REPORTS), uid, marketplace)
+        self.sqsHelper = sqsHelper
 
     def getReportTypes(self):
         from models.collections import dzgro_reports
@@ -27,9 +26,10 @@ class DzgroReportHelper:
         item.update({"requested": self.db.date()})
         item = self.db.addUidMarketplaceToDict(item)
         id = self.db.insertOne(item)
-        from app.HelperModules.Helpers.SqsHelper.Sqs import SqsHelper, QueueUrl
+        from sqs import SqsHelper
+        sqs = SqsHelper(self.sqsHelper)
         reportId = str(id)
-        res = SqsHelper().sendMessage({"uid": self.uid, "marketplace": str(self.marketplace), "reportid": reportId}, delay=2)
+        res = sqs.sendMessage({"uid": self.uid, "marketplace": str(self.marketplace), "reportid": reportId}, delay=2)
         await self.addMessageId(reportId,res.message_id)
         return await self.getReport(reportId)
 
@@ -47,27 +47,16 @@ class DzgroReportHelper:
     async def addurl(self, reportid: str, url: str):
         await self.db.updateOne({'_id': ObjectId(reportid)}, {'url': url, "completed": self.db.date()})
 
+    async def addError(self, reportid: str, error: str):
+        await self.db.updateOne({'_id': ObjectId(reportid)}, {'error': error, "completed": self.db.date()})
+
     async def addMessageId(self, reportid: str, messageId: str):
         await self.db.updateOne({'_id': ObjectId(reportid)}, {'messageid': messageId})
 
     async def deleteReport(self, reportid: str):
         await self.db.deleteOne({'_id': ObjectId(reportid)})
 
-    async def processReport(self, reportid: str, messageId: str):
-        try:
-            report = await self.getReport(reportid)
-            if report.messageid==messageId:
-                if report.reporttype==DzgroReportType.PAYMENT_RECON: await PaymentReconciliation.execute(self.db.pp, reportid)
-                elif report.reporttype==DzgroReportType.INVENTORY_PLANNING: await InventoryPlanning.execute(self.db.pp, reportid)
-                elif report.reporttype==DzgroReportType.OUT_OF_STOCK: await OutOfStock.execute(self.db.pp, reportid)
-                pipeline = [{"$match": {"reportid": reportid}}]
-                filename = f'{self.uid}/{str(self.marketplace)}/{report.reporttype.name}/{reportid}/data'
-                fedDb = FedDbManager(FederationCollectionType.DZGRO_REPORT_DATA, self.marketplace, self.uid)
-                fedDb.write(filename, pipeline)
-                print("Done")
-        except Exception as e:
-            print(e)
-            pass
+    
 
 
 

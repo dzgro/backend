@@ -15,13 +15,13 @@ class QueueMessagesHelper:
         return await self.dbManager.insertOne(body)
 
     async def setMessageAsProcessing(self, messageid: str):
-        await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.PROCESSING.value})
+        return await self.dbManager.updateOne({"_id": messageid, "status": SQSMessageStatus.PENDING.value},setDict={"status": SQSMessageStatus.PROCESSING.value})
 
     async def setMessageAsCompleted(self, messageid: str):
-        await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.COMPLETED.value})
+        return await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.COMPLETED.value})
 
-    async def setMessageAsFailed(self, messageid: str, error):
-        await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.FAILED.value, "error": error or "No Error Provided"})
+    async def setMessageAsFailed(self, messageid: str, error:str = "No Error Provided"):
+        return await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.FAILED.value, "error": error})
     
     async def getMessageStatus(self, messageid:str):
         message = await self.dbManager.findOne({"_id": messageid}, projectionInc=["status"])

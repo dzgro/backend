@@ -6,6 +6,8 @@ from enum import Enum
 
 class S3Bucket(str, Enum):
     DZGRO = "dzgro"
+    REPORTS = "dzgro-reports"
+    INVOICES = "dzgro-invoices"
 
 
 

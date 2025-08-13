@@ -62,6 +62,9 @@ class UserHelper:
 
     async def stopOnboarding(self):
         await self.deleteKeys(["onboarding"])
+
+    async def getUser(self):
+        return await self.db.findOne({"_id": self.uid})
     
 
    

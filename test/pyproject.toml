@@ -7,9 +7,10 @@ readme = "README.md"
 packages = [{include = "test", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.12"
-requests = "*"
+python = ">=3.12,<4.0"
+requests = "2.32.4"
 db = { path = "../shared/db", develop = true }
+fed_db = { path = "../shared/fed_db", develop = true }
 dzgrosecrets = { path = "../shared/dzgrosecrets", develop = true }
 sqs = { path = "../shared/sqs", develop = true }
 storage = { path = "../shared/storage", develop = true }

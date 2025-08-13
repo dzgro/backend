@@ -7,11 +7,11 @@ readme = "README.md"
 packages = [{ include = "new_user", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12"
-httpx = "*"
-backoff = "*"
-pydantic = "*"
-asyncio = "*"
+python = ">=3.12,<4.0"
+httpx = "0.28.1"
+backoff = "2.2.1"
+pydantic = "2.11.7"
+asyncio = "3.4.3"
 db = { path = "../../shared/db", develop = true }
 dzgrosecrets = { path = "../../shared/dzgrosecrets", develop = true }
 

@@ -2,17 +2,17 @@
 
 [[package]]
 name = "pytz"
-version = "2025.2"
+version = "2024.1"
 description = "World timezone definitions, modern and historical"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
-    {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
+    {file = "pytz-2024.1-py2.py3-none-any.whl", hash = "sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319"},
+    {file = "pytz-2024.1.tar.gz", hash = "sha256:2a29735ea9c18baf14b448846bde5a48030ed267578472d8955cd0e7443a9812"},
 ]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.12"
-content-hash = "900b77e7a7189811f1bb7b17018797b8ad4df506a0790e9328f1bece18ea68c8"
+python-versions = ">=3.12,<4.0"
+content-hash = "5d5a176044417d29cb42347909d29a9636bea4d482714a703cd991d25aeceebe"

@@ -31,19 +31,6 @@ class GSTDetails(BaseModel):
     city: str
     state: str
     
-class User(ObjectIdStr):
-    model_config = ConfigDict(populate_by_name=True)
-    details: UserDetails
-
-    @model_validator(mode="after")
-    def setRoles(self):
-        # self.canOnboard = self.subscriptionId is None and self.isAdmin
-        # self.details.isAdmin = self.details.parent == self.id
-        return self
-    
-class UserList(BaseModel):
-    users: list[User]
-    token: str|SkipJsonSchema[None] = None
 
 
 class MarketplaceSeller(ItemIdWithDate):
@@ -103,3 +90,11 @@ class UserProfileWithSubscription(BaseModel):
     plan: PlanWithCurrency
     duration: PlanDuration
     status: RazorpaySubscriptionStatus
+
+class User(ObjectIdStr, BusinessDetails, UserDetails):
+    pass
+
+
+class UserList(BaseModel):
+    users: list[User]
+    token: str|SkipJsonSchema[None] = None

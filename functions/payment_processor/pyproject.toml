@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "payment-processor"
+version = "0.1.0"
+description = ""
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{include = "payment_processor", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+num2words = "0.5.14"
+reportlab = "4.4.3"
+db = { path = "../../shared/db", develop = true }
+dzgrosecrets = { path = "../../shared/dzgrosecrets", develop = true }
+storage = { path = "../../shared/storage", develop = true }
+date_util = { path = "../../shared/date_util", develop = true }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

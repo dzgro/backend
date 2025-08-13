@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Auto-generated SAM template with layers
+Resources:
+  RazorpayWebhookToRazorpayWebhookEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt RazorpayWebhook.Arn'
+      FunctionName: '!Ref FunctionRazorpayWebhook'
+      Enabled: true
+      BatchSize: 1
+  NewUserToNewUserEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt NewUser.Arn'
+      FunctionName: '!Ref FunctionNewUser'
+      Enabled: true
+      BatchSize: 1
+  AmazonReportsToAmazonDailyReportEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt AmazonReports.Arn'
+      FunctionName: '!Ref FunctionAmazonDailyReport'
+      Enabled: true
+      BatchSize: 1
+  AmsChangeDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmsChangeDLQ
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+  AmsChange:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmsChange
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: '!GetAtt AmsChangeDLQ.Arn'
+        maxReceiveCount: 1
+  AmsPerformanceDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmsPerformanceDLQ
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+  AmsPerformance:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmsPerformance
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: '!GetAtt AmsPerformanceDLQ.Arn'
+        maxReceiveCount: 1
+  PaymentToPaymentProcessorEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt Payment.Arn'
+      FunctionName: '!Ref FunctionPaymentProcessor'
+      Enabled: true
+      BatchSize: 1
+  FunctionAmsChange:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AmsChange
+      CodeUri: functions\ams_change\src
+      Handler: AmsChange.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+  FunctionAmsPerformance:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AmsPerformance
+      CodeUri: functions\ams_performance\src
+      Handler: AmsPerformance.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+  dbLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: db
+      ContentUri: D:\github\sam-app\.layers\db.zip
+      CompatibleRuntimes:
+      - python3.12
+  dzgrosecretsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: dzgrosecrets
+      ContentUri: D:\github\sam-app\.layers\dzgrosecrets.zip
+      CompatibleRuntimes:
+      - python3.12

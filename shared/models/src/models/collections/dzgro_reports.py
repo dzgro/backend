@@ -41,6 +41,7 @@ class DzgroReport(CreateDzgroReportRequest, ItemId):
     requested: datetime
     messageid: str
     url: str|SkipJsonSchema[None]=None
+    error: str|SkipJsonSchema[None]=None
 
 class ListDzgroReportsRequest(BaseModel):
     reporttype: DzgroReportType|SkipJsonSchema[None]=None

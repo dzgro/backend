@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Auto-generated SAM template with layers
+Resources:
+  RazorpayWebhookDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: RazorpayWebhookDLQ
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+  RazorpayWebhook:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: RazorpayWebhook
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: '!GetAtt RazorpayWebhookDLQ.Arn'
+        maxReceiveCount: 1
+  RazorpayWebhookToRazorpayWebhookEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt RazorpayWebhook.Arn'
+      FunctionName: '!Ref FunctionRazorpayWebhook'
+      Enabled: true
+      BatchSize: 1
+  NewUserDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: NewUserDLQ
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+  NewUser:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: NewUser
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: '!GetAtt NewUserDLQ.Arn'
+        maxReceiveCount: 1
+  NewUserToNewUserEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt NewUser.Arn'
+      FunctionName: '!Ref FunctionNewUser'
+      Enabled: true
+      BatchSize: 1
+  AmazonReportsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmazonReportsDLQ
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+  AmazonReports:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmazonReports
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: '!GetAtt AmazonReportsDLQ.Arn'
+        maxReceiveCount: 1
+  AmazonReportsToAmazonDailyReportEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt AmazonReports.Arn'
+      FunctionName: '!Ref FunctionAmazonDailyReport'
+      Enabled: true
+      BatchSize: 1
+  PaymentDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: PaymentDLQ
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+  Payment:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: Payment
+      RedriveAllowPolicy:
+        redrivePermission: allowAll
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: '!GetAtt PaymentDLQ.Arn'
+        maxReceiveCount: 1
+  PaymentToPaymentProcessorEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: '!GetAtt Payment.Arn'
+      FunctionName: '!Ref FunctionPaymentProcessor'
+      Enabled: true
+      BatchSize: 1
+  FunctionAmazonDailyReport:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AmazonDailyReport
+      CodeUri: functions\amazon_daily_report\src
+      Handler: AmazonDailyReport.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref amazonapiLayer'
+      - '!Ref dateutilLayer'
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+      - '!Ref sqsLayer'
+      - '!Ref storageLayer'
+  FunctionDzgroReports:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DzgroReports
+      CodeUri: functions\dzgro_reports\src
+      Handler: DzgroReports.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+      - '!Ref feddbLayer'
+  FunctionDzgroReportsS3Trigger:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DzgroReportsS3Trigger
+      CodeUri: functions\dzgro_reports_s3_trigger\src
+      Handler: DzgroReportsS3Trigger.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+      - '!Ref storageLayer'
+  FunctionNewUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: NewUser
+      CodeUri: functions\new_user\src
+      Handler: NewUser.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+  FunctionPostSignUp:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: PostSignUp
+      CodeUri: functions\post_sign_up\src
+      Handler: PostSignUp.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+      - '!Ref sqsLayer'
+  FunctionPaymentProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: PaymentProcessor
+      CodeUri: functions\payment_processor\src
+      Handler: PaymentProcessor.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dateutilLayer'
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+      - '!Ref storageLayer'
+  FunctionRazorpayWebhook:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: RazorpayWebhook
+      CodeUri: functions\razorpay_webhook\src
+      Handler: RazorpayWebhook.handler.handler
+      Runtime: python3.12
+      Timeout: 900
+      Layers:
+      - '!Ref dbLayer'
+      - '!Ref dzgrosecretsLayer'
+  amazonapiLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: amazonapi
+      ContentUri: D:\github\sam-app\.layers\amazonapi.zip
+      CompatibleRuntimes:
+      - python3.12
+  dateutilLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: date_util
+      ContentUri: D:\github\sam-app\.layers\date_util.zip
+      CompatibleRuntimes:
+      - python3.12
+  dbLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: db
+      ContentUri: D:\github\sam-app\.layers\db.zip
+      CompatibleRuntimes:
+      - python3.12
+  dzgrosecretsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: dzgrosecrets
+      ContentUri: D:\github\sam-app\.layers\dzgrosecrets.zip
+      CompatibleRuntimes:
+      - python3.12
+  feddbLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: fed_db
+      ContentUri: D:\github\sam-app\.layers\fed_db.zip
+      CompatibleRuntimes:
+      - python3.12
+  sqsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: sqs
+      ContentUri: D:\github\sam-app\.layers\sqs.zip
+      CompatibleRuntimes:
+      - python3.12
+  storageLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: storage
+      ContentUri: D:\github\sam-app\.layers\storage.zip
+      CompatibleRuntimes:
+      - python3.12

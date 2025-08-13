@@ -7,8 +7,8 @@ readme = "README.md"
 packages = [{ include = "date_util", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12"
-pytz = "*"
+python = ">=3.12,<4.0"
+pytz = "2024.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
