@@ -7,9 +7,10 @@ readme = "README.md"
 packages = [{include = "payment_processor", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<4.0"
 num2words = "0.5.14"
 reportlab = "4.4.3"
+python = ">=3.12,<4.0"
+[tool.poetry.group.dev.dependencies]
 db = { path = "../../shared/db", develop = true }
 dzgrosecrets = { path = "../../shared/dzgrosecrets", develop = true }
 storage = { path = "../../shared/storage", develop = true }

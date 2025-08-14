@@ -7,9 +7,9 @@ readme = "README.md"
 packages = [{ include = "amazon_daily_report", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<4.0"
 requests = "2.32.4"
-db = { path = "../../shared/db", develop = true }
+python = ">=3.12,<4.0"
+[tool.poetry.group.dev.dependencies]
 sqs = { path = "../../shared/sqs", develop = true }
 storage = { path = "../../shared/storage", develop = true }
 amazonapi = { path = "../../shared/amazonapi", develop = true }

@@ -7,12 +7,13 @@ readme = "README.md"
 packages = [{ include = "amazonapi", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<4.0"
 httpx = "0.28.1"
 backoff = "2.2.1"
 pydantic = "2.11.7"
-models = { path = "../models", develop = true }
+python = ">=3.12,<4.0"
 
+[tool.poetry.group.dev.dependencies]
+models = { path = "../models", develop = true }
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -102,6 +102,16 @@ for project_dir in SHARED_DIR.iterdir():
     subprocess.run([
         "pip", "install", "-r", tmp_req_path, "-t", str(build_path)
     ], check=True)
+
+    # Copy src folder contents into build_path (so custom code is included in layer)
+    src_dir = project_dir / "src"
+    if src_dir.exists():
+        for item in src_dir.iterdir():
+            dest = build_path / item.name
+            if item.is_dir():
+                shutil.copytree(item, dest, dirs_exist_ok=True)
+            else:
+                shutil.copy2(item, dest)
     zip_path = LAYERS_OUTPUT_DIR / f"{layer_name}.zip"
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(build_path):
@@ -169,13 +179,12 @@ for queue_name, queue_info in QUEUES_MAP.items():
             function_name = queue_info['function']
             # Find the logical resource name for the function
             func_name = function_name.replace('_',' ').title().replace(' ', '')
-            resource_name = f"Function{func_name}"
             event_source_mapping_name = f"{main_resource_name}To{func_name}Event"
             template["Resources"][event_source_mapping_name] = {
                 "Type": "AWS::Lambda::EventSourceMapping",
                 "Properties": {
                     "EventSourceArn": f"!GetAtt {main_resource_name}.Arn",
-                    "FunctionName": f"!Ref {resource_name}",
+                    "FunctionName": f"!Ref {func_name}Function",
                     "Enabled": True,
                     "BatchSize": 1
                 }
@@ -184,7 +193,25 @@ for queue_name, queue_info in QUEUES_MAP.items():
 for func_key, func_info in FUNCTIONS_MAP.items():
     func_name = func_key.replace('_',' ').title().replace(' ', '')
     src_path = Path(func_info['path']) / "src"
+    pyproject_path = Path(func_info['path']) / "pyproject.toml"
+    requirements_path = Path(func_info['path']) / "src"
+        # Skip requirements.txt generation for shared modules
+    if func_info['path'].startswith('shared/'):
+        continue
+    # Ensure requirements.txt is created from pyproject.toml using poetry
+    if pyproject_path.exists():
+        result = subprocess.run([
+            "poetry", "export", "-f", "requirements.txt", "--without-hashes", "--without-urls","--without","dev", "-o", "requirements.txt"
+        ], cwd=requirements_path)
+        if result.returncode != 0:
+            print(f"ERROR: Poetry export failed for {func_info['path']}. Please check pyproject.toml and run 'poetry install' in that folder.")
+            continue
+    else:
+        print(f"ERROR: pyproject.toml not found in {func_info['path']}. Skipping requirements.txt export.")
+        continue
     regions = func_info['region']
+
+    # Removed unused build_codeuri_abs and related code
 
     # Read local dependencies
     pyproject_path = Path(func_info['path']) / "pyproject.toml"
@@ -197,18 +224,27 @@ for func_key, func_info in FUNCTIONS_MAP.items():
             deps.append(layer_arns[shared_name]["LayerName"])
 
     for region in regions:
-        resource_name = f"Function{func_name}"
+        if region == "ap-south-1":
+            for bucket in ['dzgro-reports', 'dzgro','dzgro-invoices', 'dzgro-cloudfront']:
+                template["Resources"][f"{bucket.replace('-', ' ').title().replace(' ', '')}Bucket"] = {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {
+                        "BucketName": bucket
+                    }
+        }
         layers_refs = [f"!Ref {name.replace('_', '')}Layer" for name in deps] if deps else []
-        template["Resources"][resource_name] = {
+        template["Resources"][f'{func_name}Function'] = {
             "Type": "AWS::Serverless::Function",
             "Properties": {
-                "FunctionName": func_name,
+                "FunctionName": f'{func_name}',
                 "CodeUri": str(src_path),
-                "Handler": f"{func_name}.handler.handler",
+                "Handler": f"{func_key}.handler.handler",
                 "Runtime": "python3.12",
                 "Timeout": 900,
                 "Layers": layers_refs,
                 "Region": region,
+                "Role": "arn:aws:iam::522814698847:role/Lambda_Execution",
+                "Architectures": ["x86_64"],
             }
         }
 
@@ -243,7 +279,7 @@ def filter_resources_by_region(resources, region):
                 if region not in QUEUES_MAP[main_queue_name]['region']:
                     continue
         # Filter functions
-        if k.startswith('Function'):
+        if k.endswith('Function'):
             # Extract function name from resource name
             for func_name, func_info in FUNCTIONS_MAP.items():
                 # Logical ID pattern: Function{FuncName}{Region}
@@ -295,8 +331,12 @@ for region in all_regions:
             del region_template["Resources"][k]
 
     region_template_path = ROOT / f"template-{region}.yaml"
+        # Remove all single quotes from region_template before dumping
+    import re
+    region_template_str = yaml.dump(region_template, sort_keys=False)
+    region_template_str = re.sub("'", "", region_template_str)
     with open(region_template_path, "w") as f:
-        yaml.dump(region_template, f, sort_keys=False)
+        f.write(region_template_str)
     print(f"✅ Generated template for region: {region} -> {region_template_path}")
 
 with open(LAYER_HASH_CACHE_FILE, "w") as f:

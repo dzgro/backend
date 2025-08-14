@@ -7,8 +7,9 @@ readme = "README.md"
 packages = [{include = "ams_change", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<4.0"
 requests = "2.32.4"
+python = ">=3.12,<4.0"
+[tool.poetry.group.dev.dependencies]
 db = { path = "../../shared/db", develop = true }
 dzgrosecrets = { path = "../../shared/dzgrosecrets", develop = true }
 

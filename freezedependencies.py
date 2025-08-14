@@ -8,15 +8,17 @@ from pathlib import Path
 
 
 def hash_poetry_dependencies(pyproject_path):
-    """Hash the dependencies section of a pyproject.toml file."""
+    """Hash the dependencies and group.dev.dependencies sections of a pyproject.toml file."""
     import toml
     data = toml.load(pyproject_path)
     deps = data.get('tool', {}).get('poetry', {}).get('dependencies', {})
-    # Convert to sorted string for stable hash
-    dep_str = '\n'.join(f"{k}={v}" for k, v in sorted(deps.items()))
+    group_dev_deps = data.get('tool', {}).get('poetry', {}).get('group', {}).get('dev', {}).get('dependencies', {})
+    # Merge both dicts for hashing
+    all_deps = {**deps, **group_dev_deps}
+    dep_str = '\n'.join(f"{k}={v}" for k, v in sorted(all_deps.items()))
     return hashlib.sha256(dep_str.encode()).hexdigest()
 
-def freeze_dependencies(project_dir):
+def freeze_dependencies(project_dir, force_recreate=False):
     pyproject_path = Path(project_dir) / 'pyproject.toml'
     lock_path = Path(project_dir) / 'poetry.lock'
     hash_path = Path(project_dir) / '.dep_hash'
@@ -25,10 +27,11 @@ def freeze_dependencies(project_dir):
         return
     dep_hash = hash_poetry_dependencies(pyproject_path)
     prev_hash = hash_path.read_text() if hash_path.exists() else None
-    if prev_hash == dep_hash:
+    if not force_recreate and prev_hash == dep_hash:
         print(f"Dependencies unchanged for {project_dir}, skipping lock file recreation.")
         return
-    # Hash changed, recreate lock file
+    # Hash changed or forced, recreate lock file
+    print(project_dir)
     if lock_path.exists():
         os.remove(lock_path)
     os.system(f"poetry lock --directory {project_dir}")
@@ -37,12 +40,17 @@ def freeze_dependencies(project_dir):
 
 # Example usage: freeze all shared and functions subdirs
 ROOT = Path(__file__).parent.resolve()
+# Ask user for confirmation to force recreate all dependencies
+force_recreate = False
+user_input = input("Force recreate all poetry.lock files? (Y/N): ").strip().lower()
+if user_input == 'y':
+    force_recreate = True
 for subdir in (ROOT / 'shared').iterdir():
     if (subdir / 'pyproject.toml').exists():
-        freeze_dependencies(subdir)
+        freeze_dependencies(subdir, force_recreate=force_recreate)
 for subdir in (ROOT / 'functions').iterdir():
     if (subdir / 'pyproject.toml').exists():
-        freeze_dependencies(subdir)
+        freeze_dependencies(subdir, force_recreate=force_recreate)
 import os
 from pathlib import Path
 import subprocess

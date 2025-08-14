@@ -34,16 +34,6 @@ FUNCTIONS_MAP = {
         'path': 'functions/ams_performance',
         'description': 'AMS Performance Lambda',
     },
-    'new_user': {
-        'region': [DEFAULT_REGION],
-        'path': 'functions/new_user',
-        'description': 'New User Lambda',
-    },
-    'post_sign_up': {
-        'region': [DEFAULT_REGION],
-        'path': 'functions/post_sign_up',
-        'description': 'Add User to Db Lambda',
-    },
     'payment_processor': {
         'region': [DEFAULT_REGION],
         'path': 'functions/payment_processor',
@@ -61,11 +51,6 @@ QUEUES_MAP = {
         'region': [DEFAULT_REGION],
         'description': 'Main Queue for Razorpay Webhook',
         'function': 'razorpay_webhook'
-    },
-    'NewUser': {
-        'region': [DEFAULT_REGION],
-        'description': 'New User',
-        'function': 'new_user'
     },
     'AmazonReports': {
         'region': [DEFAULT_REGION],

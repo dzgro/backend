@@ -7,9 +7,9 @@ readme = "README.md"
 packages = [{include = "dzgro_reports_s3_trigger", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<4.0"
-pandas = "2.3.1"
 bson = "0.5.10"
+python = ">=3.12,<4.0"
+[tool.poetry.group.dev.dependencies]
 db = { path = "../../shared/db", develop = true }
 storage = { path = "../../shared/storage", develop = true }
 dzgrosecrets = { path = "../../shared/dzgrosecrets", develop = true }

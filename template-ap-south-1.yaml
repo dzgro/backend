@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: Auto-generated SAM template with layers
 Resources:
@@ -16,36 +16,13 @@ Resources:
         redrivePermission: allowAll
       VisibilityTimeout: 900
       RedrivePolicy:
-        deadLetterTargetArn: '!GetAtt RazorpayWebhookDLQ.Arn'
+        deadLetterTargetArn: !GetAtt RazorpayWebhookDLQ.Arn
         maxReceiveCount: 1
   RazorpayWebhookToRazorpayWebhookEvent:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      EventSourceArn: '!GetAtt RazorpayWebhook.Arn'
-      FunctionName: '!Ref FunctionRazorpayWebhook'
-      Enabled: true
-      BatchSize: 1
-  NewUserDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: NewUserDLQ
-      RedriveAllowPolicy:
-        redrivePermission: allowAll
-  NewUser:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: NewUser
-      RedriveAllowPolicy:
-        redrivePermission: allowAll
-      VisibilityTimeout: 900
-      RedrivePolicy:
-        deadLetterTargetArn: '!GetAtt NewUserDLQ.Arn'
-        maxReceiveCount: 1
-  NewUserToNewUserEvent:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      EventSourceArn: '!GetAtt NewUser.Arn'
-      FunctionName: '!Ref FunctionNewUser'
+      EventSourceArn: !GetAtt RazorpayWebhook.Arn
+      FunctionName: !Ref RazorpayWebhookFunction
       Enabled: true
       BatchSize: 1
   AmazonReportsDLQ:
@@ -62,13 +39,13 @@ Resources:
         redrivePermission: allowAll
       VisibilityTimeout: 900
       RedrivePolicy:
-        deadLetterTargetArn: '!GetAtt AmazonReportsDLQ.Arn'
+        deadLetterTargetArn: !GetAtt AmazonReportsDLQ.Arn
         maxReceiveCount: 1
   AmazonReportsToAmazonDailyReportEvent:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      EventSourceArn: '!GetAtt AmazonReports.Arn'
-      FunctionName: '!Ref FunctionAmazonDailyReport'
+      EventSourceArn: !GetAtt AmazonReports.Arn
+      FunctionName: !Ref AmazonDailyReportFunction
       Enabled: true
       BatchSize: 1
   PaymentDLQ:
@@ -85,101 +62,136 @@ Resources:
         redrivePermission: allowAll
       VisibilityTimeout: 900
       RedrivePolicy:
-        deadLetterTargetArn: '!GetAtt PaymentDLQ.Arn'
+        deadLetterTargetArn: !GetAtt PaymentDLQ.Arn
         maxReceiveCount: 1
   PaymentToPaymentProcessorEvent:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      EventSourceArn: '!GetAtt Payment.Arn'
-      FunctionName: '!Ref FunctionPaymentProcessor'
+      EventSourceArn: !GetAtt Payment.Arn
+      FunctionName: !Ref PaymentProcessorFunction
       Enabled: true
       BatchSize: 1
-  FunctionAmazonDailyReport:
+  DzgroReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro-reports
+  DzgroBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro
+  DzgroInvoicesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro-invoices
+  DzgroCloudfrontBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro-cloudfront
+  AmazonDailyReportFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: AmazonDailyReport
       CodeUri: functions\amazon_daily_report\src
-      Handler: AmazonDailyReport.handler.handler
+      Handler: amazon_daily_report.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref amazonapiLayer'
-      - '!Ref dateutilLayer'
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
-      - '!Ref sqsLayer'
-      - '!Ref storageLayer'
-  FunctionDzgroReports:
+      - !Ref amazonapiLayer
+      - !Ref dateutilLayer
+      - !Ref dzgrosecretsLayer
+      - !Ref sqsLayer
+      - !Ref storageLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
+  DzgroReportsFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: DzgroReports
       CodeUri: functions\dzgro_reports\src
-      Handler: DzgroReports.handler.handler
+      Handler: dzgro_reports.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
-      - '!Ref feddbLayer'
-  FunctionDzgroReportsS3Trigger:
+      - !Ref dbLayer
+      - !Ref dzgrosecretsLayer
+      - !Ref feddbLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
+  DzgroReportsS3TriggerFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: DzgroReportsS3Trigger
       CodeUri: functions\dzgro_reports_s3_trigger\src
-      Handler: DzgroReportsS3Trigger.handler.handler
+      Handler: dzgro_reports_s3_trigger.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
-      - '!Ref storageLayer'
-  FunctionNewUser:
+      - !Ref dbLayer
+      - !Ref dzgrosecretsLayer
+      - !Ref storageLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
+  AmsChangeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: NewUser
-      CodeUri: functions\new_user\src
-      Handler: NewUser.handler.handler
+      FunctionName: AmsChange
+      CodeUri: functions\ams_change\src
+      Handler: ams_change.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
-  FunctionPostSignUp:
+      - !Ref dbLayer
+      - !Ref dzgrosecretsLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
+  AmsPerformanceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: PostSignUp
-      CodeUri: functions\post_sign_up\src
-      Handler: PostSignUp.handler.handler
+      FunctionName: AmsPerformance
+      CodeUri: functions\ams_performance\src
+      Handler: ams_performance.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
-      - '!Ref sqsLayer'
-  FunctionPaymentProcessor:
+      - !Ref dbLayer
+      - !Ref dzgrosecretsLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
+  PaymentProcessorFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: PaymentProcessor
       CodeUri: functions\payment_processor\src
-      Handler: PaymentProcessor.handler.handler
+      Handler: payment_processor.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref dateutilLayer'
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
-      - '!Ref storageLayer'
-  FunctionRazorpayWebhook:
+      - !Ref dateutilLayer
+      - !Ref dbLayer
+      - !Ref dzgrosecretsLayer
+      - !Ref storageLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
+  RazorpayWebhookFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: RazorpayWebhook
       CodeUri: functions\razorpay_webhook\src
-      Handler: RazorpayWebhook.handler.handler
+      Handler: razorpay_webhook.handler.handler
       Runtime: python3.12
       Timeout: 900
       Layers:
-      - '!Ref dbLayer'
-      - '!Ref dzgrosecretsLayer'
+      - !Ref dbLayer
+      - !Ref dzgrosecretsLayer
+      Role: arn:aws:iam::522814698847:role/Lambda_Execution
+      Architectures:
+      - x86_64
   amazonapiLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:

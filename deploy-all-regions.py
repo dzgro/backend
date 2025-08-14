@@ -1,32 +1,48 @@
 import subprocess
+import sys
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 ROOT = Path(__file__).parent.resolve()
-
-# Directory for built templates
-BUILT_TEMPLATE_DIR = ROOT / ".aws-sam" / "build"
-BUILT_TEMPLATE_DIR.mkdir(parents=True, exist_ok=True)
 
 def get_region_templates():
     return [f for f in ROOT.glob("template-*.yaml")]
 
 def main():
-    # Step 1: Confirm before building templates
-    confirm_templates = input("Regenerate region templates with build-and-deploy.py? [y/N]: ").strip().lower()
-    if confirm_templates != 'y':
-        print("Aborted template generation.")
-        return
+    # Clean up previous build artifacts and layers at the start
+    print("🧹 Cleaning up previous build artifacts...")
+    
+    # Remove .aws-sam build directory
+    aws_sam_build_dir = ROOT / ".aws-sam"
+    if aws_sam_build_dir.exists():
+        shutil.rmtree(aws_sam_build_dir)
+        print(f"   ✅ Removed {aws_sam_build_dir}")
+    
+    # Remove .build layers directory
+    build_layers_dir = ROOT / ".build"
+    if build_layers_dir.exists():
+        shutil.rmtree(build_layers_dir)
+        print(f"   ✅ Removed {build_layers_dir}")
+    
+    # Remove .layers directory
+    layers_dir = ROOT / ".layers"
+    if layers_dir.exists():
+        shutil.rmtree(layers_dir)
+        print(f"   ✅ Removed {layers_dir}")
+    
+    # Remove layer hashes JSON file
+    layer_hashes_file = ROOT / ".layer_hashes.json"
+    if layer_hashes_file.exists():
+        layer_hashes_file.unlink()
+        print(f"   ✅ Removed {layer_hashes_file}")
+    
+    print("🧹 Cleanup completed!\n")
+    
+    # subprocess.run(["python", "freezedependencies.py"], check=True, shell=True)
     subprocess.run(["python", "build-and-deploy.py"], check=True, shell=True)
-    # Step 2: Confirm before building SAM artifacts
-    confirm_build = input("Build all region SAM artifacts? [y/N]: ").strip().lower()
-    if confirm_build != 'y':
-        print("Aborted build.")
-        return
     templates = get_region_templates()
     # Step 2: For each region, prompt to build, then immediately prompt to deploy
-    templates = get_region_templates()
     for tpl in templates:
         region = tpl.stem.split("template-")[1]
         confirm_build_region = input(f"Build SAM artifact for region '{region}'? [y/N]: ").strip().lower()
@@ -36,15 +52,22 @@ def main():
         print(f"\n=== Building for region: {region} ===")
         build_cmd = ["sam", "build", "--template", str(tpl)]
         subprocess.run(build_cmd, check=True, shell=True)
-        # Copy template file to built template directory for deployment
-        built_template_path = BUILT_TEMPLATE_DIR / f"template-{region}.yaml"
-        shutil.copy2(tpl, built_template_path)
-        confirm_deploy_region = input(f"Deploy to region '{region}'? [y/N]: ").strip().lower()
+        
+        confirm_deploy_region = input(f"Deploy SAM artifact for region '{region}'? [y/N]: ").strip().lower()
         if confirm_deploy_region != 'y':
             print(f"Skipped deployment for region: {region}")
             continue
         print(f"\n=== Deploying for region: {region} ===")
-        deploy_cmd = ["sam", "deploy", "--template-file", str(built_template_path), "--region", region, "--guided"]
-        subprocess.run(deploy_cmd, check=True, shell=True)
+        
+        # Change to build directory and deploy using the built template which includes properly packaged dependencies
+        build_dir = ROOT / ".aws-sam" / "build"
+        deploy_cmd = ["sam", "deploy", "--template-file", "template.yaml", '--s3-bucket', f"dzgro-sam", '--stack-name', f"dzgro-sam-{region}", '--no-confirm-changeset', '--region', region, '--force-upload']
+        try:
+            result = subprocess.run(deploy_cmd, check=True, shell=True, cwd=str(build_dir))
+        except subprocess.CalledProcessError as e:
+            print(f"Error deploying to region {region}: {e}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+            sys.exit(1)
 
 main()

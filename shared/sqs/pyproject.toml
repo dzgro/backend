@@ -7,13 +7,14 @@ readme = "README.md"
 packages = [{ include = "sqs", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<4.0"
 pydantic = "2.11.7"
 mypy_boto3_sqs = "1.40.0"
 boto3 = "1.34.113"
 botocore = "1.34.113"
-db = { path = "../db", develop = true }
+python = ">=3.12,<4.0"
 
+[tool.poetry.group.dev.dependencies]
+db = { path = "../db", develop = true }
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
