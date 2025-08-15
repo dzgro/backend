@@ -1,4 +1,4 @@
-from amazonapi.adapi.common.ams import CreateStreamSubscriptionRequest, ListStreamSubscriptionsRequest
+from dzgroshared.amazonapi.adapi.common.ams import CreateStreamSubscriptionRequest, ListStreamSubscriptionsRequest
 from dzgrosecrets import SecretManager
 from db import DbClient
 from bson import ObjectId
@@ -21,10 +21,10 @@ async def subscribe():
         dataSetId=AMSDataSet.SP_CONVERSIONS,
         region=obj.region
     )
-    res = await ams.createStreamSubscription(req)
-    # res = await ams.listStreamSubscription(ListStreamSubscriptionsRequest())
+    # res = await ams.createStreamSubscription(req)
+    res = await ams.listStreamSubscription(ListStreamSubscriptionsRequest())
     # res = await ams.updateStreamSubscription("amzn1.fead.cs1.gLo5pPPOhL6glLdrkopCZw")
-    print(res.model_dump(exclude_none=True, by_alias=True))
+    # print(res.model_dump(exclude_none=True, by_alias=True))
 
 import asyncio
 asyncio.run(subscribe())

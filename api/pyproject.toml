@@ -11,17 +11,10 @@ fastapi = { version = "0.111.0", extras = ["standard"] }
 uvicorn = "0.29.0"
 pyjwt = "2.8.0"
 cryptography = "42.0.5"
-pytz = "2024.1"
 python = ">=3.12,<4.0"
 
 [tool.poetry.group.dev.dependencies]
-models = { path = "../shared/models", develop = true }
-dzgrosecrets = { path = "../shared/dzgrosecrets", develop = true }
-amazonapi = { path = "../shared/amazonapi", develop = true }
-db = { path = "../shared/db", develop = true }
-razorpay = { path = "../shared/razorpay", develop = true }
-cognito = { path = "../shared/cognito", develop = true }
-storage = { path = "../shared/storage", develop = true }
+dzgroshared = { path = "../dzgroshared", develop = true }
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
