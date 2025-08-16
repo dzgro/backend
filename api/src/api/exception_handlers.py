@@ -2,7 +2,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from typing import Optional, Dict, Any
-from models.model import ErrorDetail
+from dzgroshared.models.model import ErrorDetail
 
 class CustomAPIException(Exception):
     def __init__(self, code: int, description: str, message: Optional[str] = None, details: Optional[str] = None, source: Optional[str] = None, step: Optional[str] = None, reason: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None, status_code: int = 400):

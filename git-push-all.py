@@ -2,6 +2,8 @@
 # Usage: Run this file with Python in your repo root.
 import subprocess
 import sys
+import os
+import importlib.util
 
 def run(cmd):
     print(f"$ {' '.join(cmd)}")
@@ -11,6 +13,39 @@ def run(cmd):
         print(result.stderr, file=sys.stderr)
     if result.returncode != 0:
         sys.exit(result.returncode)
+
+def run_cleanup():
+    """Import and run the cleanup function from deployment/deploy.py"""
+    try:
+        # Get the path to deploy.py
+        deploy_path = os.path.join(os.path.dirname(__file__), 'deployment', 'deploy.py')
+        
+        # Load the module
+        spec = importlib.util.spec_from_file_location('deploy', deploy_path)
+        if spec is None or spec.loader is None:
+            print("Error: Could not load deploy.py")
+            return False
+            
+        deploy_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(deploy_module)
+        
+        # Run the cleanup function
+        print("\n" + "="*50)
+        print("RUNNING CLEANUP BEFORE COMMIT")
+        print("="*50)
+        deploy_module.cleanup_deployment_assets()
+        print("Cleanup completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+        return False
+
+# Run cleanup before committing
+print("Running cleanup to remove deployment artifacts before committing...")
+if not run_cleanup():
+    print("ERROR: Cleanup failed! Aborting commit to prevent committing build artifacts.")
+    sys.exit(1)
 
 # Add all changes
 run(["git", "add", "."])

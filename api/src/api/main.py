@@ -13,14 +13,14 @@ from fastapi.openapi.utils import get_openapi
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from dzgrosecrets import SecretManager
-    import jwt
-    secrets = SecretManager()
-    app.state.secrets = secrets
-    jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
-    app.state.jwtClient = jwt.PyJWKClient(jwks_url)
-    from db import DbClient
-    app.state.dbClient = DbClient(secrets.MONGO_DB_CONNECT_URI)
+    # from dzgrosecrets import SecretManager
+    # import jwt
+    # secrets = SecretManager()
+    # app.state.secrets = secrets
+    # jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
+    # app.state.jwtClient = jwt.PyJWKClient(jwks_url)
+    # from db import DbClient
+    # app.state.dbClient = DbClient(secrets.MONGO_DB_CONNECT_URI)
     yield
 
 
@@ -54,16 +54,16 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True
 
 register_exception_handlers(app)
 
-from api.routers import user, onboarding, payments, ad, analytics,reports, product, seller,plans
-app.include_router(user.router)
-app.include_router(onboarding.router)
-app.include_router(payments.router)
-app.include_router(ad.router)
-app.include_router(analytics.router)
-app.include_router(product.router)
-app.include_router(reports.router)
-app.include_router(seller.router)
-app.include_router(plans.router)
+# from api.routers import user, onboarding, payments, ad, analytics,reports, product, seller,plans
+# app.include_router(user.router)
+# app.include_router(onboarding.router)
+# app.include_router(payments.router)
+# app.include_router(ad.router)
+# app.include_router(analytics.router)
+# app.include_router(product.router)
+# app.include_router(reports.router)
+# app.include_router(seller.router)
+# app.include_router(plans.router)
 
 use_route_names_as_operation_ids(app)
 

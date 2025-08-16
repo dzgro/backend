@@ -1,2 +1,2 @@
-num2words = "0.5.14"
-reportlab = "4.4.3"
+num2words==0.5.14
+reportlab==4.4.3

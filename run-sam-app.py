@@ -4,10 +4,7 @@ from pathlib import Path
 
 # User-friendly options and their corresponding script files
 options = [
-    ("Build and Deploy", "build-and-deploy.py"),
-    ("Deploy All Regions", "deploy-all-regions.py"),
-    ("Freeze Dependencies", "freezedependencies.py"),
-    ("Select Python Environment", "select_venv.py"),
+    ("Deploy", "deployment/deploy.py"),
     ("Git Commit & Push", "git-push-all.py"),
 ]
 

@@ -1,0 +1,209 @@
+Step 1: Create User Roles
+------------------------
+
+There will be two user roles:
+
+
+1. DzgroLambdaRole
+   - This IAM role is assigned to your Lambda functions.
+   - Permissions required:
+      * AWSLambdaBasicExecutionRole (CloudWatch Logs)
+      * Full access to SQS
+      * Full access to S3 buckets used by the application
+
+2. DzgroAPIGatewayRole
+   - This IAM role is assigned to API Gateway.
+   - Permissions required:
+      * Invoke Lambda functions
+      * Add messages to SQS queues
+   - Create using AWS Console, CLI, or CloudFormation. Attach policies for Lambda invocation (AWSLambdaRole) and SQS message sending (AmazonSQSFullAccess or custom policy).
+Step 2: Get Deployment Regions
+-----------------------------
+Identify all AWS regions where deployment is required. This information can be obtained from the region mappings defined in your project (e.g., mapping.py or sam-template files).
+
+Actions:
+- Review the region mappings in deployment/mapping.py and the SAM template files (sam-template-*.yaml).
+- List all target regions for deployment.
+- Ensure all subsequent deployment steps are performed for each region.
+
+Step 3: Execute Deployment Steps Per Region
+------------------------------------------
+Create AWS SAM templates for all regions from step 2 dynamically using below information:
+For every region:
+   - Read the functions map and Queues map objects from the mappings file (deployment/mapping.py).
+   - Use these mappings to determine which functions and SQS queues need to be deployed or configured for the region.
+
+    -------------------------------
+    AWS SAM Template Requirements
+    -------------------------------
+
+    General
+    -------
+    - Create a separate template file for each region.
+    - Use mapping.py to determine which resources (functions, queues, buckets) belong in each region's template.
+
+    Lambda Functions
+    ----------------
+    - Only include functions in the template if the region is present in the function's region array in FUNCTIONS_MAP.
+    - Use the exact key from FUNCTIONS_MAP as the resource name, appended with Function (e.g., amazon_daily_reportFunction).
+    - Set the following properties for each function:
+       - Handler: handler.handler
+       - Runtime: python3.12
+       - Architectures: ["x86_64"]
+       - CodeUri: Use the path value from FUNCTIONS_MAP
+       - Description: Use the description value from FUNCTIONS_MAP
+       - Timeout: 900 by default but if function is triggered by a queue, set time out as 60.
+       - Layers: List containing the ARN of the published layer for that region
+       - Role: ARN of the IAM role to be attached to the Lambda function
+
+    SQS Queues
+    ----------
+    - For every main queue, use the queue name: <queue_key>Q
+    - For every dead letter queue, use the resource name: <queue_key>DLQ
+    - Set the Resource Name as Queue Name
+    - Set the `VisibilityTimeout` property to 60 seconds for every queue.
+    - For every queue, create a dead letter queue (DLQ) with the same name appended by '-DLQ'.
+    - Set `maxReceiveCount` to 1 in the `RedrivePolicy` for each queue, so messages are moved to the DLQ after one failed processing attempt.
+    - Only create the queue in the template for regions listed in its region array.
+    - The function property in the queue object refers to a Lambda function also created in the template.
+    - If the function property is present, configure the SQS queue to trigger the specified Lambda function by setting up an event source mapping from the queue to the Lambda.
+    - Ensure the event source mapping is present in the template for such queues, using the main queue resource name (<queue_key>-Q).
+    - If Queue is AMSPerformance, add sqs policy from getAMSPerformancePolicy method from mappings file
+
+    S3 Buckets
+    ----------
+    - Each region will have a set of S3 buckets (details for buckets to be provided or derived from mapping.py).
+    - The following buckets should be created in the template for the default region (as defined in mapping.py):
+       - dzgro-reports
+       - dzgro
+       - dzgro-invoices
+       - dzgro-cloudfront
+    - For each bucket, use the resource name as the bucket name with hyphens removed and title-cased (e.g., dzgro-reports -> DzgroReports).
+    - Set the Properties->BucketName to the exact value in the array (e.g., dzgro-reports, dzgro, dzgro-invoices, dzgro-cloudfront).
+
+    Layer
+    -----
+    - The Lambda layer is region-specific and must be published in each region.
+    - The ARN for the layer must be used in the Layers property for each function in that region.
+
+    API Gateway
+    -----------
+    - The API Gateway should be created only for the default region (as defined in mapping.py).
+    - For each queue in QUEUES_MAP, if the `routes` property (an array) is present, add an API Gateway route for each entry in the array using the specified `path` and `method`.
+    - Each route in the array should be integrated with the relevant Lambda or SQS resource as appropriate.
+    - Ensure all API Gateway routes and integrations follow the logic and requirements defined below for multiple routes per queue.
+
+    API Gateway Route Mapping
+    ------------------------
+    - For each route in the `routes` array of a queue object:
+       - If `destination` is set to Lambda, map the API Gateway route to trigger the corresponding Lambda function via the API.
+       - If `destination` is set to SQS, map the API Gateway route to send messages to the corresponding SQS queue via the API.
+    - Use this logic to create the correct API Gateway integration objects in the template.
+
+    API Gateway Route Destination Types
+    -----------------------------------
+    For every route in the `routes` array of a queue object, you need to specify what type of destination it connects to. There are two types:
+
+    1. Lambda Destination
+         - The route will call a Lambda function.
+         - You must set up an API Gateway integration of type `aws`.
+         - Use `httpMethod: POST`.
+         - The `uri` should point to the Lambda function's ARN.
+         - The `credentials` field should reference the API Gateway integration role ARN you provide as an argument.
+         - The request template for JSON should look like this:
+
+            Example:
+            x-amazon-apigateway-integration:
+               type: aws
+               httpMethod: POST
+               uri: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations
+               credentials: <ApiGatewayIntegrationRoleArn>
+               requestTemplates:
+                  application/json: |
+                     {
+                        "body": $input.json('$')
+                     }
+
+    2. SQS Destination
+         - The route will send a message to an SQS queue.
+         - You must set up an API Gateway integration of type `aws`.
+         - Use `httpMethod: POST`.
+         - The `uri` should point to the SQS queue's ARN.
+         - The `credentials` field should reference the API Gateway integration role ARN you provide as an argument.
+         - The request template for form data should look like this:
+
+            Example:
+            x-amazon-apigateway-integration:
+               type: aws
+               httpMethod: POST
+               uri: arn:aws:apigateway:${AWS::Region}:sqs:path/${AWS::AccountId}/${QueueName}
+               credentials: <ApiGatewayIntegrationRoleArn>
+               requestParameters:
+                  integration.request.header.Content-Type: "'application/x-www-form-urlencoded'"
+               requestTemplates:
+                  application/x-www-form-urlencoded: |
+                     Action=SendMessage&MessageBody=$input.body
+                     # If the queue object's headers array is non-empty (headers is a list of strings):
+                     #   - Add an ampersand (&) after MessageBody.
+                     #   - For each header string, add:
+                     #     MessageAttribute.{idx}.Name={header}&MessageAttribute.{idx}.Value.StringValue="$input.params().header.get('{header}')"&MessageAttribute.{idx}.Value.DataType=String
+                     #     (Each MessageAttribute field should be followed by an ampersand except the last one.)
+                     # If there are no headers, do not add the ampersand (&) or any MessageAttribute fields.
+                     # Example (with headers = ["EventType", "SourceSystem"]):
+                     # Action=SendMessage&MessageBody=$input.body&MessageAttribute.1.Name=EventType&MessageAttribute.1.Value.StringValue="$input.params().header.get('EventType')"&MessageAttribute.1.Value.DataType=String&MessageAttribute.2.Name=SourceSystem&MessageAttribute.2.Value.StringValue="$input.params().header.get('SourceSystem')"&MessageAttribute.2.Value.DataType=String
+                     # Example (no headers):
+                     # Action=SendMessage&MessageBody=$input.body
+
+    Always use the correct mapping template for the destination type (Lambda or SQS) and make sure to use the API Gateway integration role ARN you provide as an argument.
+
+    API Gateway Integration Role
+    ---------------------------
+    - The API Gateway integration role ARN should be provided as an argument to the template generator, similar to how the Lambda role ARN is provided for Lambda functions.
+    - The template should reference the provided API Gateway integration role ARN in the API Gateway integration objects, rather than hardcoding the role definition in the template.
+
+    Resource Naming
+    --------------
+    - Resource names for functions: <function_key>Function (where <function_key> is the exact key from FUNCTIONS_MAP).
+
+Step 4: Create Deployment Template Per Region
+For each region identified in Step 2:
+   - Generate an AWS SAM or CloudFormation template that includes all resources required for that region:
+         * Lambda functions (with correct configuration and IAM roles)
+         * SQS queues and DLQs (with redrive policy and visibility timeout)
+         * SQS-to-Lambda event mappings
+         * API Gateway (if region is the default region)
+         * IAM roles and permissions
+   - Ensure all mappings, routes, and integration templates are correctly defined for the region's resources.
+      - Validate the template for syntax and completeness before deploying.
+      - Name each template file by appending the region name (e.g., sam-template-<region>.yaml).
+      - Save each template in the deployment folder for organized access and deployment.
+
+Step 4: Create Deployment Template Per Region
+--------------------------------------------
+For each region identified in Step 2:
+   - Generate an AWS SAM or CloudFormation template that includes all resources required for that region:
+         * Lambda functions (with correct configuration and IAM roles)
+         * SQS queues and DLQs (with redrive policy and visibility timeout)
+         * SQS-to-Lambda event mappings
+         * API Gateway (if region is the default region)
+         * IAM roles and permissions
+   - Ensure all mappings, routes, and integration templates are correctly defined for the region's resources.
+   - Validate the template for syntax and completeness before deploying.
+   - Name each template file by appending the region name (e.g., sam-template-<region>.yaml).
+   - Save each template in the deployment folder for organized access and deployment.
+
+Step 5: Build and Deploy Templates
+For each region:
+    - Use AWS SAM CLI or CloudFormation to build the generated template (e.g., sam build -t sam-template-<region>.yaml).
+    - Deploy the template to the corresponding AWS region using a non-interactive command that does not prompt for permissions or user input. Use the S3 bucket 'dzgro-sam' for deployment artifacts. Example:
+       sam deploy --template-file sam-template-<region>.yaml --region <region> --no-confirm-changeset --no-execute-changeset --no-interactive --s3-bucket dzgro-sam
+    - Monitor the deployment process and verify that all resources are created and configured correctly.
+
+
+Step 6: Deploy FastAPI Application on EC2 Server
+This is a general deployment step (not region-specific):
+   - Provision an EC2 server to host the FastAPI application (receipt server).
+   - Configure the server with necessary security groups, IAM roles, and networking settings.
+   - Install Python, FastAPI, and all required dependencies on the EC2 instance.
+   - Deploy the FastAPI application code to the server.
+   - Run the `connect-ec2.ps1` script located in the deployment folder to set up and connect to the EC2 system.
