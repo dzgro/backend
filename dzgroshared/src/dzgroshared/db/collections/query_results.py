@@ -85,6 +85,7 @@ class QueryResultsHelper:
         pipeline.extend(Datatransformer(self.db.pp).convertResultsForPerformance())
         pipeline.extend([{ '$project': { 'data': 1, '_id': 0 } }, { '$unwind': { 'path': '$data' } }, { '$replaceRoot': { 'newRoot': '$data' } }])
         data = await self.db.aggregate(pipeline)
+        # print(pipeline)
         return data
 
 

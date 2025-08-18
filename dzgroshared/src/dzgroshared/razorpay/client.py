@@ -1,6 +1,6 @@
 import httpx, base64
-from razorpay.customer import RazorpayCustomerHelper
-from razorpay.plan import RazorpayPlanHelper
+from dzgroshared.razorpay.customer import RazorpayCustomerHelper
+from dzgroshared.razorpay.plan import RazorpayPlanHelper
 from .subscription import RazorpaySubscriptionHelper
 from dzgroshared.models.razorpay.common import RazorpaySubscriptionObject, RazorpayOrderObject, CustomerKeys
 

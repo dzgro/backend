@@ -1,0 +1,4751 @@
+{
+  "collections": {
+    "dzgro_reports": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "subscription_events": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "order_items": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "query_results": {
+      "indexes": [
+        [
+          "data.revenue.curr"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "collatetype",
+          "queryid",
+          "value"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "collatetype",
+          "queryid",
+          "parent"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B07GNHY1TK",
+          "data": {
+            "revenue": {
+              "pre": 598.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 2.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 299.0
+            },
+            "netproceeds": {
+              "pre": 766.4
+            },
+            "netproceedspercent": {
+              "pre": 1.282
+            },
+            "sessions": {
+              "pre": 6
+            },
+            "unitsessionpercent": {
+              "pre": 0.333
+            },
+            "pageviews": {
+              "pre": 7
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B07GNHY1TK",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 2715-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B07N1NBRLC",
+          "data": {
+            "revenue": {
+              "pre": 299.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 299.0
+            },
+            "netproceeds": {
+              "pre": 383.2
+            },
+            "netproceedspercent": {
+              "pre": 1.282
+            },
+            "sessions": {
+              "pre": 2
+            },
+            "unitsessionpercent": {
+              "pre": 0.5
+            },
+            "pageviews": {
+              "pre": 2
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B07N1NBRLC",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 10041-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CFVM64F7",
+          "data": {
+            "revenue": {
+              "pre": 779.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 779.0
+            },
+            "netproceeds": {
+              "pre": 1022.9
+            },
+            "netproceedspercent": {
+              "pre": 1.313
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 1
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CFVM64F7",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 1189-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 83-$P",
+          "data": {
+            "revenue": {
+              "pre": 499.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 499.0
+            },
+            "netproceeds": {
+              "pre": 655.0
+            },
+            "netproceedspercent": {
+              "pre": 1.313
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 1
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 83-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CH74YLFC",
+          "data": {
+            "revenue": {
+              "pre": 499.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 499.0
+            },
+            "netproceeds": {
+              "pre": 655.0
+            },
+            "netproceedspercent": {
+              "pre": 1.313
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 1
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CH74YLFC",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 83-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CJ8CQP8M",
+          "data": {
+            "revenue": {
+              "pre": 349.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 349.0
+            },
+            "netproceeds": {
+              "pre": 484.7
+            },
+            "netproceedspercent": {
+              "pre": 1.389
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 2
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CJ8CQP8M",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 2093-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 11069-$P",
+          "data": {
+            "revenue": {
+              "pre": 499.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 499.0
+            },
+            "netproceeds": {
+              "pre": 654.9
+            },
+            "netproceedspercent": {
+              "pre": 1.312
+            },
+            "sessions": {
+              "pre": 2
+            },
+            "unitsessionpercent": {
+              "pre": 0.5
+            },
+            "pageviews": {
+              "pre": 4
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 11069-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 2680-$P",
+          "data": {
+            "revenue": {
+              "pre": 0.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0
+            },
+            "netquantity": {
+              "pre": 0.0
+            },
+            "returnpercent": {
+              "pre": 1.0
+            },
+            "avgprice": {
+              "pre": 0
+            },
+            "netproceeds": {
+              "pre": 266.2
+            },
+            "netproceedspercent": {
+              "pre": 0
+            },
+            "sessions": {
+              "pre": 2
+            },
+            "unitsessionpercent": {
+              "pre": 0.5
+            },
+            "pageviews": {
+              "pre": 8
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 2680-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "PICTURE_FRAME"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CH8YX71J",
+          "data": {
+            "revenue": {
+              "pre": 699.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 699.0
+            },
+            "netproceeds": {
+              "pre": 929.8
+            },
+            "netproceedspercent": {
+              "pre": 1.33
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CH8YX71J",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 1036-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CHCGRNXR",
+          "data": {
+            "revenue": {
+              "pre": 779.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 779.0
+            },
+            "netproceeds": {
+              "pre": 1022.9
+            },
+            "netproceedspercent": {
+              "pre": 1.313
+            },
+            "sessions": {
+              "pre": 4
+            },
+            "unitsessionpercent": {
+              "pre": 0.25
+            },
+            "pageviews": {
+              "pre": 15
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CHCGRNXR",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 1903-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CJCX1K2R",
+          "data": {
+            "revenue": {
+              "pre": 699.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 699.0
+            },
+            "netproceeds": {
+              "pre": 929.8
+            },
+            "netproceedspercent": {
+              "pre": 1.33
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 1
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CJCX1K2R",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 1805-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CK774M4K",
+          "data": {
+            "revenue": {
+              "pre": 499.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 499.0
+            },
+            "netproceeds": {
+              "pre": 654.9
+            },
+            "netproceedspercent": {
+              "pre": 1.312
+            },
+            "sessions": {
+              "pre": 2
+            },
+            "unitsessionpercent": {
+              "pre": 0.5
+            },
+            "pageviews": {
+              "pre": 4
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CK774M4K",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 11069-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 2715-$P",
+          "data": {
+            "revenue": {
+              "pre": 598.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 2.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 299.0
+            },
+            "netproceeds": {
+              "pre": 766.4
+            },
+            "netproceedspercent": {
+              "pre": 1.282
+            },
+            "sessions": {
+              "pre": 6
+            },
+            "unitsessionpercent": {
+              "pre": 0.333
+            },
+            "pageviews": {
+              "pre": 7
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 2715-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CHLQ2ZBV",
+          "data": {
+            "revenue": {
+              "pre": 449.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 449.0
+            },
+            "netproceeds": {
+              "pre": 598.2
+            },
+            "netproceedspercent": {
+              "pre": 1.332
+            },
+            "sessions": {
+              "pre": 2
+            },
+            "unitsessionpercent": {
+              "pre": 0.5
+            },
+            "pageviews": {
+              "pre": 5
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CHLQ2ZBV",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 1260-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 2093-$P",
+          "data": {
+            "revenue": {
+              "pre": 349.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 349.0
+            },
+            "netproceeds": {
+              "pre": 484.7
+            },
+            "netproceedspercent": {
+              "pre": 1.389
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 2
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 2093-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_asin_B0CK8R1GK1",
+          "data": {
+            "revenue": {
+              "pre": 0.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0
+            },
+            "netquantity": {
+              "pre": 0.0
+            },
+            "returnpercent": {
+              "pre": 1.0
+            },
+            "avgprice": {
+              "pre": 0
+            },
+            "netproceeds": {
+              "pre": 118.0
+            },
+            "netproceedspercent": {
+              "pre": 0
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 4
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "asin",
+          "value": "B0CK8R1GK1",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "Mad 1613-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 10041-$P",
+          "data": {
+            "revenue": {
+              "pre": 299.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 299.0
+            },
+            "netproceeds": {
+              "pre": 383.2
+            },
+            "netproceedspercent": {
+              "pre": 1.282
+            },
+            "sessions": {
+              "pre": 2
+            },
+            "unitsessionpercent": {
+              "pre": 0.5
+            },
+            "pageviews": {
+              "pre": 2
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 10041-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 1903-$P",
+          "data": {
+            "revenue": {
+              "pre": 1078.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 2.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 539.0
+            },
+            "netproceeds": {
+              "pre": 1789.6
+            },
+            "netproceedspercent": {
+              "pre": 1.66
+            },
+            "sessions": {
+              "pre": 6
+            },
+            "unitsessionpercent": {
+              "pre": 0.333
+            },
+            "pageviews": {
+              "pre": 17
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 1903-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 1189-$P",
+          "data": {
+            "revenue": {
+              "pre": 779.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.0
+            },
+            "avgprice": {
+              "pre": 779.0
+            },
+            "netproceeds": {
+              "pre": 1022.9
+            },
+            "netproceedspercent": {
+              "pre": 1.313
+            },
+            "sessions": {
+              "pre": 1
+            },
+            "unitsessionpercent": {
+              "pre": 1.0
+            },
+            "pageviews": {
+              "pre": 1
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 1189-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_686750c45ec9b6bf57fe9062_parentsku_Mad 1613-$P",
+          "data": {
+            "revenue": {
+              "pre": 299.0
+            },
+            "fbarevenuepercent": {
+              "pre": 0.0
+            },
+            "netquantity": {
+              "pre": 1.0
+            },
+            "returnpercent": {
+              "pre": 0.667
+            },
+            "avgprice": {
+              "pre": 299.0
+            },
+            "netproceeds": {
+              "pre": 417.0
+            },
+            "netproceedspercent": {
+              "pre": 1.395
+            },
+            "sessions": {
+              "pre": 16
+            },
+            "unitsessionpercent": {
+              "pre": 0.188
+            },
+            "pageviews": {
+              "pre": 37
+            },
+            "buyboxpercent": {
+              "pre": 1.0
+            }
+          },
+          "collatetype": "parentsku",
+          "value": "Mad 1613-$P",
+          "queryid": "686750c45ec9b6bf57fe9062",
+          "parent": "WALL_ART"
+        }
+      ]
+    },
+    "date_analytics": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "date",
+          "collatetype",
+          "value"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07D6MZ5S2",
+          "asin": "B07D6MZ5S2",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad 1003",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 398.0,
+            "tax": 42.64,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 398.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 10,
+            "sessions": 2,
+            "mobileapppageviews": 10,
+            "mobileappsessions": 2,
+            "buyboxviews": 10,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07D6MZ5S2"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07D6NPHSH",
+          "asin": "B07D6NPHSH",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJ9TFM6G",
+          "parentsku": "Mad 1024-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 4,
+            "sessions": 3,
+            "browserpageviews": 2,
+            "browsersessions": 1,
+            "mobileapppageviews": 2,
+            "mobileappsessions": 2,
+            "buyboxviews": 4,
+            "unitsessions": 0
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07D6NPHSH"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07DML64P8",
+          "asin": "B07DML64P8",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CH7DBCXL",
+          "parentsku": "Mad 1499-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 13,
+            "sessions": 7,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "mobileapppageviews": 12,
+            "mobileappsessions": 6,
+            "buyboxviews": 11,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07DML64P8"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07DYNTV1T",
+          "ad": {
+            "impressions": 1298,
+            "clicks": 17,
+            "cost": 47.76
+          },
+          "asin": "B07DYNTV1T",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJ9TP59R",
+          "parentsku": "Mad 1954-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 35,
+            "sessions": 28,
+            "browserpageviews": 6,
+            "browsersessions": 5,
+            "mobileapppageviews": 29,
+            "mobileappsessions": 23,
+            "buyboxviews": 35,
+            "unitsessions": 0
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07DYNTV1T"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07GNMFP12",
+          "ad": {
+            "impressions": 269,
+            "clicks": 3,
+            "cost": 7.63,
+            "sales": 266.96,
+            "orders": 1,
+            "units": 1
+          },
+          "asin": "B07GNMFP12",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CK3ZDGF2",
+          "parentsku": "Mad 2853-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 10,
+            "sessions": 8,
+            "browserpageviews": 4,
+            "browsersessions": 3,
+            "mobileapppageviews": 6,
+            "mobileappsessions": 5,
+            "buyboxviews": 10,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07GNMFP12"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07JFJZBFV",
+          "ad": {
+            "impressions": 101
+          },
+          "asin": "B07JFJZBFV",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CK312VSD",
+          "parentsku": "Mad 1185-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 44,
+            "sessions": 30,
+            "browserpageviews": 5,
+            "browsersessions": 3,
+            "mobileapppageviews": 39,
+            "mobileappsessions": 27,
+            "buyboxviews": 42,
+            "unitsessions": 3
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JFJZBFV"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07JVGRT2W",
+          "asin": "B07JVGRT2W",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJD12JXF",
+          "parentsku": "Mad 2084-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 7,
+            "sessions": 5,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "mobileapppageviews": 6,
+            "mobileappsessions": 4,
+            "buyboxviews": 7,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JVGRT2W"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07JYZC282",
+          "ad": {
+            "impressions": 552,
+            "clicks": 7,
+            "cost": 14.28,
+            "sales": 266.96,
+            "orders": 1,
+            "units": 1
+          },
+          "asin": "B07JYZC282",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJDM1N9M",
+          "parentsku": "Mad 3464-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 598.0,
+            "tax": 64.08,
+            "quantity": 2,
+            "returnquantity": 0,
+            "fbmrevenue": 598.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 33,
+            "sessions": 20,
+            "browserpageviews": 22,
+            "browsersessions": 10,
+            "mobileapppageviews": 11,
+            "mobileappsessions": 10,
+            "buyboxviews": 33,
+            "unitsessions": 2
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JYZC282"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07K2VK5Q2",
+          "asin": "B07K2VK5Q2",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CKH685DV",
+          "parentsku": "Mad 2763-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 19,
+            "sessions": 7,
+            "browserpageviews": 9,
+            "browsersessions": 3,
+            "mobileapppageviews": 10,
+            "mobileappsessions": 4,
+            "buyboxviews": 19,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07K2VK5Q2"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07K2VMZ7W",
+          "asin": "B07K2VMZ7W",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJ5YDSF1",
+          "parentsku": "Mad 2490-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 311.61,
+            "tax": 37.39,
+            "quantity": 0,
+            "returnquantity": 0,
+            "fbmrevenue": 311.61,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 18,
+            "sessions": 8,
+            "browserpageviews": 5,
+            "browsersessions": 3,
+            "mobileapppageviews": 13,
+            "mobileappsessions": 5,
+            "buyboxviews": 18
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07K2VMZ7W"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07KQ54Z4Z",
+          "asin": "B07KQ54Z4Z",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad 3225",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 398.0,
+            "tax": 42.64,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 398.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 2,
+            "sessions": 1,
+            "mobileapppageviews": 2,
+            "mobileappsessions": 1,
+            "buyboxviews": 2,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07KQ54Z4Z"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B07N2LVKYW",
+          "asin": "B07N2LVKYW",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJDYH1T9",
+          "parentsku": "Mad 3154-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 469.0,
+            "tax": 50.25,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 469.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07N2LVKYW"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C5MXBM7B",
+          "asin": "B0C5MXBM7B",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CGL1TML1",
+          "parentsku": "Mad 1386-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 469.0,
+            "tax": 50.25,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 469.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 2,
+            "sessions": 2,
+            "mobileapppageviews": 2,
+            "mobileappsessions": 2,
+            "buyboxviews": 2,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C5MXBM7B"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C739QDTP",
+          "ad": {
+            "impressions": 19152,
+            "clicks": 135,
+            "cost": 568.28,
+            "sales": 2485.71,
+            "orders": 4,
+            "units": 4
+          },
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 8003.0,
+            "tax": 857.47,
+            "quantity": 13,
+            "returnquantity": 1.0,
+            "fbmrevenue": 8003.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 843,
+            "sessions": 547,
+            "browserpageviews": 90,
+            "browsersessions": 75,
+            "mobileapppageviews": 753,
+            "mobileappsessions": 472,
+            "buyboxviews": 843,
+            "unitsessions": 21
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C7YQ86DY",
+          "asin": "B0C7YQ86DY",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad PD  Fathers Day PC H 105",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 23513.0,
+            "tax": 2519.32,
+            "quantity": 59,
+            "returnquantity": 0,
+            "fbmrevenue": 23513.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 2042,
+            "sessions": 1170,
+            "browserpageviews": 153,
+            "browsersessions": 107,
+            "mobileapppageviews": 1889,
+            "mobileappsessions": 1063,
+            "buyboxviews": 2026,
+            "unitsessions": 111
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C7YQ86DY"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C7YSZ75J",
+          "asin": "B0C7YSZ75J",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad PD  Fathers Day PC H 102",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 397.0,
+            "tax": 42.54,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 397.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 85,
+            "sessions": 54,
+            "browserpageviews": 8,
+            "browsersessions": 8,
+            "mobileapppageviews": 77,
+            "mobileappsessions": 46,
+            "buyboxviews": 85,
+            "unitsessions": 5
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C7YSZ75J"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C7YVLBSP",
+          "asin": "B0C7YVLBSP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad PD  Fathers Day PC H 101",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 546.0,
+            "tax": 58.5,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 546.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 21,
+            "sessions": 15,
+            "browserpageviews": 11,
+            "browsersessions": 7,
+            "mobileapppageviews": 10,
+            "mobileappsessions": 8,
+            "buyboxviews": 21,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C7YVLBSP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C7Z4N37N",
+          "ad": {
+            "impressions": 1880,
+            "clicks": 72,
+            "cost": 501.13,
+            "sales": 3945.54,
+            "orders": 12,
+            "units": 12
+          },
+          "asin": "B0C7Z4N37N",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad PD  Fathers Day PC H 103",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 5461.0,
+            "tax": 585.12,
+            "quantity": 15,
+            "returnquantity": 0,
+            "fbmrevenue": 5461.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 586,
+            "sessions": 313,
+            "browserpageviews": 50,
+            "browsersessions": 32,
+            "mobileapppageviews": 536,
+            "mobileappsessions": 281,
+            "buyboxviews": 584,
+            "unitsessions": 31
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C7Z4N37N"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C7ZJQ3TT",
+          "asin": "B0C7ZJQ3TT",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0C9DS4SMN",
+          "parentsku": "Mad PD Fathers Day",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 2532.0,
+            "tax": 271.3,
+            "quantity": 7,
+            "returnquantity": 0,
+            "fbmrevenue": 2532.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 293,
+            "sessions": 184,
+            "browserpageviews": 26,
+            "browsersessions": 15,
+            "mobileapppageviews": 267,
+            "mobileappsessions": 169,
+            "buyboxviews": 290,
+            "unitsessions": 19
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C7ZJQ3TT"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_B0C7ZL4YP3",
+          "asin": "B0C7ZL4YP3",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0C9DS4SMN",
+          "parentsku": "Mad PD Fathers Day",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 546.0,
+            "tax": 58.5,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 546.0,
+            "fbarevenue": 0
+          },
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "traffic": {
+            "pageviews": 19,
+            "sessions": 13,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "mobileapppageviews": 18,
+            "mobileappsessions": 12,
+            "buyboxviews": 19,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C7ZL4YP3"
+        }
+      ]
+    },
+    "adv_rule_runs": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "adv_rule_criteria_groups": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "test": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "health": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "defaults": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "amazon_child_reports_group": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "country_details": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "credits": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "traffic": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "date",
+          "asin"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_B07CBV91MV_2025-06-10",
+          "asin": "B07CBV91MV",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6MZ5S2_2025-06-10",
+          "asin": "B07D6MZ5S2",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 10,
+            "sessions": 2,
+            "mobileapppageviews": 10,
+            "mobileappsessions": 2,
+            "buyboxviews": 10,
+            "unitsessions": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NB2L6_2025-06-10",
+          "asin": "B07D6NB2L6",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NCQ3L_2025-06-10",
+          "asin": "B07D6NCQ3L",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NN9FP_2025-06-10",
+          "asin": "B07D6NN9FP",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NNCBW_2025-06-10",
+          "asin": "B07D6NNCBW",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 3,
+            "sessions": 3,
+            "mobileapppageviews": 3,
+            "mobileappsessions": 3,
+            "buyboxviews": 3
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NPHSH_2025-06-10",
+          "asin": "B07D6NPHSH",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 4,
+            "sessions": 3,
+            "browserpageviews": 2,
+            "browsersessions": 1,
+            "mobileapppageviews": 2,
+            "mobileappsessions": 2,
+            "buyboxviews": 4,
+            "unitsessions": 0
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NSMWR_2025-06-10",
+          "asin": "B07D6NSMWR",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NSV6T_2025-06-10",
+          "asin": "B07D6NSV6T",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 3,
+            "sessions": 3,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "mobileapppageviews": 2,
+            "mobileappsessions": 2,
+            "buyboxviews": 3
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6NYBJ7_2025-06-10",
+          "asin": "B07D6NYBJ7",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 7,
+            "sessions": 4,
+            "mobileapppageviews": 7,
+            "mobileappsessions": 4,
+            "buyboxviews": 7
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6P2ND4_2025-06-10",
+          "asin": "B07D6P2ND4",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 3,
+            "sessions": 1,
+            "mobileapppageviews": 3,
+            "mobileappsessions": 1,
+            "buyboxviews": 3
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PCD7S_2025-06-10",
+          "asin": "B07D6PCD7S",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 2,
+            "sessions": 1,
+            "mobileapppageviews": 2,
+            "mobileappsessions": 1,
+            "buyboxviews": 2
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PCWB8_2025-06-10",
+          "asin": "B07D6PCWB8",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PD3JJ_2025-06-10",
+          "asin": "B07D6PD3JJ",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 29,
+            "sessions": 13,
+            "browserpageviews": 3,
+            "browsersessions": 2,
+            "mobileapppageviews": 26,
+            "mobileappsessions": 11,
+            "buyboxviews": 29,
+            "unitsessions": 0
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PGMZS_2025-06-10",
+          "asin": "B07D6PGMZS",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PH19N_2025-06-10",
+          "asin": "B07D6PH19N",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 39,
+            "sessions": 31,
+            "browserpageviews": 3,
+            "browsersessions": 3,
+            "mobileapppageviews": 36,
+            "mobileappsessions": 28,
+            "buyboxviews": 39
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PRY1T_2025-06-10",
+          "asin": "B07D6PRY1T",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 19,
+            "sessions": 11,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "mobileapppageviews": 18,
+            "mobileappsessions": 10,
+            "buyboxviews": 19,
+            "unitsessions": 0
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6PX88Q_2025-06-10",
+          "asin": "B07D6PX88Q",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "browserpageviews": 1,
+            "browsersessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D6Q151J_2025-06-10",
+          "asin": "B07D6Q151J",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_B07D7VTJXX_2025-06-10",
+          "asin": "B07D7VTJXX",
+          "date": "2025-06-10 00:00:00",
+          "marketplace": "6895638c452dc4315750e826",
+          "synctoken": "6896f6a879959f0136ec1a2a",
+          "traffic": {
+            "pageviews": 1,
+            "sessions": 1,
+            "mobileapppageviews": 1,
+            "mobileappsessions": 1,
+            "buyboxviews": 1
+          },
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        }
+      ]
+    },
+    "subscriptions": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "products": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "asin",
+          "sku"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "parentsku"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "sku"
+        ],
+        [
+          "childskus"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_Mad 1490 8x12 Px BLK",
+          "parentasin": "B0CGVYFPDX",
+          "parentsku": "Mad 1490-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11059 8x12 Px BLK",
+          "parentasin": "B0CHMSGJFB",
+          "parentsku": "Mad 11059-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11059 12x18 Px BLK",
+          "parentasin": "B0CHMSGJFB",
+          "parentsku": "Mad 11059-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11059 12x18 Px BLK",
+          "parentasin": "B0CHMSGJFB",
+          "parentsku": "Mad 11059-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11086 12x18 Px BLK",
+          "parentasin": "B0CHMT6DVN",
+          "parentsku": "Mad 11086-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11086 12x18 BLK",
+          "parentasin": "B0CHMT6DVN",
+          "parentsku": "Mad 11086-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11086 12x18 BLK",
+          "parentasin": "B0CHMT6DVN",
+          "parentsku": "Mad 11086-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11086 12x18 Px BLK",
+          "parentasin": "B0CHMT6DVN",
+          "parentsku": "Mad 11086-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11086 8x12 Px BLK",
+          "parentasin": "B0CHMT6DVN",
+          "parentsku": "Mad 11086-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11089 12x18 Px BLK",
+          "parentasin": "B0CHMWFHWS",
+          "parentsku": "Mad 11089-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11089 12x18 Px BLK",
+          "parentasin": "B0CHMWFHWS",
+          "parentsku": "Mad 11089-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11089 12x18 BLK",
+          "parentasin": "B0CHMWFHWS",
+          "parentsku": "Mad 11089-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11089 12x18 BLK",
+          "parentasin": "B0CHMWFHWS",
+          "parentsku": "Mad 11089-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11089 8x12 Px BLK",
+          "parentasin": "B0CHMWFHWS",
+          "parentsku": "Mad 11089-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11090 8x12 Px BLK",
+          "parentasin": "B0CHMTVWJJ",
+          "parentsku": "Mad 11090-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11090 12x18 BLK",
+          "parentasin": "B0CHMTVWJJ",
+          "parentsku": "Mad 11090-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11090 12x18 Px BLK",
+          "parentasin": "B0CHMTVWJJ",
+          "parentsku": "Mad 11090-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11090 12x18 Px BLK",
+          "parentasin": "B0CHMTVWJJ",
+          "parentsku": "Mad 11090-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad 11090 12x18 BLK",
+          "parentasin": "B0CHMTVWJJ",
+          "parentsku": "Mad 11090-$P"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_Mad C 11091 12x18 Px BLK",
+          "parentasin": "B0CHMVCW9M",
+          "parentsku": "Mad 11091-$P"
+        }
+      ]
+    },
+    "queue_messages": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "adv": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "assettype",
+          "date",
+          "sku"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "date",
+          "assettype",
+          "sku"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "assettype",
+          "id",
+          "date"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_392849206697631_2025-06-10",
+          "ad": {
+            "impressions": 273,
+            "clicks": 5,
+            "cost": 14.84
+          },
+          "adgroupid": "548140826119824",
+          "asin": "B07N1MFYRW",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "392849206697631",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "548140826119824",
+          "sku": "Mad 10001",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_10942845972978_2025-06-10",
+          "ad": {
+            "impressions": 404,
+            "clicks": 2,
+            "cost": 5.63
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07D6PRY1T",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "10942845972978",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1036",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_128982251695831_2025-06-10",
+          "ad": {
+            "impressions": 18
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07D6P9TRD",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "128982251695831",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1079",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_385250003046935_2025-06-10",
+          "ad": {
+            "impressions": 519,
+            "clicks": 6,
+            "cost": 9.56
+          },
+          "adgroupid": "492550107882259",
+          "asin": "B07D6PH19N",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "385250003046935",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "492550107882259",
+          "sku": "Mad 1104",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_332943096559777_2025-06-10",
+          "ad": {
+            "impressions": 17
+          },
+          "adgroupid": "528297446014660",
+          "asin": "B07D6PH19N",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "332943096559777",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "528297446014660",
+          "sku": "Mad 1104",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_329005673287832_2025-06-10",
+          "ad": {
+            "impressions": 6
+          },
+          "adgroupid": "493852001791103",
+          "asin": "B07D6PH19N",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "329005673287832",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "493852001791103",
+          "sku": "Mad 1104",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_303860816544011_2025-06-10",
+          "ad": {
+            "impressions": 171,
+            "clicks": 4,
+            "cost": 13.29
+          },
+          "adgroupid": "362219472092960",
+          "asin": "B07D6PD3JJ",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "303860816544011",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "362219472092960",
+          "sku": "Mad 1131",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_253704955368633_2025-06-10",
+          "ad": {
+            "impressions": 1
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07D6PBDDM",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "253704955368633",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1143",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_264543267834314_2025-06-10",
+          "ad": {
+            "impressions": 3
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B0C5JLL2WR",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "264543267834314",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 124",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_260739013964740_2025-06-10",
+          "ad": {
+            "impressions": 10,
+            "clicks": 1,
+            "cost": 3.12
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07DK8XVP3",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "260739013964740",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1249",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_168732110873500_2025-06-10",
+          "ad": {
+            "impressions": 2
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07DK4NLM7",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "168732110873500",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1282",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_70475603510576_2025-06-10",
+          "ad": {
+            "impressions": 1
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07FGXKMY3",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "70475603510576",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1362",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_161612696218205_2025-06-10",
+          "ad": {
+            "impressions": 4
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07DMM2R3Y",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "161612696218205",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1491",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_63123623683197_2025-06-10",
+          "ad": {
+            "impressions": 125,
+            "clicks": 2,
+            "cost": 6.4
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07F3XP5Y8",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "63123623683197",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1519",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_91922586508494_2025-06-10",
+          "ad": {
+            "impressions": 4
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07F3SVL49",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "91922586508494",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1527",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_87764720033010_2025-06-10",
+          "ad": {
+            "impressions": 2
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07F3VWCTY",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "87764720033010",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1545",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_189593905511406_2025-06-10",
+          "ad": {
+            "impressions": 4
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07F3RP8QB",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "189593905511406",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1564",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_175901515168438_2025-06-10",
+          "ad": {
+            "impressions": 1
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07F3QPJZR",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "175901515168438",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1587",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_276263414905381_2025-06-10",
+          "ad": {
+            "impressions": 7
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07F3TW31N",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "276263414905381",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1598",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_207910602613526_2025-06-10",
+          "ad": {
+            "impressions": 166,
+            "clicks": 2,
+            "cost": 6.22
+          },
+          "adgroupid": "271721661836384",
+          "asin": "B07DTJLJGK",
+          "assettype": "Ad",
+          "date": "2025-06-10 00:00:00",
+          "id": "207910602613526",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "271721661836384",
+          "sku": "Mad 1690",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        }
+      ]
+    },
+    "settlements": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "orderid",
+          "sku",
+          "orderitemid",
+          "amounttype"
+        ],
+        [
+          "amounttype"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6896e1ec88ccef83874fdfa0",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25275304922",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-31 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2371.27
+        },
+        {
+          "_id": "6896e1ec88ccef83874fdf73",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25275304922",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-29 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2404.01
+        },
+        {
+          "_id": "6896e1ec88ccef83874fe17a",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25275304922",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-08-01 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2410.39
+        },
+        {
+          "_id": "6896e1ec88ccef83874fe12d",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25275304922",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-08-01 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -726.92
+        },
+        {
+          "_id": "6896e1ec88ccef83874fe350",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25275304922",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-08-03 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2411.26
+        },
+        {
+          "_id": "6896e1ec88ccef83874fe654",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25275304922",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-08-04 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2362.77
+        },
+        {
+          "_id": "6896e1f688ccef83874fe97d",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25228397342",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-23 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2396.64
+        },
+        {
+          "_id": "6896e1f688ccef83874feb30",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25228397342",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-25 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2388.06
+        },
+        {
+          "_id": "6896e1f688ccef83874feb3b",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25228397342",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-24 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2425.7
+        },
+        {
+          "_id": "6896e1f688ccef83874fee4f",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25228397342",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-28 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2369.1
+        },
+        {
+          "_id": "6896e1f688ccef83874fed5c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25228397342",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-27 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2371.29
+        },
+        {
+          "_id": "6896e1ff88ccef83874ff12b",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25182829262",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-15 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2397.32
+        },
+        {
+          "_id": "6896e1ff88ccef83874ff2a8",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25182829262",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-17 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2374.73
+        },
+        {
+          "_id": "6896e1ff88ccef83874ff4c5",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25182829262",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-18 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2390.24
+        },
+        {
+          "_id": "6896e1ff88ccef83874ff6e1",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25182829262",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-19 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2375.78
+        },
+        {
+          "_id": "6896e1ff88ccef83874ff6b8",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25182829262",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-20 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2539.4
+        },
+        {
+          "_id": "6896e1ff88ccef83874ff7bd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25182829262",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-21 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2496.57
+        },
+        {
+          "_id": "6896e20a88ccef83874ffae4",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25139486532",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-09 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2368.5
+        },
+        {
+          "_id": "6896e20a88ccef83874ffcce",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25139486532",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-11 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2365.9
+        },
+        {
+          "_id": "6896e20a88ccef83874fff26",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "marketplace": "6895638c452dc4315750e826",
+          "settlementid": "25139486532",
+          "amounttype": "Cost of Advertising",
+          "transactiontype": "ServiceFee",
+          "date": "2025-07-12 00:00:00",
+          "amountdescription": "TransactionTotalAmount",
+          "amount": -2377.83
+        }
+      ]
+    },
+    "events": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "dzgro_report_data": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "spapi_accounts": {
+      "indexes": [
+        [
+          "sellerid"
+        ],
+        [
+          "uid"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "68949cbc3a48f7a095b9f526",
+          "sellerid": "AUYWKTHB2JM7A",
+          "name": "Kshitiz Sharma's Spapi Account",
+          "countrycode": "IN",
+          "refreshtoken": "Atzr|IwEBIAbxcaCjLG76pIhth68LfZLlZChAMFlBrtSX4I2V2UkE6eKr-XnK5qR-XdgMIHsqlk2-e-Mg-QbnXZrBRTYcwBa3YNPxMXXHinAkdKh4VmR3kDnRa4BL2lztkaqD8_BytXRxS2ZDxPcM8EZQ-uYnIWMV5BDtF6yQuGWQiFhQGKEgjqSzD-vgjnQGTMWDMFE2oc7iCD_nNdXNsoXv4E7f7ynENwXpDQmRZw4-zkbuPOKmiunUmMUJS2eftoOGPkr3tfV6S7yHtXPy6ggRJb39Z06iZKdKYm5XkdpwwP85bf-lF_qFpYSRmaRfC3JnG16CRZA",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "68949cbc3a48f7a095b9f526",
+          "sellerid": "AUYWKTHB2JM7A",
+          "name": "Kshitiz Sharma's Spapi Account",
+          "countrycode": "IN",
+          "refreshtoken": "Atzr|IwEBIAbxcaCjLG76pIhth68LfZLlZChAMFlBrtSX4I2V2UkE6eKr-XnK5qR-XdgMIHsqlk2-e-Mg-QbnXZrBRTYcwBa3YNPxMXXHinAkdKh4VmR3kDnRa4BL2lztkaqD8_BytXRxS2ZDxPcM8EZQ-uYnIWMV5BDtF6yQuGWQiFhQGKEgjqSzD-vgjnQGTMWDMFE2oc7iCD_nNdXNsoXv4E7f7ynENwXpDQmRZw4-zkbuPOKmiunUmMUJS2eftoOGPkr3tfV6S7yHtXPy6ggRJb39Z06iZKdKYm5XkdpwwP85bf-lF_qFpYSRmaRfC3JnG16CRZA",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        }
+      ]
+    },
+    "users": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "advertising_accounts": {
+      "indexes": [
+        [
+          "uid"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "68949cd83a48f7a095b9f527",
+          "name": "Kshitiz Sharma's Advertising Account",
+          "countrycode": "IN",
+          "refreshtoken": "Atzr|IwEBIFXXrYgp-QFDZNqamuyT-OPqKGmBZDUWJm3x_40WvPhhhkDYmUz5XlOCqI6_XvwI0H5M5KngmCWxRztEdDdWGhcV59qXBElW0bCL7iQuwrD5cbZM75GlbQbmLDF-9HpnaiBGMtXnCDr98ldq_h4L2mrTm0ppp8t47019OYVlYm8sfJZG8mMwwAWE4BTqQq14RUoz04uzT8dTJpbaFKtGRsw-yiw4JNKJ2kUVuGLK4GjE9Id3Go9PTvlHHhSDr7YR1VE7gZhh_CO1E0hWsN85wAJqUXPYB3ZesoSe5uTm_olsAuTXFZ9ppRvv2O3kp2xsg1mZTne0KG2X_tjC3qBCziEYTwMM41aaxzJ1YVYzyRSPWxYjKeh_tUJRLJwjOEOhP8SdvIqEO_2pXTnp1WgrIZSQd42RcUjsYPwwuYtQJnwrZGOTSyJ-wHczafj1nYuVmbUZMe8mpNPqSvqz2mc6RB77EIwfDT_ckRNEtbs51TRHtbneXbjhmDbxOgMHD4uhV96cxQxQTZA8FL-Fp9WyzupO",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        }
+      ]
+    },
+    "adv_rules": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "state_analytics": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "collatetype",
+          "date",
+          "value"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Kerala_Merchant_B07D6MZ5S2",
+          "asin": "B07D6MZ5S2",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad 1003",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 398.0,
+            "tax": 42.64,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 398.0,
+            "fbarevenue": 0
+          },
+          "state": "Kerala",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07D6MZ5S2"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Karnataka_Merchant_B07D6NPHSH",
+          "asin": "B07D6NPHSH",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJ9TFM6G",
+          "parentsku": "Mad 1024-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Karnataka",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07D6NPHSH"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Karnataka_Merchant_B07DML64P8",
+          "asin": "B07DML64P8",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CH7DBCXL",
+          "parentsku": "Mad 1499-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Karnataka",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07DML64P8"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Uttar Pradesh_Merchant_B07DYNTV1T",
+          "asin": "B07DYNTV1T",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJ9TP59R",
+          "parentsku": "Mad 1954-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Uttar Pradesh",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07DYNTV1T"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Uttar Pradesh_Merchant_B07GNMFP12",
+          "asin": "B07GNMFP12",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CK3ZDGF2",
+          "parentsku": "Mad 2853-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Uttar Pradesh",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07GNMFP12"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Maharashtra_Merchant_B07JFJZBFV",
+          "asin": "B07JFJZBFV",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CK312VSD",
+          "parentsku": "Mad 1185-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Maharashtra",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JFJZBFV"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Maharashtra_Merchant_B07JVGRT2W",
+          "asin": "B07JVGRT2W",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJD12JXF",
+          "parentsku": "Mad 2084-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Maharashtra",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JVGRT2W"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Haryana_Merchant_B07JYZC282",
+          "asin": "B07JYZC282",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJDM1N9M",
+          "parentsku": "Mad 3464-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Haryana",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JYZC282"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Maharashtra_Merchant_B07JYZC282",
+          "asin": "B07JYZC282",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJDM1N9M",
+          "parentsku": "Mad 3464-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Maharashtra",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07JYZC282"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Uttar Pradesh_Merchant_B07K2VK5Q2",
+          "asin": "B07K2VK5Q2",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CKH685DV",
+          "parentsku": "Mad 2763-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 299.0,
+            "tax": 32.04,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 299.0,
+            "fbarevenue": 0
+          },
+          "state": "Uttar Pradesh",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07K2VK5Q2"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Maharashtra_Merchant_B07K2VMZ7W",
+          "asin": "B07K2VMZ7W",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJ5YDSF1",
+          "parentsku": "Mad 2490-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 311.61,
+            "tax": 37.39,
+            "quantity": 0,
+            "returnquantity": 0,
+            "fbmrevenue": 311.61,
+            "fbarevenue": 0
+          },
+          "state": "Maharashtra",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07K2VMZ7W"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Assam_Merchant_B07KQ54Z4Z",
+          "asin": "B07KQ54Z4Z",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentsku": "Mad 3225",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 398.0,
+            "tax": 42.64,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 398.0,
+            "fbarevenue": 0
+          },
+          "state": "Assam",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07KQ54Z4Z"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_West Bengal_Merchant_B07N2LVKYW",
+          "asin": "B07N2LVKYW",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CJDYH1T9",
+          "parentsku": "Mad 3154-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 469.0,
+            "tax": 50.25,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 469.0,
+            "fbarevenue": 0
+          },
+          "state": "West Bengal",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B07N2LVKYW"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Bihar_Merchant_B0C5MXBM7B",
+          "asin": "B0C5MXBM7B",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CGL1TML1",
+          "parentsku": "Mad 1386-$P",
+          "producttype": "WALL_ART",
+          "sales": {
+            "expense": 0,
+            "revenue": 469.0,
+            "tax": 50.25,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 469.0,
+            "fbarevenue": 0
+          },
+          "state": "Bihar",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C5MXBM7B"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Uttar Pradesh_Merchant_B0C739QDTP",
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 2684.0,
+            "tax": 287.58000000000004,
+            "quantity": 4,
+            "returnquantity": 0,
+            "fbmrevenue": 2684.0,
+            "fbarevenue": 0
+          },
+          "state": "Uttar Pradesh",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Punjab_Merchant_B0C739QDTP",
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 646.0,
+            "tax": 69.21,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 646.0,
+            "fbarevenue": 0
+          },
+          "state": "Punjab",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Tamil Nadu_Merchant_B0C739QDTP",
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 845.0,
+            "tax": 90.54,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 845.0,
+            "fbarevenue": 0
+          },
+          "state": "Tamil Nadu",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Maharashtra_Merchant_B0C739QDTP",
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 1243.0,
+            "tax": 133.18,
+            "quantity": 3,
+            "returnquantity": 1.0,
+            "fbmrevenue": 1243.0,
+            "fbarevenue": 0
+          },
+          "state": "Maharashtra",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Karnataka_Merchant_B0C739QDTP",
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 646.0,
+            "tax": 69.21,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 646.0,
+            "fbarevenue": 0
+          },
+          "state": "Karnataka",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2025-06-10_Telangana_Merchant_B0C739QDTP",
+          "asin": "B0C739QDTP",
+          "collatetype": "asin",
+          "date": "2025-06-10 00:00:00",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "parentasin": "B0CG5RBX97",
+          "parentsku": "Mad PD Single Photo-$P",
+          "producttype": "PICTURE_FRAME",
+          "sales": {
+            "expense": 0,
+            "revenue": 398.0,
+            "tax": 42.64,
+            "quantity": 1,
+            "returnquantity": 0,
+            "fbmrevenue": 398.0,
+            "fbarevenue": 0
+          },
+          "state": "Telangana",
+          "synctoken": "68972b12f2913f9a33b9ad46",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "value": "B0C739QDTP"
+        }
+      ]
+    },
+    "adv_assets": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "assettype",
+          "id"
+        ],
+        [
+          "uid",
+          "marketplace",
+          "assettype",
+          "parent"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_100009194280896",
+          "adgroupid": "211654414069513",
+          "adid": "100009194280896",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "28968345670347",
+          "creationdatetime": "2019-02-07T07:58:58Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07N69CX7L"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 10133"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100009194280896",
+          "lastupdateddatetime": "2023-05-30T18:51:03.759Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "211654414069513",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100013117572116",
+          "adgroupid": "90642548028080",
+          "adid": "100013117572116",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "182398044089908",
+          "creationdatetime": "2019-11-18T07:16:01Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07X6M5Y9N"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 11041"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100013117572116",
+          "lastupdateddatetime": "2023-05-30T20:23:58.090Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "90642548028080",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100017849418139",
+          "adgroupid": "59018641550285",
+          "adid": "100017849418139",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "126745230040869",
+          "creationdatetime": "2019-11-18T07:16:55Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07K2ZJPRW"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 3095"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100017849418139",
+          "lastupdateddatetime": "2023-05-30T11:46:25.755Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "59018641550285",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100020553957851",
+          "adgroupid": "157748132909118",
+          "adid": "100020553957851",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "186323381840904",
+          "creationdatetime": "2019-04-03T12:20:28Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07MJLFJJF"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "MAD V 10040 M"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100020553957851",
+          "lastupdateddatetime": "2023-05-30T20:54:00.435Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "157748132909118",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100023934716335",
+          "adgroupid": "157748132909118",
+          "adid": "100023934716335",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "186323381840904",
+          "creationdatetime": "2019-03-24T19:49:04Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07PZ1SDGD"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 10245"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100023934716335",
+          "lastupdateddatetime": "2023-05-30T20:53:59.348Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "157748132909118",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100041432081904",
+          "adgroupid": "90642548028080",
+          "adid": "100041432081904",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "182398044089908",
+          "creationdatetime": "2019-11-18T07:16:09Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07N2PH7ZH"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 3129"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100041432081904",
+          "lastupdateddatetime": "2023-05-30T20:23:59.099Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "90642548028080",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100051100308909",
+          "adgroupid": "211654414069513",
+          "adid": "100051100308909",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "28968345670347",
+          "creationdatetime": "2019-02-07T07:58:58Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07N6GTTJF"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 10092"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100051100308909",
+          "lastupdateddatetime": "2023-05-30T18:51:17.632Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "211654414069513",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100057534674430",
+          "adgroupid": "245514122278093",
+          "adid": "100057534674430",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "159928558086214",
+          "creationdatetime": "2019-07-15T07:26:44Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07NC7CM93"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C1 10070"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100057534674430",
+          "lastupdateddatetime": "2023-05-30T23:30:23.243Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "245514122278093",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100061411219756",
+          "adgroupid": "235902502651404",
+          "adid": "100061411219756",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "248111234050771",
+          "creationdatetime": "2022-04-11T04:28:02.373Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07F9TWV1M"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 2018"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100061411219756",
+          "lastupdateddatetime": "2023-05-30T10:04:12.048Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "235902502651404",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100070053500122",
+          "adgroupid": "211654414069513",
+          "adid": "100070053500122",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "28968345670347",
+          "creationdatetime": "2019-02-07T07:58:53Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07GFLM1H6"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 2634"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100070053500122",
+          "lastupdateddatetime": "2023-05-30T18:51:26.188Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "211654414069513",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100074476759424",
+          "adgroupid": "117388340518038",
+          "adid": "100074476759424",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "267882736405977",
+          "creationdatetime": "2019-02-07T07:58:43Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B0C5MYM2F2"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 21"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100074476759424",
+          "lastupdateddatetime": "2023-05-30T12:36:24Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "117388340518038",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100079542519571",
+          "adgroupid": "197094425634600",
+          "adid": "100079542519571",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "138760902188780",
+          "creationdatetime": "2023-06-01T04:49:30.695Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B0C5JMNXYY"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 1749"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_PAUSED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100079542519571",
+          "lastupdateddatetime": "2023-06-01T04:49:30.695Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "197094425634600",
+          "state": "ENABLED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100081928832993",
+          "adgroupid": "273282291010868",
+          "adid": "100081928832993",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "43301837440589",
+          "creationdatetime": "2023-06-08T14:05:20.699Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B0C5MSVPY6"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 1935"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100081928832993",
+          "lastupdateddatetime": "2023-06-21T03:11:43.058Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "273282291010868",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100087902493236",
+          "adgroupid": "248513788819993",
+          "adid": "100087902493236",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "74148533955800",
+          "creationdatetime": "2020-01-18T11:34:30Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07X6M5LMB"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 11033"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100087902493236",
+          "lastupdateddatetime": "2023-05-30T15:58:29.870Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "248513788819993",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100095350665784",
+          "adgroupid": "211654414069513",
+          "adid": "100095350665784",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "28968345670347",
+          "creationdatetime": "2019-02-07T07:58:59Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B0C5JJY7TB"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 162"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100095350665784",
+          "lastupdateddatetime": "2023-05-30T18:51:38.770Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "211654414069513",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100095490644946",
+          "adgroupid": "205877606841200",
+          "adid": "100095490644946",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "125294110203511",
+          "creationdatetime": "2020-01-18T10:13:40Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07C28YNBT"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 04_Medium"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100095490644946",
+          "lastupdateddatetime": "2023-05-31T00:28:12.271Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "205877606841200",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100098301340714",
+          "adgroupid": "59018641550285",
+          "adid": "100098301340714",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "126745230040869",
+          "creationdatetime": "2019-11-18T07:16:59Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07JFV1HLM"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad R1 1978"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100098301340714",
+          "lastupdateddatetime": "2023-05-30T11:46:09.312Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "59018641550285",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100102196035992",
+          "adgroupid": "238709106515719",
+          "adid": "100102196035992",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "257905854707495",
+          "creationdatetime": "2019-08-28T12:46:31Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07N2K46T5"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad C 3155"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100102196035992",
+          "lastupdateddatetime": "2023-05-30T18:51:40.087Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "238709106515719",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_100123141192190",
+          "adgroupid": "15478036409453",
+          "adid": "100123141192190",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "28968345670347",
+          "creationdatetime": "2019-02-07T07:58:45Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07DDHFJB2"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad V 24_L"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "100123141192190",
+          "lastupdateddatetime": "2023-05-30T12:51:47.821Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "15478036409453",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_10012608166936",
+          "adgroupid": "90642548028080",
+          "adid": "10012608166936",
+          "adproduct": "SPONSORED_PRODUCTS",
+          "adtype": "PRODUCT_AD",
+          "assettype": "Ad",
+          "campaignid": "182398044089908",
+          "creationdatetime": "2019-11-18T07:16:03Z",
+          "creative": {
+            "products": [
+              {
+                "productIdType": "ASIN",
+                "productId": "B07QQYL9XR"
+              },
+              {
+                "productIdType": "SKU",
+                "productId": "Mad 10283"
+              }
+            ]
+          },
+          "deliveryreasons": [
+            "CAMPAIGN_ARCHIVED"
+          ],
+          "deliverystatus": "NOT_DELIVERING",
+          "id": "10012608166936",
+          "lastupdateddatetime": "2023-05-30T20:23:57.947Z",
+          "marketplace": "6895638c452dc4315750e826",
+          "parent": "90642548028080",
+          "state": "ARCHIVED",
+          "synctoken": "689727ef77baac7e50e1d65c",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        }
+      ]
+    },
+    "state_names": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "orders": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "date"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_402-4428058-3501119",
+          "city": "Nellore",
+          "code": "524004",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-02 06:10:31",
+          "orderid": "402-4428058-3501119",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Andhra Pradesh",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_405-7606984-4986735",
+          "city": "Hyderabad",
+          "code": "500079",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 13:31:26",
+          "orderid": "405-7606984-4986735",
+          "orderstatus": "Shipped - Delivered to Buyer",
+          "state": "Telangana",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_402-5835799-2262737",
+          "city": "Bengaluru",
+          "code": "560030",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 19:13:40",
+          "orderid": "402-5835799-2262737",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Karnataka",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_403-6891208-7113963",
+          "city": "Bhogpur",
+          "code": "144201",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-05 06:56:05",
+          "orderid": "403-6891208-7113963",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Punjab",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_408-5336422-8558708",
+          "city": "Aundha Nagnath",
+          "code": "431705",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-09 04:54:45",
+          "orderid": "408-5336422-8558708",
+          "orderstatus": "Cancelled",
+          "state": "Maharashtra",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_404-4339713-9876361",
+          "city": "Bhubaneswar",
+          "code": "751024",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 10:19:00",
+          "orderid": "404-4339713-9876361",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Odisha",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_402-9444024-5809940",
+          "city": "Yamunanagar",
+          "code": "135001",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-05 07:37:11",
+          "orderid": "402-9444024-5809940",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Haryana",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_402-0613722-9520318",
+          "city": "Bengaluru",
+          "code": "560016",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-04 02:49:47",
+          "orderid": "402-0613722-9520318",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Karnataka",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_402-1916531-1236315",
+          "city": "Bansberia",
+          "code": "712104",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 11:06:49",
+          "orderid": "402-1916531-1236315",
+          "orderstatus": "Shipped - Delivered to Buyer",
+          "state": "West Bengal",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_171-1699749-7795515",
+          "city": "Balangir",
+          "code": "767002",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-02 08:36:10",
+          "orderid": "171-1699749-7795515",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Odisha",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_408-3692861-4913106",
+          "city": "Vaishali",
+          "code": "844101",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 12:26:28",
+          "orderid": "408-3692861-4913106",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Bihar",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_407-0824907-5396325",
+          "city": "Dakshina Kannada",
+          "code": "574238",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-01 16:36:55",
+          "orderid": "407-0824907-5396325",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Karnataka",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_402-3195029-2853908",
+          "city": "Mumbai",
+          "code": "400076",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 18:03:52",
+          "orderid": "402-3195029-2853908",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Maharashtra",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_404-6351489-5739508",
+          "city": "Chikhli",
+          "code": "443201",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-02 17:59:20",
+          "orderid": "404-6351489-5739508",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Maharashtra",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_408-4287230-4117125",
+          "city": "Jorhat",
+          "code": "785105",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-01 17:38:05",
+          "orderid": "408-4287230-4117125",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Assam",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_404-7800599-1529914",
+          "city": "Kochi",
+          "code": "682001",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-02 05:46:59",
+          "orderid": "404-7800599-1529914",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Kerala",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_407-3009306-3237138",
+          "city": "Ranchi",
+          "code": "834001",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 17:31:45",
+          "orderid": "407-3009306-3237138",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Jharkhand",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_403-9004045-4849935",
+          "city": "Navi Mumbai",
+          "code": "410210",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-03 19:09:15",
+          "orderid": "403-9004045-4849935",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Maharashtra",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_403-4131943-1269148",
+          "city": "Roorkee",
+          "code": "247667",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-05 06:05:56",
+          "orderid": "403-4131943-1269148",
+          "orderstatus": "Shipped - Out for Delivery",
+          "state": "Uttarakhand",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        },
+        {
+          "_id": "6895638c452dc4315750e826_405-6916611-6837141",
+          "city": "Mahabubabad",
+          "code": "506318",
+          "country": "IN",
+          "fulfillment": "Merchant",
+          "marketplace": "6895638c452dc4315750e826",
+          "orderdate": "2025-08-02 03:01:58",
+          "orderid": "405-6916611-6837141",
+          "orderstatus": "Shipped - Delivered to Buyer",
+          "state": "Telangana",
+          "synctoken": "6896ec111c0eaf3c86afffcd",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921"
+        }
+      ]
+    },
+    "marketplaces": {
+      "indexes": [
+        [
+          "uid"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826",
+          "seller": "68949cbc3a48f7a095b9f526",
+          "ad": "68949cd83a48f7a095b9f527",
+          "sellerid": "AUYWKTHB2JM7A",
+          "marketplaceid": "A21TJRUUN4KGV",
+          "countrycode": "IN",
+          "storename": "Mad Master",
+          "profileid": 476214271739435,
+          "status": "Active",
+          "uid": "41e34d1a-6031-70d2-9ff3-d1a704240921",
+          "enddate": "2025-08-08 23:59:59.999000",
+          "lastrefresh": "2025-08-09 11:03:46",
+          "lastreport": "68972b12f2913f9a33b9ad46",
+          "startdate": "2025-06-09 23:59:59.999000",
+          "region": "EU"
+        }
+      ]
+    },
+    "adv_rule_run_results": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "runid"
+        ]
+      ],
+      "sample_docs": []
+    },
+    "adv_ads": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "assettype",
+          "id"
+        ]
+      ],
+      "sample_docs": [
+        {
+          "_id": "6895638c452dc4315750e826_213818028282339",
+          "products": [
+            {
+              "sku": "Mad 17_Large",
+              "asin": "B07CBVPY2B",
+              "image": "https://m.media-amazon.com/images/I/61+B2PCdtlL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_107418933450550",
+          "products": [
+            {
+              "sku": "Mad CR1 2569 M",
+              "asin": "B07JDQQGGV",
+              "image": "https://m.media-amazon.com/images/I/71uY2fbj2XL.jpg"
+            },
+            {
+              "sku": "Mad C 2569 M",
+              "asin": "B07H4SNFDH",
+              "image": "https://m.media-amazon.com/images/I/71uY2fbj2XL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_501779170304560",
+          "products": [
+            {
+              "sku": "Mad PD PC H 111",
+              "asin": "B0C995RD91",
+              "image": "https://m.media-amazon.com/images/I/615mKOvv41L.jpg"
+            },
+            {
+              "sku": "Mad PD PC H 113",
+              "asin": "B0C9DGHDTN",
+              "image": "https://m.media-amazon.com/images/I/519SEwcKC2L.jpg"
+            },
+            {
+              "sku": "Mad PD PC H 117",
+              "asin": "B0C9961DR5",
+              "image": "https://m.media-amazon.com/images/I/61Xg2cNPI+L.jpg"
+            },
+            {
+              "sku": "Mad PD PC H 115",
+              "asin": "B0C9DPZD3T",
+              "image": "https://m.media-amazon.com/images/I/51uv50eg3jL.jpg"
+            },
+            {
+              "sku": "Mad PD PC S 122",
+              "asin": "B0CBGWFVBF",
+              "image": "https://m.media-amazon.com/images/I/91x51LhIJeL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_21781979958636",
+          "products": [
+            {
+              "sku": "MAD V 10015 M",
+              "asin": "B07MQF7VG9",
+              "image": "https://m.media-amazon.com/images/I/61WHskv11lL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_139167212717006",
+          "products": [
+            {
+              "sku": "Mad 1756",
+              "asin": "B07DZYDQ7P",
+              "image": "https://m.media-amazon.com/images/I/81rbOtYJ+TL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_219355522259912",
+          "products": [
+            {
+              "sku": "Mad 74_Medium",
+              "asin": "B07C28YMYS",
+              "image": "https://m.media-amazon.com/images/I/71a3SEgeYWL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_184952739076615",
+          "products": [
+            {
+              "sku": "Mad C 10021",
+              "asin": "B07N4219H3",
+              "image": "https://m.media-amazon.com/images/I/61Es9jjKsjL.jpg"
+            },
+            {
+              "sku": "Mad C 10096",
+              "asin": "B07N6D2WPJ",
+              "image": "https://m.media-amazon.com/images/I/61Es9jjKsjL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_216653081584988",
+          "products": [
+            {
+              "sku": "Mad 03_Medium",
+              "asin": "B07CBW1YBQ",
+              "image": "https://m.media-amazon.com/images/I/810ly4XjSaL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_142582936818000",
+          "products": [
+            {
+              "sku": "Mad CR1 1447 M",
+              "asin": "B07JG88XKZ",
+              "image": "https://m.media-amazon.com/images/I/41LaDBqiC6L.jpg"
+            },
+            {
+              "sku": "Mad C 1447 M",
+              "asin": "B07H4QRX9Y",
+              "image": "https://m.media-amazon.com/images/I/41LaDBqiC6L.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_125010956171172",
+          "products": [
+            {
+              "sku": "Mad C 1439 M",
+              "asin": "B07H4SYSNC",
+              "image": "https://m.media-amazon.com/images/I/716D7vOseOL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_60839775076849",
+          "products": [
+            {
+              "sku": "Mad C 1613",
+              "asin": "B0C5N12HPS",
+              "image": "https://m.media-amazon.com/images/I/619puiFHWlL.jpg"
+            },
+            {
+              "sku": "Mad C 2110",
+              "asin": "B0C5MZCQN2",
+              "image": "https://m.media-amazon.com/images/I/71LXBSm6xtL.jpg"
+            },
+            {
+              "sku": "Mad C 1664",
+              "asin": "B0C5JJ3BVM",
+              "image": "https://m.media-amazon.com/images/I/71Gen4-bpZL.jpg"
+            },
+            {
+              "sku": "Mad C 1661",
+              "asin": "B0C5MXLMCL",
+              "image": "https://m.media-amazon.com/images/I/71qVn4YD5gL.jpg"
+            },
+            {
+              "sku": "Mad C 3158",
+              "asin": "B07N2N28KS",
+              "image": "https://m.media-amazon.com/images/I/71KWRvRjaPL.jpg"
+            },
+            {
+              "sku": "Mad C 3416",
+              "asin": "B0C5MZ2KM3",
+              "image": "https://m.media-amazon.com/images/I/71COmS6G+bL.jpg"
+            },
+            {
+              "sku": "Mad C 1675",
+              "asin": "B0C5N1SBS4",
+              "image": "https://m.media-amazon.com/images/I/71dYBD-+MxL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_224640203280663",
+          "count": 75,
+          "products": [
+            {
+              "sku": "Mad 1798",
+              "asin": "B07FGVTPN9",
+              "image": "https://m.media-amazon.com/images/I/71HZUe80bNL.jpg"
+            },
+            {
+              "sku": "Mad 2016",
+              "asin": "B07FB1NLQJ",
+              "image": "https://m.media-amazon.com/images/I/716sW11pfaL.jpg"
+            },
+            {
+              "sku": "Mad R1 1185",
+              "asin": "B07JFJZBFV",
+              "image": "https://m.media-amazon.com/images/I/614GSdanPgL.jpg"
+            },
+            {
+              "sku": "Mad 1909",
+              "asin": "B07DYMC2WV",
+              "image": "https://m.media-amazon.com/images/I/61jpJpuh4gL.jpg"
+            },
+            {
+              "sku": "Mad 2010",
+              "asin": "B07F9X9YRQ",
+              "image": "https://m.media-amazon.com/images/I/611fccgxD7L.jpg"
+            },
+            {
+              "sku": "Mad 1410",
+              "asin": "B07DMM4VM5",
+              "image": "https://m.media-amazon.com/images/I/71IV-iIa7LL.jpg"
+            },
+            {
+              "sku": "Mad 1024",
+              "asin": "B07D6NPHSH",
+              "image": "https://m.media-amazon.com/images/I/61JNOd0LCdL.jpg"
+            },
+            {
+              "sku": "Mad 1659",
+              "asin": "B07DTHQPYL",
+              "image": "https://m.media-amazon.com/images/I/71k4A2Pn5rL.jpg"
+            },
+            {
+              "sku": "Mad 2017",
+              "asin": "B07F9WV5TB",
+              "image": "https://m.media-amazon.com/images/I/61s7GGmkDiL.jpg"
+            },
+            {
+              "sku": "Mad 1410",
+              "asin": "B07DMM4VM5",
+              "image": "https://m.media-amazon.com/images/I/71IV-iIa7LL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_83498581402106",
+          "products": [
+            {
+              "sku": "Mad C 1746 M",
+              "asin": "B07H4Q7N64",
+              "image": "https://m.media-amazon.com/images/I/41UEFdalorL.jpg"
+            },
+            {
+              "sku": "Mad CR1 1746 M",
+              "asin": "B07JFXSMMB",
+              "image": "https://m.media-amazon.com/images/I/41UEFdalorL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_108456799849418",
+          "products": [
+            {
+              "sku": "Mad 13_Large",
+              "asin": "B07C28G8CG",
+              "image": "https://m.media-amazon.com/images/I/71Xb5H3W4kL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_111526247616738",
+          "products": [
+            {
+              "sku": "Mad C 1001 - 36 x 24 F",
+              "asin": "B07FKJ54V6",
+              "image": "https://m.media-amazon.com/images/I/71jZlCY40sL.jpg"
+            },
+            {
+              "sku": "Mad C 1002 - 36 x 24 F",
+              "asin": "B07FKPQGGM",
+              "image": "https://m.media-amazon.com/images/I/714a9XsCZrL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_2304630021649",
+          "products": [
+            {
+              "sku": "Mad CR1 1049 M",
+              "asin": "B07JGB66Y1",
+              "image": "https://m.media-amazon.com/images/I/71a4vjR1ZwL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_272127557624347",
+          "products": [
+            {
+              "sku": "Mad 2816",
+              "asin": "B07GNM36QQ",
+              "image": "https://m.media-amazon.com/images/I/61cn3chBs2L.jpg"
+            },
+            {
+              "sku": "Mad 2166",
+              "asin": "B07GFMPBKF",
+              "image": "https://m.media-amazon.com/images/I/71XFHs-Ic0L.jpg"
+            },
+            {
+              "sku": "Mad 2665",
+              "asin": "B07GFLZTKX",
+              "image": "https://m.media-amazon.com/images/I/714ct+s080L.jpg"
+            },
+            {
+              "sku": "Mad 2253",
+              "asin": "B07GFMCBM4",
+              "image": "https://m.media-amazon.com/images/I/71QNZBhqf3L.jpg"
+            },
+            {
+              "sku": "Mad 2985",
+              "asin": "B07GNJ7MG4",
+              "image": "https://m.media-amazon.com/images/I/61YIO-xQBFL.jpg"
+            },
+            {
+              "sku": "Mad 2236",
+              "asin": "B07GFMPFXH",
+              "image": "https://m.media-amazon.com/images/I/61t2VkKRhKL.jpg"
+            },
+            {
+              "sku": "Mad 2550",
+              "asin": "B07GFLLWQQ",
+              "image": "https://m.media-amazon.com/images/I/71BXRVfofhL.jpg"
+            },
+            {
+              "sku": "Mad 2969",
+              "asin": "B07GNLHWHG",
+              "image": "https://m.media-amazon.com/images/I/71HmAlDT-7L.jpg"
+            },
+            {
+              "sku": "Mad 2204",
+              "asin": "B07GFNQ8W3",
+              "image": "https://m.media-amazon.com/images/I/61Uw-GVa+LL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_3376223285566",
+          "products": [
+            {
+              "sku": "Mad C 10120",
+              "asin": "B07N6BKXQ2",
+              "image": "https://m.media-amazon.com/images/I/61-m6ans3QL.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_236027822731430",
+          "count": 23,
+          "products": [
+            {
+              "sku": "Mad 2467",
+              "asin": "B07GFQ4ST9",
+              "image": "https://m.media-amazon.com/images/I/51JePMF9IOL.jpg"
+            },
+            {
+              "sku": "Mad 1942",
+              "asin": "B07DYL4WCT",
+              "image": "https://m.media-amazon.com/images/I/81jDjXIsa2L.jpg"
+            },
+            {
+              "sku": "Mad 1438",
+              "asin": "B07DMMR8Y8",
+              "image": "https://m.media-amazon.com/images/I/71hPuCzXuHL.jpg"
+            },
+            {
+              "sku": "MAD V 10027 L",
+              "asin": "B07MQFB7FM",
+              "image": "https://m.media-amazon.com/images/I/619zKYN8xbL.jpg"
+            },
+            {
+              "sku": "Mad 2558",
+              "asin": "B07GFMXPR7",
+              "image": "https://m.media-amazon.com/images/I/51o8bA+sf6L.jpg"
+            },
+            {
+              "sku": "Mad 1977",
+              "asin": "B07DYKZTZP",
+              "image": "https://m.media-amazon.com/images/I/71Kr4mHUmGL.jpg"
+            },
+            {
+              "sku": "Mad 10119",
+              "asin": "B07N6GRDT6",
+              "image": "https://m.media-amazon.com/images/I/71udXN3UXUL.jpg"
+            },
+            {
+              "sku": "Mad 10044",
+              "asin": "B07N1MRH45",
+              "image": "https://m.media-amazon.com/images/I/71udXN3UXUL.jpg"
+            },
+            {
+              "sku": "Mad 1392",
+              "asin": "B07F11PNGG",
+              "image": "https://m.media-amazon.com/images/I/71I+PvivghL.jpg"
+            },
+            {
+              "sku": "Mad R1 1550",
+              "asin": "B07JFTX2LG",
+              "image": "https://m.media-amazon.com/images/I/71IZ5OG398L.jpg"
+            }
+          ]
+        },
+        {
+          "_id": "6895638c452dc4315750e826_196845243824479",
+          "products": [
+            {
+              "sku": "Mad C 1685 M",
+              "asin": "B07H4SJ7LH",
+              "image": "https://m.media-amazon.com/images/I/41Q07sV+W1L.jpg"
+            },
+            {
+              "sku": "Mad CR1 1685 M",
+              "asin": "B07JGB637F",
+              "image": "https://m.media-amazon.com/images/I/41Q07sV+W1L.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    "analytics_calculation": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "pricing": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "queries": {
+      "indexes": [],
+      "sample_docs": []
+    },
+    "amazon_child_reports": {
+      "indexes": [
+        [
+          "parent"
+        ]
+      ],
+      "sample_docs": []
+    },
+    "adv_queries": {
+      "indexes": [
+        [
+          "uid",
+          "marketplace",
+          "assettype",
+          "parent"
+        ]
+      ],
+      "sample_docs": []
+    },
+    "payments": {
+      "indexes": [],
+      "sample_docs": []
+    }
+  },
+  "relationships": [
+    {
+      "field": "uid",
+      "collections": [
+        "settlements",
+        "adv_assets",
+        "traffic",
+        "products",
+        "spapi_accounts",
+        "date_analytics",
+        "marketplaces",
+        "query_results",
+        "adv_rule_run_results",
+        "advertising_accounts",
+        "state_analytics",
+        "adv_queries",
+        "adv_ads",
+        "orders",
+        "adv"
+      ]
+    },
+    {
+      "field": "marketplace",
+      "collections": [
+        "settlements",
+        "adv_assets",
+        "traffic",
+        "products",
+        "date_analytics",
+        "adv_rule_run_results",
+        "query_results",
+        "state_analytics",
+        "adv_queries",
+        "adv_ads",
+        "orders",
+        "adv"
+      ]
+    },
+    {
+      "field": "collatetype",
+      "collections": [
+        "state_analytics",
+        "date_analytics",
+        "query_results"
+      ]
+    },
+    {
+      "field": "value",
+      "collections": [
+        "state_analytics",
+        "date_analytics",
+        "query_results"
+      ]
+    },
+    {
+      "field": "parent",
+      "collections": [
+        "adv_queries",
+        "query_results",
+        "adv_assets",
+        "amazon_child_reports"
+      ]
+    },
+    {
+      "field": "date",
+      "collections": [
+        "traffic",
+        "date_analytics",
+        "state_analytics",
+        "orders",
+        "adv"
+      ]
+    },
+    {
+      "field": "asin",
+      "collections": [
+        "traffic",
+        "products"
+      ]
+    },
+    {
+      "field": "sku",
+      "collections": [
+        "products",
+        "settlements",
+        "adv"
+      ]
+    },
+    {
+      "field": "assettype",
+      "collections": [
+        "adv_assets",
+        "adv_ads",
+        "adv_queries",
+        "adv"
+      ]
+    },
+    {
+      "field": "id",
+      "collections": [
+        "adv_assets",
+        "adv_ads",
+        "adv"
+      ]
+    }
+  ]
+}

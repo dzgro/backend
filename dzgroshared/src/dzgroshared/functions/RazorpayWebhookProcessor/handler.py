@@ -1,22 +1,19 @@
-from io import BytesIO
-from dzgroshared.functions import FunctionClient
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.RazorpayWebhookProcessor.models import RazorpayWebhookPayload
-from dzgroshared.models.collections.user import User
 from dzgroshared.models.sqs import SQSEvent
-from dzgroshared.models.collections.queue_messages import PaymentMessage
 
 
 class RazorpayWebhookProcessor:
-    fnclient: FunctionClient
+    client: DzgroSharedClient
 
-    def __init__(self, client: FunctionClient):
-        self.fnclient = client
+    def __init__(self, client: DzgroSharedClient):
+        self.client = client
 
-    async def execute(self):
-        records = self.fnclient.event.get('Records',[])
+    async def execute(self, event: dict):
+        records = event.get('Records',[])
         for record in records:
             try:
-                parsed = SQSEvent.model_validate(self.fnclient.event)
+                parsed = SQSEvent.model_validate(event)
                 for record in parsed.Records:
                     if record.messageAttributes:
                         if 'X-Razorpay-Signature' in record.messageAttributes and 'X-Razorpay-Event-Id' in record.messageAttributes:
@@ -50,14 +47,14 @@ class RazorpayWebhookProcessor:
         if body.subscription and body.subscription.notes:
             uid = body.subscription.notes.get('uid', None)
             if uid:
-                self.fnclient.client.uid = uid
-                await self.fnclient.client.db.subscriptions.updateSubscriptionStatus(body.subscription.id, body.subscription.status)
+                self.client.uid = uid
+                await self.client.db.subscriptions.updateSubscriptionStatus(body.subscription.id, body.subscription.status)
                 return uid
 
     async def updatePayment(self, uid: str, body: RazorpayWebhookPayload):
         if body.payment:
             try:
-                await self.fnclient.client.db.payments.getPayment(body.payment.id)
+                await self.client.db.payments.getPayment(body.payment.id)
             except Exception as e:
                 from datetime import datetime
                 from dzgroshared.models.collections.queue_messages import PaymentMessage
@@ -70,4 +67,4 @@ class RazorpayWebhookProcessor:
                 from dzgroshared.models.enums import QueueUrl
                 from dzgroshared.models.sqs import SendMessageRequest
                 req = SendMessageRequest(QueueUrl=QueueUrl.PAYMENT)
-                self.fnclient.client.sqs.sendMessage(req, message)
+                self.client.sqs.sendMessage(req, message)

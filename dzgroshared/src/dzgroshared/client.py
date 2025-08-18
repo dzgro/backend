@@ -1,21 +1,34 @@
 from bson import ObjectId
 from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.enums import ENVIRONMENT
-from dzgroshared.models.model import LambdaContext
+from dzgroshared.models.model import DzgroSecrets, LambdaContext
+from motor.motor_asyncio import AsyncIOMotorClient
 
 
 class DzgroSharedClient:
     env: ENVIRONMENT
-    uid: str|None
-    marketplace: ObjectId|None
+    uid: str
+    marketplace: ObjectId
+    mongoClient: AsyncIOMotorClient
+    secretsClient: DzgroSecrets
 
-    def __init__(self, env: ENVIRONMENT = ENVIRONMENT.DEV, uid: str|None = None, marketplace: ObjectId|None = None):
+    def __init__(self, env: ENVIRONMENT = ENVIRONMENT.DEV):
         self.env = env
-        self.uid = uid
-        self.marketplace = marketplace
-
+        
     def __getattr__(self, item):
         return None
+    
+    def setUid(self, uid: str):
+        self.uid = uid
+
+    def setMarketplace(self, marketplace: ObjectId):
+        self.marketplace = marketplace
+
+    def setSecretsClient(self, secretsClient: DzgroSecrets):
+        self.secretsClient = secretsClient
+
+    def setMongoClient(self, mongoClient: AsyncIOMotorClient):
+        self.mongoClient = mongoClient
 
     @property
     def secrets(self):
@@ -63,6 +76,8 @@ class DzgroSharedClient:
     def db(self):
         if self.dbClient: return self.dbClient
         from dzgroshared.db.client import DbClient
+        if not self.mongoClient:
+            self.mongoClient = AsyncIOMotorClient(self.secrets.MONGO_DB_CONNECT_URI)
         self.dbClient = DbClient(self, uid=self.uid, marketplace=self.marketplace)
         return self.dbClient
     

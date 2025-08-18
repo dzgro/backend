@@ -1,4 +1,4 @@
-from dzgroshared.functions import FunctionClient
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
 import json
@@ -10,7 +10,7 @@ from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
 
 
 class AmazonAdsExportManager:
-    fnClient: FunctionClient
+    client: DzgroSharedClient
     api: AdApiClient
     createThrottle: bool = False
     getThrottle: bool = False
@@ -18,8 +18,8 @@ class AmazonAdsExportManager:
     reportUtil: ReportUtil
     reportId: PyObjectId
 
-    def __init__(self, fnClient: FunctionClient, marketplace: MarketplaceObjectForReport, api: AdApiClient) -> None:
-        self.fnClient = fnClient
+    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, api: AdApiClient) -> None:
+        self.client = client
         self.api = api
         self.marketplace = marketplace
 
@@ -99,7 +99,7 @@ class AmazonAdsExportManager:
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await self.fnClient.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:
         data: list[dict] = []
@@ -112,4 +112,4 @@ class AmazonAdsExportManager:
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.adexport.AdsExportConvertor import AdsExportConvertor
         data = json.loads(dataStr)
         exports = AdsExportConvertor().getExportData(exportType, data, str(self.marketplace.id))
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.ADV_ASSETS, exports, self.reportId)
+        await self.reportUtil.update(self.client.db, CollectionType.ADV_ASSETS, exports, self.reportId)

@@ -2,14 +2,14 @@ import asyncio
 from bson import ObjectId
 from pydantic.json_schema import SkipJsonSchema
 from fastapi import APIRouter, BackgroundTasks, Body, Path, Request
-from models.model import Paginator, SuccessResponse
-from models.collections.adv_ad_group_mapping import AdGroupMapping
-from models.enums import AdAssetType, AdProduct
-from models.collections.adv_assets import AdBreadcrumb, ListAdAssetRequest, ListAdAssetRequestParams, AdAssetResponse
-from models.extras.ad_structure import AdGroupCompliance,ViolatingAdGroupAd, ViolatingAdGroupMatchType, ViolatingAdGroupTarget, AdGroupOptimizationRequest, AdGroupOptimizationResponse
-from db.extras.rule_executor import AdRuleExecutor
-from models.collections.adv_rule_runs import AdRuleRun, AdRuleRunRequest, AdRuleRunResultParams, AdRuleWithRunDetails, AdRuleRunResult, RuleAvailableFilters
-from models.collections.adv_rules import AdRuleAssetTypeWithAdProduct, AdRuleSummary, AdCriteriaParams, CreateAdRuleRequest, AdRule, SimplifyAdRuleRequest
+from dzgroshared.models.model import Paginator, SuccessResponse
+from dzgroshared.models.collections.adv_ad_group_mapping import AdGroupMapping
+from dzgroshared.models.enums import AdAssetType, AdProduct
+from dzgroshared.models.collections.adv_assets import AdBreadcrumb, ListAdAssetRequest, ListAdAssetRequestParams, AdAssetResponse
+from dzgroshared.models.extras.ad_structure import AdGroupCompliance,ViolatingAdGroupAd, ViolatingAdGroupMatchType, ViolatingAdGroupTarget, AdGroupOptimizationRequest, AdGroupOptimizationResponse
+from dzgroshared.db.extras.rule_executor import AdRuleExecutor
+from dzgroshared.models.collections.adv_rule_runs import AdRuleRun, AdRuleRunRequest, AdRuleRunResultParams, AdRuleWithRunDetails, AdRuleRunResult, RuleAvailableFilters
+from dzgroshared.models.collections.adv_rules import AdRuleAssetTypeWithAdProduct, AdRuleSummary, AdCriteriaParams, CreateAdRuleRequest, AdRule, SimplifyAdRuleRequest
 router = APIRouter(prefix="/ad", tags=["Advertisement"])
 from api.Util import RequestHelper
 
@@ -20,25 +20,25 @@ class Ad:
         self.request = request
 
     def getAdvertisementHelper(self):
-        return RequestHelper(self.request).ad_assets
+        return RequestHelper(self.request).client.db.adv_assets
 
     def getAdRuleUtility(self):
-        return RequestHelper(self.request).ad_rule_utility
+        return RequestHelper(self.request).client.db.ad_rule_utility
 
     def getDashboardHelper(self):
-        return RequestHelper(self.request).analytics
+        return RequestHelper(self.request).client.db.analytics
 
     def getAdRuleRunUtility(self):
-        return RequestHelper(self.request).ad_rule_run_utility
+        return RequestHelper(self.request).client.db.ad_rule_run_utility
 
     def getAdRuleRunResultsUtility(self):
-        return RequestHelper(self.request).ad_rule_run_results
+        return RequestHelper(self.request).client.db.ad_rule_run_results
 
     def getAdGroupMappingHelper(self):
-        return RequestHelper(self.request).ad_ad_group_mapping
+        return RequestHelper(self.request).client.db.ad_rule_run_utility
 
     def getAdStructureHelper(self):
-        return RequestHelper(self.request).ad_structure
+        return RequestHelper(self.request).client.db.ad_structure
 
 
 @router.post("/list", response_model=AdAssetResponse, response_model_exclude_none=True)

@@ -1,18 +1,15 @@
-from db import DbClient
 from bson import ObjectId
 from fastapi import Request
 from fastapi.exceptions import HTTPException
 import jwt   
-from dzgrosecrets import DzgroSecrets
+from dzgroshared.models.model import DzgroSecrets
+from motor.motor_asyncio import AsyncIOMotorClient
 MARKETING_MISSING = HTTPException(status_code=401, detail="Missing Marketplace ID")
 UID_MISSING = HTTPException(status_code=401, detail="Missing User ID")
 
 class RequestHelper:
     request: Request
-    dbClient: DbClient
-    uid: str
-    marketplace: ObjectId|None
-
+    
     # Routes that don't require authentication
     EXCLUDED_ROUTES = {
         "/pricing"  # Add your routes here
@@ -20,7 +17,6 @@ class RequestHelper:
 
     def __init__(self, request: Request):
         self.request = request
-        self.dbClient = request.app.state.dbClient
         if not self._should_exclude_auth(request):
             self.uid = self.__uid(request)
             self.marketplace = self.__marketplace(request) if self.uid else None
@@ -36,6 +32,10 @@ class RequestHelper:
     @property
     def secrets(self)->DzgroSecrets:
         return self.request.app.state.secrets
+    
+    @property
+    def mongoClient(self)->AsyncIOMotorClient:
+        return self.request.app.state.mongoClient
 
     def __marketplace(self, request: Request):
         marketplaceId = request.headers.get("marketplace")
@@ -59,121 +59,13 @@ class RequestHelper:
         return payload['username']
 
     @property
-    def user(self):
-        if not self.uid: raise UID_MISSING
-        return self.dbClient.user(self.uid)
-    
-    @property
-    def country_details(self):
-        return self.dbClient.country_details()
-    
-    @property
-    def pricing(self):
-        return self.dbClient.pricing()
-    
-    @property
-    def calculation_keys(self):
-        return self.dbClient.calculation_keys()
-    
-    @property
-    def marketplaces(self):
-        if not self.uid: raise UID_MISSING
-        return self.dbClient.marketplaces(self.uid)
+    def client(self):
+        from dzgroshared.client import DzgroSharedClient
+        from dzgroshared.models.enums import ENVIRONMENT
+        client = DzgroSharedClient(ENVIRONMENT.DEV)
+        client.setUid(self.uid)
+        if self.marketplace: client.setMarketplace(self.marketplace)
+        client.setSecretsClient(self.secrets)
+        client.setMongoClient(self.mongoClient)
+        return client
 
-    @property
-    def subscriptions(self):
-        if not self.uid: raise UID_MISSING
-        return self.dbClient.subscriptions(self.uid)
-
-    @property
-    def payments(self):
-        if not self.uid: raise UID_MISSING
-        return self.dbClient.payments(self.uid)
-    
-    @property
-    def advertising_accounts(self):
-        if not self.uid: raise UID_MISSING
-        return self.dbClient.advertising_accounts(self.uid)
-    
-    @property
-    def spapi_accounts(self):
-        if not self.uid: raise UID_MISSING
-        return self.dbClient.spapi_accounts(self.uid)
-    
-    @property
-    def health(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.health(self.uid, self.marketplace)
-    
-    @property
-    def analytics(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.analytics(self.uid, self.marketplace)
-    
-    @property
-    def ad_structure(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.ad_structure(self.uid, self.marketplace)
-    
-    @property
-    def query_results(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.query_results(self.uid, self.marketplace)
-    
-    @property
-    def queries(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.queries(self.uid, self.marketplace)
-    
-    @property
-    def reports(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.reports(self.uid, self.marketplace)
-    
-    @property
-    def ad_assets(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.adv_assets(self.uid, self.marketplace)
-
-    @property
-    def ad_rule_utility(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.ad_rule_utility(self.uid, self.marketplace)
-
-    @property
-    def ad_rule_run_utility(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.ad_rule_run_utility(self.uid, self.marketplace)
-
-    @property
-    def ad_rule_criteria_groups(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.ad_rule_criteria_groups(self.uid, self.marketplace)
-
-    @property
-    def ad_rule_run_results(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.ad_rule_run_results(self.uid, self.marketplace)
-
-    @property
-    def ad_ad_group_mapping(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.ad_ad_group_mapping(self.uid, self.marketplace)
-
-    @property
-    def products(self):
-        if not self.uid: raise UID_MISSING
-        if not self.marketplace: raise MARKETING_MISSING
-        return self.dbClient.products(self.uid, self.marketplace)

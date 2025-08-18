@@ -1,17 +1,15 @@
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.client import DbClient
-from dzgroshared.functions import FunctionClient
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
 from dzgroshared.models.model import PyObjectId
-import gzip,json, requests
-from bson import ObjectId
 from dzgroshared.models.enums import CollectionType
 dateFormat = ["%d.%m.%Y %H:%M:%S %Z","%Y-%m-%dT%H:%M:%S%z","%d.%m.%Y"]
 
 class ReportUtil:
-    fnClient: FunctionClient
+    client: DzgroSharedClient
     marketplace: MarketplaceObjectForReport
 
-    def __init__(self, client: FunctionClient,  marketplace: MarketplaceObjectForReport) -> None:
+    def __init__(self, client: DzgroSharedClient,  marketplace: MarketplaceObjectForReport) -> None:
         self.marketplace = marketplace
         self.fnClient = client
 
@@ -30,7 +28,7 @@ class ReportUtil:
         path = f'reports/{self.marketplace.uid}/{str(self.marketplace.id)}/{key}'
         from dzgroshared.models.s3 import S3PutObjectModel
         data = self.fetchData(url, compressionAlgorithm)
-        self.fnClient.client.storage.put_object(
+        self.client.storage.put_object(
             S3PutObjectModel(Key=path, Body=data, ContentType='application/json')
         )
         return data, path
@@ -46,7 +44,7 @@ class ReportUtil:
                 if synctoken: x.update({"synctoken": synctoken})
                 ops.append(UpdateOne( {"_id": item['_id']}, {"$set": x}, upsert=True )) if "_id" in item else ops.append(InsertOne(x))
             from dzgroshared.db.DbUtils import DbManager
-            db = DbManager(self.fnClient.client.db.database.get_collection(collection.value))
+            db = DbManager(self.client.db.database.get_collection(collection.value))
             inserted_count, upserted_count, modified_count, deleted_count = await db.bulkWrite(ops)
             print("Inserted: ", inserted_count, " Upserted: ", upserted_count, " Modified: ", modified_count, " Deleted: ", deleted_count)
             if synctoken and deleteWheereSyncTokenMismatch:

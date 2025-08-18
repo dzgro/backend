@@ -2,7 +2,7 @@
 from dzgroshared.models.enums import Region
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from models.enums import Region
+from dzgroshared.models.enums import Region
 
 
 class AmazonApiObject(BaseModel):

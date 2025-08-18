@@ -1,28 +1,28 @@
 from fastapi import APIRouter, Request, Query, Body,Path,Depends
 from pydantic.json_schema import SkipJsonSchema
 router = APIRouter(prefix="/products", tags=["Products"])
-from models.collections.products import Product, ParentProduct
+from dzgroshared.models.collections.products import Product, ParentProduct
 from api.Util import RequestHelper
 
 @router.get("/sku/{sku}", response_model=Product, response_model_exclude_none=True)
 async def getSku(request: Request, sku:str):
-    return await RequestHelper(request).products.getSku(sku)
+    return await RequestHelper(request).client.db.products.getSku(sku)
 
 @router.get("/parentsku/{sku}", response_model=ParentProduct, response_model_exclude_none=True)
 async def getParentSku(request: Request, sku:str):
-    return await RequestHelper(request).products.getParentSku(sku)
+    return await RequestHelper(request).client.db.products.getParentSku(sku)
 
 @router.post("/skus", response_model=list[Product], response_model_exclude_none=True)
 async def getSkus(request: Request, skus:list[str]):
-    return await RequestHelper(request).products.getSkus(skus)
+    return await RequestHelper(request).client.db.products.getSkus(skus)
 
 @router.get("/asin/{asin}", response_model=Product, response_model_exclude_none=True)
 async def getAsin(request: Request, asin:str):
-    return await RequestHelper(request).products.getAsin(asin)
+    return await RequestHelper(request).client.db.products.getAsin(asin)
 
 @router.post("/asin", response_model=list[Product], response_model_exclude_none=True)
 async def getAsins(request: Request, asins:list[str]):
-    return await RequestHelper(request).products.getAsins(asins)
+    return await RequestHelper(request).client.db.products.getAsins(asins)
 
 # @router.get("/categories/count/{queryId}", response_model=list[CategoryCount], response_model_exclude_none=True)
 # def getCategoriesWithCount(request: Request, queryId:str):

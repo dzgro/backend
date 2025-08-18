@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from dzgroshared.functions import FunctionHandler
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.sqs import SQSEvent
 
 numbers: list[str] = ['impressions','cost','clicks', "time_window_start"]
@@ -21,15 +21,15 @@ keys = list(keysmapping.keys())
 
 class AmsPerformanceProcessor:
     body: dict
-    fnclient: FunctionHandler
+    client: DzgroSharedClient
 
-    def __init__(self, client: FunctionHandler):
-        self.fnclient = client
+    def __init__(self, client: DzgroSharedClient):
+        self.client = client
 
-    async def execute(self):
+    async def execute(self, event: dict):
         data: list[dict] = []
         try:
-            parsed = SQSEvent.model_validate(self.fnclient.event)
+            parsed = SQSEvent.model_validate(event)
             for record in parsed.Records:
                 if record.dictBody:
                     body = record.dictBody
@@ -54,4 +54,4 @@ class AmsPerformanceProcessor:
                 if k in numbers and v>0: parsed_item[k] = v
                 if k in keys: parsed_item[keysmapping[k]] = v
             parsed_data.append(parsed_item)
-        await self.fnclient.client.db.database['hourly_performance'].insert_many(parsed_data)
+        await self.client.db.database['hourly_performance'].insert_many(parsed_data)

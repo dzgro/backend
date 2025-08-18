@@ -1,34 +1,34 @@
 from fastapi import APIRouter, Request, Depends
 from api.Util import RequestHelper
-from models.collections.marketplaces import Marketplace
-from models.collections.user import UserProfileWithSubscription, UserWithAccounts, BusinessDetails
-from models.model import SuccessResponse
+from dzgroshared.models.collections.marketplaces import Marketplace
+from dzgroshared.models.collections.user import UserProfileWithSubscription, UserWithAccounts, BusinessDetails
+from dzgroshared.models.model import SuccessResponse
 router = APIRouter(prefix="/user", tags=["User"])
 
 @router.get("/marketplace/{marketplace}", response_model=Marketplace, response_model_exclude_none=True)
 async def getActiveAMarketplace(request: Request, marketplace: str):
-    return await RequestHelper(request).marketplaces.getMarketplace(marketplace)
+    return await RequestHelper(request).client.db.marketplaces.getMarketplace(marketplace)
 
 @router.get("/subscription", response_model=UserProfileWithSubscription, response_model_exclude_none=True, response_model_by_alias=False)
 async def getUserSubscriptionWithPlan(request: Request):
-    return await RequestHelper(request).user.getUserBusinessWithActivePlanAndSubscriptionStatus()
+    return await RequestHelper(request).client.db.user.getUserBusinessWithActivePlanAndSubscriptionStatus()
 
 @router.get("/accounts", response_model=UserWithAccounts, response_model_exclude_none=True, response_model_by_alias=False)
 async def getUserAccounts(request: Request):
     req = RequestHelper(request)
     try:
-        return await req.user.getUserAccounts()
+        return await req.client.db.user.getUserAccounts()
     except Exception as e:
         if e.args[0] == "Not Found":
-            from cognito.client import CognitoManager
+            from dzgroshared.cognito.client import CognitoManager
             uid, details = await CognitoManager(req.secrets.COGNITO_APP_CLIENT_ID, req.secrets.COGNITO_USER_POOL_ID).get_user(req.uid)
-            await req.user.addUserToDb(details)
-            return await req.user.getUserAccounts()
+            await req.client.db.user.addUserToDb(details)
+            return await req.client.db.user.getUserAccounts()
         raise e
 
 @router.post("/business-details", response_model=SuccessResponse)
 async def updateBusinessDetails(request: Request, details: BusinessDetails):
-    return await RequestHelper(request).user.updateBusinessDetails(details)
+    return await RequestHelper(request).client.db.user.updateBusinessDetails(details)
 
 # @router.post("/payments", response_model=Payments, response_model_exclude_none=True, response_model_by_alias=False)
 # async def getPayments(request: Request, paginator: Paginator):
@@ -42,7 +42,7 @@ async def updateBusinessDetails(request: Request, details: BusinessDetails):
 
 @router.delete("/business-details", response_model=SuccessResponse)
 async def deleteBusinessDetails(request: Request):
-    return await RequestHelper(request).user.deleteBusinessDetails()
+    return await RequestHelper(request).client.db.user.deleteBusinessDetails()
 
 # @router.get("/signout", response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 # def signout(request: Request):

@@ -7,15 +7,15 @@ from dzgroshared.client import DzgroSharedClient
 class DbClient:
     client: DzgroSharedClient
     database: AsyncIOMotorDatabase
-    uid: str | None
-    marketplace: ObjectId | None
+    uid: str
+    marketplace: ObjectId
 
     def __init__(self, client: DzgroSharedClient, uid: str | None, marketplace: ObjectId | None):
         self.client = client
-        self.uid = uid
-        self.marketplace = marketplace
-        uri = client.secrets.MONGO_DB_CONNECT_URI
-        self.database = AsyncIOMotorClient(uri)[client.env.value]
+        if uid: self.uid = uid
+        if marketplace: self.marketplace = marketplace
+        if not self.client.mongoClient: raise ValueError("MongoDB client is not initialized.")
+        self.database = self.client.mongoClient[client.env.value]
 
     def __getattr__(self, item):
         return None

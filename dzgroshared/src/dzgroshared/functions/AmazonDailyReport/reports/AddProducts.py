@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions import FunctionClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
@@ -13,7 +14,8 @@ from dzgroshared.models.model import LambdaContext, MockLambdaContext
 from dzgroshared.models.amazonapi.errors import APIError
 
 class ListingsBuilder:
-    fnClient: FunctionClient
+    client: DzgroSharedClient
+    context: LambdaContext
     marketplace: MarketplaceObjectForReport
     spapi: SpApiClient
     reportUtil: ReportUtil
@@ -21,9 +23,10 @@ class ListingsBuilder:
     productHelper: ProductHelper
     dateFormat = "%Y-%m-%dT%H:%M:%S.%fZ"
 
-    def __init__(self, fnClient: FunctionClient, marketplace: MarketplaceObjectForReport, spapi: SpApiClient, reportUtil: ReportUtil, reportId: PyObjectId ) -> None:
+    def __init__(self, client: DzgroSharedClient, context: LambdaContext, marketplace: MarketplaceObjectForReport, spapi: SpApiClient, reportUtil: ReportUtil, reportId: PyObjectId ) -> None:
 
-        self.fnClient = fnClient
+        self.client = client
+        self.context = context
         self.marketplace = marketplace
         self.spapi = spapi
         self.reportUtil = reportUtil
@@ -33,7 +36,7 @@ class ListingsBuilder:
         exitBefore = 1000*120
         token:str|None = None
         items: list[dict] = []
-        while self.fnClient.context.get_remaining_time_in_millis()>exitBefore and (token is not None or len(items)==0):
+        while self.context.get_remaining_time_in_millis()>exitBefore and (token is not None or len(items)==0):
             try:
                 res = await self.getProducts(date, token)
                 for item in res.items:
@@ -51,7 +54,7 @@ class ListingsBuilder:
 
     async def complete(self, items: list[dict], date: datetime|None, hasMore: bool):
         if len(items)>0:
-            await self.reportUtil.update(self.fnClient.client.db, CollectionType.PRODUCTS, items, self.reportId, False)
+            await self.reportUtil.update(self.client.db, CollectionType.PRODUCTS, items, self.reportId, False)
         if hasMore: return date
         await self.addParents()
         await self.addParentsWhereAbsent()
@@ -73,22 +76,22 @@ class ListingsBuilder:
             raise e
     
     async def addParents(self):
-        pp = self.fnClient.client.db.products.db.pp
+        pp = self.client.db.products.db.pp
         matchStage = pp.matchMarketplace({ 'childskus': { '$exists': True } })
         unset = pp.unset([ 'parentsku', 'parentasin' ])
         unwind = pp.unwind("childskus")
         replaceRoot = pp.replaceRoot({ '_id': { '$concat': [ { '$toString': '$marketplace' }, '_', '$childskus' ] }, 'parentsku': '$sku', 'parentasin': '$asin' })
         merge = pp.merge(CollectionType.PRODUCTS)
         pipeline = [matchStage, unset, unwind, replaceRoot, merge]
-        await self.fnClient.client.db.products.db.aggregate(pipeline)
+        await self.client.db.products.db.aggregate(pipeline)
 
     async def addParentsWhereAbsent(self):
-        pp = self.fnClient.client.db.products.db.pp
+        pp = self.client.db.products.db.pp
         matchStage = pp.matchMarketplace({ 'parentsku': None })
         replaceRoot = pp.replaceRoot({ '_id': "$_id", 'parentsku': '$sku', 'parentasin': '$asin' })
         merge = pp.merge(CollectionType.PRODUCTS)
         pipeline = [matchStage, replaceRoot, merge]
-        await self.fnClient.client.db.products.db.aggregate(pipeline)
+        await self.client.db.products.db.aggregate(pipeline)
     
     def convertItemToDict(self, item: Item)->dict|None:
         marketplaceId = self.marketplace.marketplaceid.value

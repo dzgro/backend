@@ -1,4 +1,4 @@
-from dzgroshared.functions import FunctionClient
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
 from dzgroshared.utils.date_util import DateHelper
@@ -12,7 +12,7 @@ from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
 
 
 class AmazonAdsReportManager:
-    fnClient: FunctionClient
+    client: DzgroSharedClient
     helper: DateHelper
     dateFormat = "%Y-%m-%d"
     createThrottle: bool = False
@@ -21,8 +21,8 @@ class AmazonAdsReportManager:
     reportUtil: ReportUtil
     reportId: PyObjectId
 
-    def __init__(self, fnClient: FunctionClient, marketplace: MarketplaceObjectForReport, api: AdApiClient) -> None:
-        self.fnClient = fnClient
+    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, api: AdApiClient) -> None:
+        self.client = client
         self.api = api
         self.helper = DateHelper()
         self.timezone = marketplace.details.timezone
@@ -176,7 +176,7 @@ class AmazonAdsReportManager:
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await self.fnClient.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:
         return json.loads(dataStr)
@@ -185,7 +185,7 @@ class AmazonAdsReportManager:
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.ad.AdsReportConvertor import AdsReportConvertor
         convertor = AdsReportConvertor(self.marketplace.id)
         data = convertor.getAdReportData(reportType, self.__convertExportFileToList(dataStr))
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.ADV, data, self.reportId)
+        await self.reportUtil.update(self.client.db, CollectionType.ADV, data, self.reportId)
     
     
 

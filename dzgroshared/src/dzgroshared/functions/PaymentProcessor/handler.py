@@ -1,38 +1,38 @@
 from io import BytesIO
-from dzgroshared.functions import FunctionClient
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.collections.user import User
 from dzgroshared.models.sqs import SQSEvent
 from dzgroshared.models.collections.queue_messages import PaymentMessage
 
 
 class PaymentProcessor:
-    fnclient: FunctionClient
+    client: DzgroSharedClient
 
-    def __init__(self, client: FunctionClient):
-        self.fnclient = client
+    def __init__(self, client: DzgroSharedClient):
+        self.client = client
 
-    async def execute(self):
+    async def execute(self, event: dict):
         try:
-            parsed = SQSEvent.model_validate(self.fnclient.event)
+            parsed = SQSEvent.model_validate(event)
             for record in parsed.Records:
                 message = PaymentMessage.model_validate(record.dictBody)
-                self.fnclient.client.uid = message.uid
+                self.client.uid = message.uid
                 return await self.process_message(record.messageId, message)
         except Exception as e:
             print(f"[ERROR] Failed to process message {record.messageId}: {e}")
 
     async def process_message(self, messageid: str, message: PaymentMessage):
-        count, id = await self.fnclient.client.db.sqs_messages.setMessageAsProcessing(messageid)
+        count, id = await self.client.db.sqs_messages.setMessageAsProcessing(messageid)
         if count > 0:
             invoiceId = await self.process_payment(message)
             buffer = await self.generateInvoice(invoiceId, message)
             self.saveToS3(buffer, invoiceId, message.uid)
-            await self.fnclient.client.db.sqs_messages.setMessageAsCompleted(messageid)
+            await self.client.db.sqs_messages.setMessageAsCompleted(messageid)
 
 
     async def process_payment(self, message: PaymentMessage):
-        invoiceId = await self.fnclient.client.db.defaults.getNextInvoiceId()
-        await self.fnclient.client.db.payments.addPayment(
+        invoiceId = await self.client.db.defaults.getNextInvoiceId()
+        await self.client.db.payments.addPayment(
             message.index,
             message.amount / 100,
             "subscription", invoiceId, message.gst
@@ -40,7 +40,7 @@ class PaymentProcessor:
         return invoiceId   
 
     async def generateInvoice(self, invoiceId:str, message: PaymentMessage):
-        user = User(**await self.fnclient.client.db.user.getUser())
+        user = User(**await self.client.db.user.getUser())
         from dzgroshared.functions.PaymentProcessor.invoice import generate_gst_invoice
         return generate_gst_invoice(user, message.amount, message.gst, invoiceId, message.date)
     
@@ -55,5 +55,5 @@ class PaymentProcessor:
             Body=buffer.getvalue(),
             ContentType='application/pdf'
         )
-        self.fnclient.client.storage.put_object(obj)
+        self.client.storage.put_object(obj)
         return key

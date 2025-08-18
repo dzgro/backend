@@ -1,7 +1,7 @@
 import json
 from dzgroshared.amazonapi.client import APIError
 from dzgroshared.amazonapi.spapi import SpApiClient
-from dzgroshared.functions import FunctionClient
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.amazonapi.spapi.datakiosk import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse, DataKioskCreateQuerySpecification
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus
 from dzgroshared.models.enums import CollectionType
@@ -11,7 +11,7 @@ from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUt
 from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
 
 class AmazonDataKioskReportManager:
-    fnClient: FunctionClient
+    client: DzgroSharedClient
     spapi: SpApiClient
     timezone: str
     createThrottle: bool = False
@@ -22,8 +22,8 @@ class AmazonDataKioskReportManager:
     reportId: PyObjectId
 
 
-    def __init__(self, fnClient: FunctionClient, marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
-        self.fnClient = fnClient
+    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
+        self.client = client
         self.spapi = spapi
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
@@ -109,7 +109,7 @@ class AmazonDataKioskReportManager:
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await self.fnClient.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
 
     def __convertDataKioskFileToList(self, dataStr: str)->list[dict]:
         data: list[dict] = []
@@ -123,4 +123,4 @@ class AmazonDataKioskReportManager:
         data = self.__convertDataKioskFileToList(dataStr)
         trafficConvertor = TrafficReportConvertor(self.marketplace)
         trafficSkus = trafficConvertor.convertTrafficData(data)
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.TRAFFIC, trafficSkus, self.reportId)
+        await self.reportUtil.update(self.client.db, CollectionType.TRAFFIC, trafficSkus, self.reportId)

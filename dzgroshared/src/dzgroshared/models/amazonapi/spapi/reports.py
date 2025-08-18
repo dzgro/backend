@@ -1,7 +1,7 @@
 ﻿from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Any
-from models.enums import SPAPIReportType
+from dzgroshared.models.enums import SPAPIReportType
 from pydantic import BaseModel, Field, RootModel
 from pydantic.json_schema import SkipJsonSchema
 

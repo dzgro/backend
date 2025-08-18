@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 import httpx
-from razorpay.error import razorpay_error_wrapper
+from dzgroshared.razorpay.error import razorpay_error_wrapper
 from dzgroshared.models.razorpay.subscription import CreateSubscription, UpdateSubscription, Subscription
 
 class RazorpaySubscriptionHelper:

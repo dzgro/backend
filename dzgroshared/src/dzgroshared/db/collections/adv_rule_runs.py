@@ -29,7 +29,7 @@ class AdRuleRunUtility:
             obj: dict = {"ruleId": self.convertToObjectId(rule.id), "status": AdRuleRunStatus.QUEUED.value}
             if req.filters: obj['filters']=req.filters.model_dump()
             id = await self.db.insertOne(obj, timestampkey="startedat", withUidMarketplace=True)
-            return self.getRunById(id)
+            return await self.getRunById(id)
         except: raise ValueError('We could not find the rule in your account')
     
     async def getRunById(self, runId: str|ObjectId):

@@ -1,20 +1,20 @@
 from fastapi import APIRouter, Request, Query
-from api.Helpers.Onboarding import OnboardingHelper
+from dzgroshared.db.extras.Onboarding import OnboardingHelper
 from api.Util import RequestHelper
-from models.collections.pricing import PricingDetail
-from models.collections.country_details import CountriesByRegion
-from models.collections.spapi_accounts import SPAPIAccountRequest
-from models.collections.advertising_accounts import AdvertisingAccountRequest
-from models.enums import AmazonAccountType
-from models.model import SuccessResponse, AdAccount, AddMarketplace
-from razorpay.models.common import RazorpaySubscriptionObject
-from models.collections.subscriptions import CreateSubscriptionRequest
-from models.amazonapi.spapi.sellers import MarketplaceItem
+from dzgroshared.models.collections.pricing import PricingDetail
+from dzgroshared.models.collections.country_details import CountriesByRegion
+from dzgroshared.models.collections.spapi_accounts import SPAPIAccountRequest
+from dzgroshared.models.collections.advertising_accounts import AdvertisingAccountRequest
+from dzgroshared.models.enums import AmazonAccountType
+from dzgroshared.models.model import SuccessResponse, AdAccount, AddMarketplace
+from dzgroshared.models.razorpay.common import RazorpaySubscriptionObject
+from dzgroshared.models.collections.subscriptions import CreateSubscriptionRequest
+from dzgroshared.models.amazonapi.spapi.sellers import MarketplaceItem
 router = APIRouter(prefix='/onboarding', tags=["Onboarding"])
 
 
 def getOnboardingManager(request: Request)->OnboardingHelper:
-    return OnboardingHelper(RequestHelper(request))
+    return OnboardingHelper(RequestHelper(request).client)
 
 @router.get("/pricing/{marketplaceid}", response_model=PricingDetail, response_model_exclude_none=True, response_model_by_alias=False)
 async def getPricing(request: Request, marketplaceid:str, planid: str ):

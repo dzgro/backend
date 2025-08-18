@@ -1,5 +1,5 @@
 import json
-from dzgroshared.functions import FunctionClient
+from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
 from datetime import datetime
@@ -11,7 +11,7 @@ from dzgroshared.functions.AmazonDailyReport.reports import Utility
 from dzgroshared.models.model import ErrorDetail, ErrorList
 
 class AmazonSpapiReportManager:
-    fnClient: FunctionClient
+    client: DzgroSharedClient
     spapi: SpApiClient
     timezone: str
     createThrottle: bool = False
@@ -21,8 +21,8 @@ class AmazonSpapiReportManager:
     reportId: PyObjectId
 
 
-    def __init__(self, fnClient: FunctionClient,  marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
-        self.fnClient = fnClient
+    def __init__(self, client: DzgroSharedClient,  marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
+        self.client = client
         self.spapi = spapi
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
@@ -109,7 +109,7 @@ class AmazonSpapiReportManager:
                 except APIError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
-                    await self.fnClient.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
                     if not isListingFileProcessed and report.req and report.req.report_type == SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA and report.document:
                         isListingFileProcessed = True
         return isListingFileProcessed
@@ -132,28 +132,28 @@ class AmazonSpapiReportManager:
     async def __executeHealthReport(self, data: str):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.HealthReportConvertor import HealthReportConvertor
         report = HealthReportConvertor(self.marketplace).convertToReport(json.loads(data))
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.HEALTH, [{'health': report.model_dump(exclude_none=True), '_id': self.marketplace.id}], self.reportId)
+        await self.reportUtil.update(self.client.db, CollectionType.HEALTH, [{'health': report.model_dump(exclude_none=True), '_id': self.marketplace.id}], self.reportId)
 
     async def __executeOrderReports(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.OrderReportConvertor import OrderReportConvertor
         convertor = OrderReportConvertor(self.marketplace, self.spapi)
         orders, orderItems = convertor.convert(data)
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.ORDERS, [item.model_dump(exclude_none=True, by_alias=True) for item in orders], self.reportId)
+        await self.reportUtil.update(self.client.db, CollectionType.ORDERS, [item.model_dump(exclude_none=True, by_alias=True) for item in orders], self.reportId)
         orderIdsList = list(map(lambda x: f'{str(self.marketplace.id)}_{x.orderid}', orders))
-        await self.fnClient.client.db.order_items.deleteOrderItems(orderIdsList)
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.ORDER_ITEMS, [item.model_dump(exclude_none=True) for item in orderItems], None)
-        if convertor.hasIndiaCountry: await self.fnClient.client.db.orders.replaceStateNames()
+        await self.client.db.order_items.deleteOrderItems(orderIdsList)
+        await self.reportUtil.update(self.client.db, CollectionType.ORDER_ITEMS, [item.model_dump(exclude_none=True) for item in orderItems], None)
+        if convertor.hasIndiaCountry: await self.client.db.orders.replaceStateNames()
 
     async def __executeSettlementReports(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.SettlementReportConvertor import SettlementReportConvertor
-        settlementIds = await self.fnClient.client.db.settlements.getSettlementIds()
+        settlementIds = await self.client.db.settlements.getSettlementIds()
         settlements = SettlementReportConvertor().convert(data, settlementIds)
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.SETTLEMENTS, [item.model_dump(exclude_none=True, by_alias=True) for item in settlements], None)
+        await self.reportUtil.update(self.client.db, CollectionType.SETTLEMENTS, [item.model_dump(exclude_none=True, by_alias=True) for item in settlements], None)
 
     async def __executeListings(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.ListingReportConvertor import ListingReportConvertor
         listings = ListingReportConvertor(self.marketplace).addListings(data)
-        await self.reportUtil.update(self.fnClient.client.db, CollectionType.PRODUCTS, listings, self.reportId)
+        await self.reportUtil.update(self.client.db, CollectionType.PRODUCTS, listings, self.reportId)
 
     async def __processSpapiReport(self, report: AmazonSpapiReportDB)->tuple[AmazonSpapiReportDB, bool]:
         reportid: str|None = report.res.report_id if report.res else None
