@@ -1,11 +1,11 @@
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
-from dzgroshared.utils.date_util import DateHelper
+from dzgroshared.utils import date_util
 from datetime import datetime
 import json
 from dzgroshared.models.amazonapi.adapi.common.reports import AdReport, AdReportConfiguration, AdReportRequest, ReportStatus, TimeUnit, ReportFormat
-from dzgroshared.models.amazonapi.errors import APIError
+from dzgroshared.models.model import DzgroError
 from dzgroshared.models.extras.amazon_daily_report import AmazonAdReport, AmazonAdReportDB, MarketplaceObjectForReport
 from dzgroshared.models.enums import AdProduct, AdReportType, CollectionType
 from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
@@ -13,7 +13,6 @@ from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
 
 class AmazonAdsReportManager:
     client: DzgroSharedClient
-    helper: DateHelper
     dateFormat = "%Y-%m-%d"
     createThrottle: bool = False
     getThrottle: bool = False
@@ -24,7 +23,6 @@ class AmazonAdsReportManager:
     def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, api: AdApiClient) -> None:
         self.client = client
         self.api = api
-        self.helper = DateHelper()
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
 
@@ -37,8 +35,8 @@ class AmazonAdsReportManager:
         return reports
 
     def __createReportConf(self, startDate: datetime,endDate: datetime, conf: AdReportConfiguration)->AmazonAdReport:
-        endDateString = self.helper.convertToString(endDate, self.dateFormat)
-        startDateString = self.helper.convertToString(startDate, self.dateFormat)
+        endDateString = date_util.convertToString(endDate, self.dateFormat)
+        startDateString = date_util.convertToString(startDate, self.dateFormat)
         return AmazonAdReport(req=AdReportRequest(
             startDate=startDateString,
             endDate=endDateString,
@@ -126,19 +124,20 @@ class AmazonAdsReportManager:
         try:
             if self.createThrottle: return None
             return (await self.api.common.reportClient.create_report(req))
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==425 and e.error_list.errors[0].details:
                 reportid = json.loads(e.error_list.errors[0].details)['detail'].split(':')[1].strip()
                 return await self.__getReport(reportid)
             if e.status_code==429:
                 self.createThrottle = True
                 return None
+        
 
     async def __getReport(self, reportId: str) -> AdReport|None:
         try:
             if self.getThrottle: return None
             return await self.api.common.reportClient.get_report(reportId)
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.getThrottle = True
                 return None
@@ -152,13 +151,13 @@ class AmazonAdsReportManager:
                 report.res = await self.__getReport(reportid)
                 if report.res:
                     if report.res.status==ReportStatus.FAILED:
-                        raise APIError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in Failed status")]))
+                        raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in Failed status")]))
             return report, True
-        except APIError as e:
+        except DzgroError as e:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise APIError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
         
     async def processAdReports(self, reports: list[AmazonAdReportDB], reportUtil: ReportUtil, reportId: PyObjectId):
         self.reportUtil = reportUtil
@@ -171,9 +170,9 @@ class AmazonAdsReportManager:
                     processedReport, shouldContinue = await self.__processAdReport(processedReport)
                     if processedReport.req and processedReport.res and processedReport.res.url: 
                         key = f'ad/{processedReport.req.configuration.reportTypeId}/{processedReport.res.reportId}'
-                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.res.url, True)
+                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.res.url, True)
                         await self.__convertAdReport(processedReport.req.configuration.reportTypeId, dataStr)
-                except APIError as e:
+                except DzgroError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
@@ -185,7 +184,7 @@ class AmazonAdsReportManager:
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.ad.AdsReportConvertor import AdsReportConvertor
         convertor = AdsReportConvertor(self.marketplace.id)
         data = convertor.getAdReportData(reportType, self.__convertExportFileToList(dataStr))
-        await self.reportUtil.update(self.client.db, CollectionType.ADV, data, self.reportId)
+        await self.reportUtil.update(CollectionType.ADV, data, self.reportId)
     
     
 

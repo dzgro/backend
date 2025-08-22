@@ -1,4 +1,5 @@
 from bson import ObjectId
+from dzgroshared.models.enums import ENVIRONMENT
 from fastapi import Request
 from fastapi.exceptions import HTTPException
 import jwt   
@@ -34,6 +35,10 @@ class RequestHelper:
         return self.request.app.state.secrets
     
     @property
+    def env(self)->ENVIRONMENT:
+        return self.request.app.state.env
+
+    @property
     def mongoClient(self)->AsyncIOMotorClient:
         return self.request.app.state.mongoClient
 
@@ -62,7 +67,7 @@ class RequestHelper:
     def client(self):
         from dzgroshared.client import DzgroSharedClient
         from dzgroshared.models.enums import ENVIRONMENT
-        client = DzgroSharedClient(ENVIRONMENT.DEV)
+        client = DzgroSharedClient(self.env)
         client.setUid(self.uid)
         if self.marketplace: client.setMarketplace(self.marketplace)
         client.setSecretsClient(self.secrets)

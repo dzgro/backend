@@ -29,7 +29,7 @@ class AmazonDailyReportHelper:
         await self.childDB.updateOne({"_id": id}, setDict={'status': status.value})
 
     async def markReportsComplete(self, id: ObjectId):
-        await self.groupDB.updateOne({"_id": id}, setDict={'reportsComplete': True})
+        await self.groupDB.updateOne({"_id": id, 'reportsComplete': {'$exists': False}}, setDict={'reportsComplete': True})
 
     async def markProductsComplete(self, id: ObjectId):
         await self.groupDB.updateOne({"_id": id}, setDict={'productsComplete': True})

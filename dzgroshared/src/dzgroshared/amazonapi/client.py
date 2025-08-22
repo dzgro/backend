@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any, Type, TypeVar, Generic
 import httpx
 from pydantic import BaseModel, ValidationError
 from dzgroshared.amazonapi.auth import CommonLWAClient
-from dzgroshared.models.amazonapi.errors import APIError
+from dzgroshared.models.model import DzgroError
 from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.model import ErrorList, ErrorDetail
 
@@ -24,7 +24,7 @@ class BaseClient(Generic[ResponseT]):
         access_token = await self.auth_client.access_token
         if not access_token:
             error = ErrorList(errors=[ErrorDetail(code=400, message="No access token available", details=None)])
-            raise APIError(error)
+            raise DzgroError(error)
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
@@ -67,4 +67,4 @@ class BaseClient(Generic[ResponseT]):
                 error = ErrorList.model_validate(obj)
             except ValidationError:
                 error = ErrorList(errors=[ErrorDetail(code=response.status_code, message=str(e), details=str(response.text))])
-            raise APIError(error, status_code=response.status_code)
+            raise DzgroError(error, status_code=response.status_code)

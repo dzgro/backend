@@ -1,5 +1,5 @@
 import json
-from dzgroshared.amazonapi.client import APIError
+from dzgroshared.models.model import DzgroError
 from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.amazonapi.spapi.datakiosk import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse, DataKioskCreateQuerySpecification
@@ -47,7 +47,7 @@ class AmazonDataKioskReportManager:
     async def __createReport(self, req: DataKioskCreateQueryRequest)-> str|None:
         try:
             return (await self.spapi.datakiosk.create_query(req)).queryId
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.createThrottle = True
                 return None
@@ -57,7 +57,7 @@ class AmazonDataKioskReportManager:
         try:
             if not query_id: return None
             return (await self.spapi.datakiosk.get_query(query_id))
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.getThrottle = True
                 return None
@@ -67,7 +67,7 @@ class AmazonDataKioskReportManager:
         try:
             if not document_id: return None
             return (await self.spapi.datakiosk.get_query_result_document(document_id))
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.getDocumentThrottle = True
                 return None
@@ -85,13 +85,13 @@ class AmazonDataKioskReportManager:
                 if report.res.processingStatus==ProcessingStatus.DONE:
                     if report.res.dataDocumentId: report.document = await self.__getDocument(report.res.dataDocumentId)
                 elif report.res.processingStatus == ProcessingStatus.FATAL or report.res.errorDocumentId is not None:
-                    raise APIError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {query_id} is in Fatal status")]))
+                    raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {query_id} is in Fatal status")]))
             return report, True
-        except APIError as e:
+        except DzgroError as e:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise APIError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
 
     async def processDataKioskReports(self, reports: list[AmazonDataKioskReportDB], reportUtil: ReportUtil, reportId: PyObjectId):
         self.reportUtil = reportUtil
@@ -104,9 +104,9 @@ class AmazonDataKioskReportManager:
                     processedReport, shouldContinue = await self.__processDataKioskReport(processedReport)
                     if processedReport.document and processedReport.req: 
                         key = f'kiosk/{id}'
-                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.document.documentUrl, False)
+                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.documentUrl, False)
                         await self.__convertTrafficReport(dataStr)
-                except APIError as e:
+                except DzgroError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
@@ -123,4 +123,4 @@ class AmazonDataKioskReportManager:
         data = self.__convertDataKioskFileToList(dataStr)
         trafficConvertor = TrafficReportConvertor(self.marketplace)
         trafficSkus = trafficConvertor.convertTrafficData(data)
-        await self.reportUtil.update(self.client.db, CollectionType.TRAFFIC, trafficSkus, self.reportId)
+        await self.reportUtil.update(CollectionType.TRAFFIC, trafficSkus, self.reportId)

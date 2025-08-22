@@ -1,6 +1,6 @@
-from dzgroshared.amazonapi import SpApiClient
-from dzgroshared.utils.date_util import DateHelper
-from dzgroshared.models.enums import CollectionType, MarketplaceId
+from datetime import datetime
+from dzgroshared.utils import date_util
+from dzgroshared.models.enums import MarketplaceId
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
 from pydantic import BaseModel, Field
 from dzgroshared.models.collections.orders import DbOrder, DbOrderItem
@@ -42,15 +42,12 @@ class FileOrder(BaseModel):
     numberOfItems:str =  Field(validation_alias='number-of-items')
 
 class OrderReportConvertor:
-    dateHelper: DateHelper
-    spapi: SpApiClient
+    marketplace: MarketplaceObjectForReport
     hasIndiaCountry: bool = False
 
-    def __init__(self, marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
+    def __init__(self, marketplace: MarketplaceObjectForReport) -> None:
         self.marketplace = marketplace
-        self.spapi = spapi
         self.hasIndiaCountry = self.marketplace.marketplaceid==MarketplaceId.IN
-        self.dateHelper = DateHelper()
 
     
     def getFloatOrNone(self, val: str):
@@ -59,7 +56,7 @@ class OrderReportConvertor:
     def getStrOrNone(self, val: str):
         if len(val.strip())>0: return val
 
-    def getOrderItem(self, order: FileOrder, id: str):
+    def getOrderItem(self, order: FileOrder, id: str, date: datetime):
         price = self.getFloatOrNone(order.itemPrice) or 0
         tax = self.getFloatOrNone(order.itemTax) or 0
         shippingPrice = self.getFloatOrNone(order.shippingPrice)
@@ -71,7 +68,7 @@ class OrderReportConvertor:
         revenue = price-(itemPromotionDiscount or 0)-(shipPromotionDiscount or 0)+(giftWrapPrice or 0)
         quantity = int(self.getFloatOrNone(order.quantity) or 0)
         itemStatus = self.getStrOrNone(order.itemStatus)
-        return DbOrderItem(order=id,revenue=revenue,sku=order.sku, itemstatus=itemStatus, asin=order.asin, price=price, tax=tax, quantity=quantity, shippingprice=shippingPrice,shippingtax=shippingTax, giftwrapprice=giftWrapPrice,giftwraptax=giftWrapTax, itempromotiondiscount=itemPromotionDiscount, shippromotiondiscount=shipPromotionDiscount)
+        return DbOrderItem(order=id,date=date,revenue=revenue,sku=order.sku, itemstatus=itemStatus, asin=order.asin, price=price, tax=tax, quantity=quantity, shippingprice=shippingPrice,shippingtax=shippingTax, giftwrapprice=giftWrapPrice,giftwraptax=giftWrapTax, itempromotiondiscount=itemPromotionDiscount, shippromotiondiscount=shipPromotionDiscount)
 
 
 
@@ -80,7 +77,8 @@ class OrderReportConvertor:
         orders: list[DbOrder] = []
         processedOrderIds: list[str] = []
         for item in data:
-            date = self.dateHelper.convertToDate(item['purchase-date'], "%Y-%m-%dT%H:%M:%S%z")
+            orderDate = date_util.convertToDate(item['purchase-date'], "%Y-%m-%dT%H:%M:%S%z")
+            date = date_util.normalize_date_to_midnight(item['purchase-date'], self.marketplace.details.timezone)
             fOrder = FileOrder(**item)
             state = fOrder.shipState.title() if len(fOrder.shipState.strip())>0 else "Unspecified"
             country = fOrder.shipCountry if len(fOrder.shipCountry.strip())>0 else "Unspecified"
@@ -88,13 +86,13 @@ class OrderReportConvertor:
             fulfillment=fOrder.fulfillmentChannel
             orderId = fOrder.orderId
             id = f'{str(self.marketplace.id)}_{orderId}'
-            orderItems.append(self.getOrderItem(fOrder, id))
+            orderItems.append(self.getOrderItem(fOrder, id, date))
             if orderId not in processedOrderIds:
                 city = fOrder.shipCity.title() if len(fOrder.shipCity.strip())>0 else None
                 code = fOrder.shipPostalCode if len(fOrder.shipPostalCode.strip())>0 else None
                 originalOrderId = fOrder.originalOrderId if len(fOrder.originalOrderId.strip())>0 else None
                 isBusinessOrder = fOrder.isBusinessOrder=="TRUE" or None
-                order = DbOrder(_id=id,orderid=orderId, orderdate=date, city=city, state=state, country=country, code=code, originalorderid=originalOrderId, fulfillment=fulfillment, orderstatus=orderStatus, isbusinessorder=isBusinessOrder)
+                order = DbOrder(_id=id,orderid=orderId, orderdate=orderDate,date=date, city=city, state=state, country=country, code=code, originalorderid=originalOrderId, fulfillment=fulfillment, orderstatus=orderStatus, isbusinessorder=isBusinessOrder)
                 orders.append(order)
                 processedOrderIds.append(orderId)
         return orders, orderItems

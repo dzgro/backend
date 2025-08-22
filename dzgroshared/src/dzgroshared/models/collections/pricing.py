@@ -1,15 +1,13 @@
 
 from pydantic import BaseModel
-from pydantic.json_schema import SkipJsonSchema
 from typing import Optional
-
 from dzgroshared.models.model import ItemId
+from dzgroshared.models.enums import PlanType
 
 class PlanDetails(BaseModel):
-    name: str
+    name: PlanType
     baseprice: int
     variable: Optional[float] = None
-    planid: str
 
 
 class Plan(PlanDetails):

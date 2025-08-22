@@ -1,15 +1,13 @@
 from datetime import datetime
 
-from dzgroshared.utils.date_util import DateHelper
+from dzgroshared.utils import date_util
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
 
 class TrafficReportConvertor:
-    dateHelper: DateHelper
     dateFormat = "%Y-%m-%d"
 
     def __init__(self, marketplace: MarketplaceObjectForReport) -> None:
         self.marketplace = marketplace
-        self.dateHelper = DateHelper()
 
 
     def convertTrafficData(self, trafficSkus: list[dict]):

@@ -15,6 +15,21 @@ class AdvAssetsHelper:
         self.uid = uid
         self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_ASSETS.value), uid=self.uid, marketplace=self.marketplace)
 
+    async def createCampaignAds(self):
+        from dzgroshared.db.collections.pipelines.adv_ads import Campaigns
+        pipeline = Campaigns.pipeline(self.uid, self.marketplace)
+        return await self.db.aggregate(pipeline)
+    
+    async def createAdgroupAds(self):
+        from dzgroshared.db.collections.pipelines.adv_ads import Adgroups
+        pipeline = Adgroups.pipeline(self.uid, self.marketplace)
+        return await self.db.aggregate(pipeline)
+    
+    async def createPortfolioAds(self):
+        from dzgroshared.db.collections.pipelines.adv_ads import Portfolios
+        pipeline = Portfolios.pipeline(self.uid, self.marketplace)
+        return await self.db.aggregate(pipeline)
+
     async def listAssets(self, req: ListAdAssetRequest):
         pipeline = GetAsssetsWithPerformance.execute(self.db.pp, req)
         data = await self.db.aggregate(pipeline)

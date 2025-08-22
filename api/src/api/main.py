@@ -7,12 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exception_handlers import http_exception_handler,request_validation_exception_handler
 from contextlib import asynccontextmanager
 import functools
-import io, yaml
+import io, yaml, os
 from fastapi.openapi.utils import get_openapi
+from dotenv import load_dotenv
+load_dotenv()
+env = os.getenv("ENV", None)
+if not env: raise ValueError("ENV environment variable not set")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from dzgroshared.models.enums import ENVIRONMENT
+    app.state.env = ENVIRONMENT(env)
     from dzgroshared.secrets.client import SecretManager
     app.state.secrets = SecretManager().secrets
     from motor.motor_asyncio import AsyncIOMotorClient

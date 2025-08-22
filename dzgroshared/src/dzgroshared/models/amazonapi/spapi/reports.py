@@ -1,17 +1,10 @@
 ﻿from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Any
-from dzgroshared.models.enums import SPAPIReportType
+from dzgroshared.models.enums import SPAPIReportType, ProcessingStatus
 from pydantic import BaseModel, Field, RootModel
 from pydantic.json_schema import SkipJsonSchema
 
-class ProcessingStatus(str, Enum):
-    """Report processing status values."""
-    CANCELLED = "CANCELLED"
-    DONE = "DONE"
-    FATAL = "FATAL"
-    IN_PROGRESS = "IN_PROGRESS"
-    IN_QUEUE = "IN_QUEUE"
 
 class ReportPeriod(str, Enum):
     """Report schedule period values."""

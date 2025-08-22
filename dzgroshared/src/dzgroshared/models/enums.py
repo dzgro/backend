@@ -2,8 +2,8 @@ from enum import Enum
 
 
 class ENVIRONMENT(str, Enum):
-    PROD = "dzgro"
-    DEV = "dzgro-dev"
+    PROD = "Prod"
+    DEV = "Test"
     
 class CollateTypeTag(str, Enum):
     DAYS_7 = "Last 7 Days"
@@ -184,6 +184,16 @@ class SPAPIReportType(str, Enum):
     GET_FLAT_FILE_ALL_ORDERS_DATA_BY_LAST_UPDATE_GENERAL = "GET_FLAT_FILE_ALL_ORDERS_DATA_BY_LAST_UPDATE_GENERAL"
     GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2 = "GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2"
 
+
+class ProcessingStatus(str, Enum):
+    """Report processing status values."""
+    CANCELLED = "CANCELLED"
+    DONE = "DONE"
+    FATAL = "FATAL"
+    IN_PROGRESS = "IN_PROGRESS"
+    IN_QUEUE = "IN_QUEUE"
+    ADDED_TO_S3 = "ADDED_TO_S3"
+
 class DataKioskType(str, Enum):
     SALES_TRAFFIC_ASIN = "SALES_TRAFFIC_ASIN"
 
@@ -219,6 +229,8 @@ class AdAssetType(str, Enum):
     CAMPAIGN = 'Campaign'
     AD_GROUP = 'Ad Group'
     TARGET = 'Target'
+    NEGATIVE_ADGROUP = 'Ad Group Negative Target'
+    NEGATIVE_CAMPAIGN = 'Campaign Negative Target'
     AD = 'Ad'
     SEARCH_TERM = 'Search Term'
 
@@ -388,7 +400,6 @@ class CollectionType(str,Enum):
     ADV_RULE_RUNS = 'adv_rule_runs'
     ADV_RULES = 'adv_rules'
     ADV_AD_GROUP_MAPPING = 'adv_ad_group_mapping'
-    ADV_QUERIES = 'adv_queries'
     ADV_ADS = 'adv_ads'
     ADV_RULE_CRITERIA_GROUPS = 'adv_rule_criteria_groups'
     STATE_ANALYTICS = 'state_analytics'
@@ -397,6 +408,10 @@ class CollectionType(str,Enum):
     QUERIES = 'queries'
     QUERY_RESULTS = 'query_results'
     ANALYTICS_CALCULATION = 'analytics_calculation'
+    SPAPI_REPORTS = 'spapi_reports'
+    DATA_KIOSK_REPORTS = 'data_kiosk_reports'
+    ADV_PERFORMANCE_REPORTS = 'adv_performance_reports'
+    ADV_EXPORT_REPORTS = 'adv_export_reports'
 
     @staticmethod
     def values():
@@ -414,9 +429,9 @@ class SQSMessageStatus(str, Enum):
     FAILED = "FAILED"
     
 class QueueUrl(str, Enum):
-    NEW_USER = "https://sqs.ap-south-1.amazonaws.com/522814698847/NewUser"
-    AMAZON_REPORTS = "https://sqs.ap-south-1.amazonaws.com/522814698847/AmazonReports"
-    PAYMENT = "https://sqs.ap-south-1.amazonaws.com/522814698847/Payment"
+    AMAZON_REPORTS = "https://sqs.ap-south-1.amazonaws.com/522814698847/AmazonReportsQ"
+    AMAZON_REPORTS_TEST = "https://sqs.ap-south-1.amazonaws.com/522814698847/AmazonReportsQ-test"
+    PAYMENT = "https://sqs.ap-south-1.amazonaws.com/522814698847/PaymentQ"
 
 class PlanDuration(str, Enum):
     MONTHLY = "monthly"
@@ -426,6 +441,12 @@ class PlanDuration(str, Enum):
 class BusinessType(str, Enum):
     PERSONAL = 'Personal'
     BUSINESS = 'Business'
+
+class PlanType(str, Enum):
+    REPORTS = 'Reports'
+    ANALYTICS = 'Analytics'
+    ADVERTISING = 'Advertising'
+    ADVERTISING_SERVICE = 'Advertising Service'
 
 
 

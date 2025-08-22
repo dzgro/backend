@@ -5,7 +5,8 @@ from dzgroshared.models.enums import CountryCode, MarketplaceId, AmazonAccountTy
 from dzgroshared.models.collections.spapi_accounts import SPAPIAccountRequest
 from dzgroshared.models.collections.advertising_accounts import AdvertisingAccountRequest
 from dzgroshared.models.collections.subscriptions import CreateSubscriptionRequest, UserSubscription
-from dzgroshared.amazonapi import AmazonApiClient
+from dzgroshared.amazonapi.spapi import SpApiClient
+from dzgroshared.amazonapi.adapi import AdApiClient
 from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.razorpay.customer import CreateCustomer
 from dzgroshared.models.razorpay.subscription import CreateSubscription
@@ -27,14 +28,12 @@ class OnboardingHelper:
 
     def __getattr__(self, item):
         return None
-
-    async def getAmazonApiClient(self, id: str, accountType: AmazonAccountType):
-        obj: dict = {}
-        if accountType == AmazonAccountType.SPAPI:
-            obj = await self.client.db.spapi_accounts.getAccountApiObject(id, self.client.secrets.SPAPI_CLIENT_ID, self.client.secrets.SPAPI_CLIENT_SECRET)
-        elif accountType == AmazonAccountType.ADVERTISING:
-            obj = await self.client.db.advertising_accounts.getAccountApiObject(id, self.client.secrets.ADS_CLIENT_ID, self.client.secrets.ADS_CLIENT_SECRET)
-        return AmazonApiClient(AmazonApiObject(**obj))
+    
+    async def spapi(self, id: str):
+        return await self.client.db.spapi_accounts.getAccountApiClient(id, self.client.secrets.SPAPI_CLIENT_ID, self.client.secrets.SPAPI_CLIENT_SECRET)
+    
+    async def adapi(self, id: str):
+        return await self.client.db.advertising_accounts.getAccountApiClient(id, self.client.secrets.ADS_CLIENT_ID, self.client.secrets.ADS_CLIENT_SECRET)
 
     def getRefreshToken(self, code: str, accountType: AmazonAccountType):
         client_id = self.client.secrets.SPAPI_CLIENT_ID if accountType==AmazonAccountType.SPAPI else self.client.secrets.ADS_CLIENT_ID
@@ -69,9 +68,9 @@ class OnboardingHelper:
         return SuccessResponse(success=True)
     
     async def getAdAccounts(self, id: str):
-        amazonapi = await self.getAmazonApiClient(id, AmazonAccountType.ADVERTISING)
         from dzgroshared.models.model import AdAccount
-        response = await amazonapi.ad.common.adsAccountsClient.listAccounts()
+        client = await self.adapi(id)
+        response = await client.common.adsAccountsClient.listAccounts()
         accounts: list[AdAccount] = []
         for acc in list(filter(lambda x: x.status in ["CREATED", "ACTIVE"], response.adsAccounts)):
             for code in list(filter(lambda x: x in CountryCode.values(), acc.countryCodes)):
@@ -83,18 +82,16 @@ class OnboardingHelper:
         return accounts
     
     async def getMarketplaceParticipations(self, id: str):
-        amazonapi = await self.getAmazonApiClient(id, AmazonAccountType.SPAPI)
-        sellerMarketplaces = await amazonapi.spapi.sellers.get_marketplace_participations()
+        client = await self.spapi(id)
+        sellerMarketplaces = await client.sellers.get_marketplace_participations()
         if not sellerMarketplaces.payload: raise ValueError('No marketplaces found')
         return list(filter(lambda x: x.marketplace.id in MarketplaceId.values(), sellerMarketplaces.payload))
         
     
     async def testLinkage(self, req: AddMarketplace):
-        spClient = await self.getAmazonApiClient(req.seller, AmazonAccountType.SPAPI)
-        spClient.object.marketplaceid = req.marketplaceid.value
-        adClient = await self.getAmazonApiClient(req.ad, AmazonAccountType.ADVERTISING)
-        adClient.object.profile = req.profileid
-        listings = await spClient.spapi.listings.search_listings_items(
+        spClient = await self.spapi(req.seller)
+        adClient = await self.adapi(req.ad)
+        listings = await spClient.listings.search_listings_items(
             seller_id=req.sellerid, 
             included_data=['summaries']
         )
@@ -103,7 +100,7 @@ class OnboardingHelper:
         asin = next((summary.asin for summary in listing.summaries if summary.marketplace_id==req.marketplaceid.value), None) if listing.summaries else None
         if not asin: return SuccessResponse(success=False, message="Selected Marketplace has no active products")
         from dzgroshared.amazonapi.adapi.common.products import ProductMetadataRequest
-        metadata = await adClient.ad.common.productsMetadataClient.listProducts(
+        metadata = await adClient.common.productsMetadataClient.listProducts(
             ProductMetadataRequest(skus=[listing.sku], pageIndex=0, pageSize=1)
         )
         if metadata.ProductMetadataList and metadata.ProductMetadataList[0].asin == asin: return SuccessResponse(success=True)
@@ -117,11 +114,8 @@ class OnboardingHelper:
         return SuccessResponse(success=True)
     
     async def getPlanDetails(self, marketplaceid:str, planid:str):
-        apiObject = await self.client.db.marketplaces.getMarketplaceApiObject(
-            marketplaceid, self.client.secrets.SPAPI_CLIENT_ID, self.client.secrets.SPAPI_CLIENT_SECRET, AmazonAccountType.SPAPI
-        )
-        client = AmazonApiClient(AmazonApiObject(**apiObject))
-        res = await client.spapi.sales.getLast30DaysSales()
+        client = await self.spapi(marketplaceid)
+        res = await client.sales.getLast30DaysSales()
         sales = float(res.payload[0].total_sales.amount) if res.payload else 0
         return await self.client.db.pricing.getPlanDetailItemsById(planid, sales)
     

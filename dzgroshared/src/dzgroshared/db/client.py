@@ -1,3 +1,4 @@
+from dzgroshared.models.enums import ENVIRONMENT
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
 
@@ -10,12 +11,12 @@ class DbClient:
     uid: str
     marketplace: ObjectId
 
-    def __init__(self, client: DzgroSharedClient, uid: str | None, marketplace: ObjectId | None):
+    def __init__(self, client: DzgroSharedClient):
         self.client = client
-        if uid: self.uid = uid
-        if marketplace: self.marketplace = marketplace
+        if client.uid: self.uid = client.uid
+        if client.marketplace: self.marketplace = client.marketplace
         if not self.client.mongoClient: raise ValueError("MongoDB client is not initialized.")
-        self.database = self.client.mongoClient[client.env.value]
+        self.database = self.client.mongoClient['dzgro' if client.env == ENVIRONMENT.PROD else 'dzgro-dev']
 
     def __getattr__(self, item):
         return None
@@ -229,6 +230,16 @@ class DbClient:
             return self.advAssetsHelper
         self.advAssetsHelper = AdvAssetsHelper(self.client, self.uid, self.marketplace)
         return self.advAssetsHelper
+
+    @property
+    def adv_ads(self):
+        if not self.uid or not self.marketplace:
+            raise ValueError("Marketplace and UID must be set to access adv_assets.")
+        from dzgroshared.db.collections.adv_ads import AdvAAdsHelper
+        if self.advAdsHelper:
+            return self.advAdsHelper
+        self.advAdsHelper = AdvAAdsHelper(self.client, self.uid, self.marketplace)
+        return self.advAdsHelper
 
     @property
     def state_analytics(self):

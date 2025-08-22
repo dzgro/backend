@@ -1,17 +1,15 @@
 import asyncio
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.functions import FunctionClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.db.collections.products import ProductHelper
 from dzgroshared.models.amazonapi.spapi.listings import Item
-from dzgroshared.models.collections.products import Product
-from dzgroshared.db.DbUtils import DbManager, PyObjectId
+from dzgroshared.db.DbUtils import PyObjectId
 from dzgroshared.models.enums import CollectionType
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
-from dzgroshared.models.model import LambdaContext, MockLambdaContext
-from dzgroshared.models.amazonapi.errors import APIError
+from dzgroshared.models.model import LambdaContext
+from dzgroshared.models.model import DzgroError
 
 class ListingsBuilder:
     client: DzgroSharedClient
@@ -36,7 +34,8 @@ class ListingsBuilder:
         exitBefore = 1000*120
         token:str|None = None
         items: list[dict] = []
-        while self.context.get_remaining_time_in_millis()>exitBefore and (token is not None or len(items)==0):
+        hasMore = False
+        while self.context.get_remaining_time_in_millis()>exitBefore and (token is not None or len(items)>0):
             try:
                 res = await self.getProducts(date, token)
                 for item in res.items:
@@ -44,17 +43,18 @@ class ListingsBuilder:
                     if product: items.append(product)
                 print(f'Items : {len(items)}, Remaining: {res.number_of_results-len(items)}')
                 token = res.pagination.next_token if res.pagination and res.pagination.next_token else None
-            except APIError as e:
+                hasMore = res.number_of_results>len(items)
+            except DzgroError as e:
                 if e.status_code==429:
                     await asyncio.sleep(1)
                     continue
                 else: raise e
         date = items[-1]['lastUpdatedDate'] if items else date
-        return await self.complete(items, date, res.number_of_results>len(items))
+        return await self.complete(items, date, hasMore)
 
     async def complete(self, items: list[dict], date: datetime|None, hasMore: bool):
         if len(items)>0:
-            await self.reportUtil.update(self.client.db, CollectionType.PRODUCTS, items, self.reportId, False)
+            await self.reportUtil.update(CollectionType.PRODUCTS, items)
         if hasMore: return date
         await self.addParents()
         await self.addParentsWhereAbsent()
@@ -69,7 +69,7 @@ class ListingsBuilder:
                 ],
                 lastUpdatedAfter=date, pageToken=token, sortOrder="ASC"
             ))
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 await asyncio.sleep(1)
                 return await self.getProducts(date, token)

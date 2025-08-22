@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Literal
-from dzgroshared.amazonapi import AmazonApiObject
+from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemIdWithDate, PyObjectId
-from dzgroshared.models.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, CollateTypeTag, MarketplaceId, MarketplaceStatus
+from dzgroshared.models.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, CollateTypeTag, MarketplaceId, MarketplaceStatus, PlanType
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.amazonapi.adapi.common.reports import AdReportRequest, AdReport
@@ -69,7 +69,6 @@ class AmazonAdReport(BaseModel):
     req: AdReportRequest|SkipJsonSchema[None]=None
     res: AdReport|SkipJsonSchema[None]=None
     
-    
 class AmazonExportReport(BaseModel):
     exportType: AdExportType
     req: ExportRequest|SkipJsonSchema[None]=None
@@ -96,10 +95,6 @@ class AmazonAdExportDB(AmazonExportReport, ReportStatus):
 class AmazonDataKioskReportDB(AmazonDataKioskReport, ReportStatus):
     pass
 
-
-class QueryBuilderValue(ItemId):
-    tag: CollateTypeTag
-
 class AmazonDailyReportMessages(BaseModel):
     messageid: str
     step: AmazonDailyReportAggregationStep
@@ -120,7 +115,7 @@ class AmazonParentReport(ItemIdWithDate):
 
     @model_validator(mode="after")
     def setStatus(self):
-        if self.startdate and self.enddate: self.dates = [self.startdate+timedelta(days=i, milliseconds=1) for i in range((self.enddate-self.startdate).days+1)]
+        if self.startdate and self.enddate: self.dates = [self.startdate+timedelta(days=i-1,milliseconds=1) for i in range((self.enddate-self.startdate).days+1)]
         return self
 
 
@@ -136,3 +131,4 @@ class MarketplaceObjectForReport(ItemId):
     details: CountryDetails
     profileid: int
     sellerid:str
+    plantype: PlanType

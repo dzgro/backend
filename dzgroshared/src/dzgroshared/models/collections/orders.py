@@ -82,6 +82,7 @@ class DbOrder(ObjectIdStr):
     orderid: str
     originalorderid: str|SkipJsonSchema[None]=None
     orderdate:datetime
+    date: datetime
     orderstatus:str
     city:str|SkipJsonSchema[None]=None
     state:str|SkipJsonSchema[None]=None
@@ -92,6 +93,7 @@ class DbOrder(ObjectIdStr):
     
 class DbOrderItem(BaseModel):
     order: str
+    date: datetime
     orderitemid: str|SkipJsonSchema[None]=None
     itemstatus:str|SkipJsonSchema[None]=None
     sku: str

@@ -3,7 +3,7 @@ from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUt
 from dzgroshared.amazonapi.adapi import AdApiClient
 import json
 from dzgroshared.models.amazonapi.adapi.common.exports import ExportRequest, ExportResponse
-from dzgroshared.models.amazonapi.errors import APIError
+from dzgroshared.models.model import DzgroError
 from dzgroshared.models.extras.amazon_daily_report import AmazonExportReport, AmazonAdExportDB, MarketplaceObjectForReport
 from dzgroshared.models.enums import AdExportType, AdProduct, AdReportType, AdState, CollectionType
 from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
@@ -45,7 +45,7 @@ class AmazonAdsExportManager:
             elif req.exportType == AdExportType.TARGET:
                 req.res =  await self.api.common.exportsClient.export_targets(req.req)
             return req
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.createThrottle = True
                 return None
@@ -61,7 +61,7 @@ class AmazonAdsExportManager:
                 return await self.api.common.exportsClient.get_adgroup_export_status(exportId)
             elif exportType == AdExportType.TARGET:
                 return await self.api.common.exportsClient.get_targets_export_status(exportId)
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.getThrottle = True
                 return None
@@ -77,11 +77,11 @@ class AmazonAdsExportManager:
                 if not self.getThrottle:
                     report.res = (await self.getExport(report.exportType, report.res.exportId)) or report.res
                 return report, not self.getThrottle
-        except APIError as e:
+        except DzgroError as e:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise APIError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
 
     async def processExportReports(self, reports: list[AmazonAdExportDB], reportUtil: ReportUtil, reportId: PyObjectId):
         self.reportUtil = reportUtil
@@ -94,9 +94,9 @@ class AmazonAdsExportManager:
                     processedReport, shouldContinue = await self.__processAdExport(processedReport)
                     if processedReport.res and processedReport.res.url: 
                         key = f'adexport/{report.exportType.value}/{processedReport.res.exportId}'
-                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.res.url, True)
+                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.res.url, True)
                         await self.__convertExportReport(report.exportType, dataStr)
-                except APIError as e:
+                except DzgroError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
@@ -112,4 +112,4 @@ class AmazonAdsExportManager:
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.adexport.AdsExportConvertor import AdsExportConvertor
         data = json.loads(dataStr)
         exports = AdsExportConvertor().getExportData(exportType, data, str(self.marketplace.id))
-        await self.reportUtil.update(self.client.db, CollectionType.ADV_ASSETS, exports, self.reportId)
+        await self.reportUtil.update(CollectionType.ADV_ASSETS, exports, self.reportId)

@@ -17,23 +17,11 @@ def run(cmd):
 def run_cleanup():
     """Import and run the cleanup function from deployment/deploy.py"""
     try:
-        # Get the path to deploy.py
-        deploy_path = os.path.join(os.path.dirname(__file__), 'deployment', 'deploy.py')
-        
-        # Load the module
-        spec = importlib.util.spec_from_file_location('deploy', deploy_path)
-        if spec is None or spec.loader is None:
-            print("Error: Could not load deploy.py")
-            return False
-            
-        deploy_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(deploy_module)
-        
-        # Run the cleanup function
+        from deployment import cleaner
         print("\n" + "="*50)
         print("RUNNING CLEANUP BEFORE COMMIT")
         print("="*50)
-        deploy_module.cleanup_deployment_assets()
+        cleaner.cleanup_deployment_assets()
         print("Cleanup completed successfully!")
         return True
         

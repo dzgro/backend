@@ -1,3 +1,4 @@
+from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from pydantic import BaseModel
 from dzgroshared.db.DbUtils import DbManager
@@ -10,15 +11,16 @@ class QueueMessagesHelper:
     def __init__(self, client: DzgroSharedClient) -> None:
         self.dbManager = DbManager(client.db.database.get_collection(CollectionType.QUEUE_MESSAGES.value))
 
-    async def addMessageToDb(self, messageid: str, MessageBody: BaseModel):
+    async def addMessageToDb(self, messageid: str, MessageBody: BaseModel, extras: dict|None = None):
         body = { "model": MessageBody.__class__.__name__, "body": MessageBody.model_dump(exclude_none=True), "_id": messageid, "status": SQSMessageStatus.PENDING.value}
-        return await self.dbManager.insertOne(body)
+        if extras: body.update(extras)
+        return await self.dbManager.insertOne(body, timestampkey='createdat')
 
     async def setMessageAsProcessing(self, messageid: str):
         return await self.dbManager.updateOne({"_id": messageid, "status": SQSMessageStatus.PENDING.value},setDict={"status": SQSMessageStatus.PROCESSING.value})
 
     async def setMessageAsCompleted(self, messageid: str):
-        return await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.COMPLETED.value})
+        return await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.COMPLETED.value, 'completedat': datetime.now()})
 
     async def setMessageAsFailed(self, messageid: str, error:str = "No Error Provided"):
         return await self.dbManager.updateOne({"_id": messageid},setDict={"status": SQSMessageStatus.FAILED.value, "error": error})

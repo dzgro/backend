@@ -1,7 +1,7 @@
 from pydantic_core import core_schema
 from pydantic import BaseModel,Field, ConfigDict, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.models.enums import CountryCode, MarketplaceId, AmazonAccountType
+from dzgroshared.models.enums import CountryCode, MarketplaceId, AmazonAccountType, CollateTypeTag, CollectionType
 from typing import Any, Optional, Literal
 from bson import ObjectId
 from datetime import datetime
@@ -98,10 +98,10 @@ class LambdaContext:
 
 from typing import Optional, Any
 
-class MockLambdaContext:
+class MockLambdaContext(LambdaContext):
     def __init__(
         self,
-        startTime: int,
+        startTime: int = int(datetime.now().timestamp()*1000),
         function_name: str = "test_function",
         function_version: str = "$LATEST",
         invoked_function_arn: str = "arn:aws:lambda:us-east-1:123456789012:function:test_function",
@@ -125,7 +125,6 @@ class MockLambdaContext:
 
     def get_remaining_time_in_millis(self) -> int:
         remaining = 900000 - (int(datetime.now().timestamp()*1000)-self.startTime)
-        print(remaining)
         return remaining
 
 class CountryDetails(BaseModel):
@@ -160,6 +159,13 @@ class ErrorDetail(BaseModel):
 class ErrorList(BaseModel):
     errors: list[ErrorDetail] = Field(..., description="List of errors returned by the API")
     status_code: int = 500
+
+
+class DzgroError(Exception):
+    def __init__(self, error_list: ErrorList, status_code: int = 500):
+        self.error_list = error_list
+        self.status_code = status_code
+        super().__init__(str(error_list))
 
 
 SATKey =  Literal['sales','ad','traffic']
@@ -267,3 +273,26 @@ class DzgroSecrets(BaseModel):
     ADS_CLIENT_SECRET: str
     MONGO_DB_CONNECT_URI: str
     MONGO_DB_FED_CONNECT_URI: str
+
+
+class QueryBuilderValue(ItemId):
+    tag: CollateTypeTag
+
+DataCollections: list[CollectionType] = [
+            CollectionType.ORDERS,
+            CollectionType.ORDER_ITEMS,
+            CollectionType.SETTLEMENTS,
+            CollectionType.ADV,
+            CollectionType.ADV_ASSETS,
+            CollectionType.ADV_ADS,
+            CollectionType.ADV_RULE_RUNS,
+            CollectionType.ADV_RULE_RUN_RESULTS,
+            CollectionType.STATE_ANALYTICS,
+            CollectionType.DATE_ANALYTICS,
+            CollectionType.QUERY_RESULTS,
+            CollectionType.DZGRO_REPORT_DATA,
+            CollectionType.HEALTH,
+            CollectionType.QUEUE_MESSAGES,
+            CollectionType.AMAZON_CHILD_REPORT,
+            CollectionType.AMAZON_CHILD_REPORT_GROUP,
+        ]

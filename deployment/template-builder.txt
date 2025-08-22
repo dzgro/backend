@@ -30,6 +30,8 @@ Resource Naming for SQS Queues:
 - The function property in the queue object refers to a Lambda function also created in the template.
 - If the function property is present, configure the SQS queue to trigger the specified Lambda function by setting up an event source mapping from the queue to the Lambda.
 - Ensure the event source mapping is present in the template for such queues, using the main queue resource name (<queue_key>-Q).
+- For Every Queue in Default Region, create another queue with name appended by '-Test' and dont invoke any lambda
+- For Every queue, put Tag 'Environment' as 'Test' or 'Prod'
 
 S3 Buckets
 

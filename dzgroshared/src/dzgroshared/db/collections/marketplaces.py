@@ -1,5 +1,6 @@
 from datetime import datetime
 from bson import ObjectId
+from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.enums import CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus
 from dzgroshared.models.model import Paginator, SuccessResponse, AddMarketplace
 from dzgroshared.db import Exceptions
@@ -28,8 +29,9 @@ class MarketplaceHelper:
         return Marketplace(**marketplace)
     
     async def getMarketplaceObjectForReport(self, marketplace: ObjectId):
-        from db.collections.pipelines.marketplaces import MarketplaceObjectForReport
-        data = await self.marketplaceDB.aggregate(MarketplaceObjectForReport.pipeline(marketplace, self.uid))
+        from dzgroshared.db.collections.pipelines.marketplaces import MarketplaceObjectForReport
+        pipeline = MarketplaceObjectForReport.pipeline(marketplace, self.uid)
+        data = await self.marketplaceDB.aggregate(pipeline)
         if len(data)==0: raise ValueError("Invalid Marketplace")
         return data[0]
         
@@ -52,7 +54,7 @@ class MarketplaceHelper:
             self.marketplaceDB.pp.replaceRoot(self.marketplaceDB.pp.mergeObjects([{ '$first': '$result' }, { 'marketplaceid': '$marketplaceid', 'profile': '$profileid', 'region': '$region' }])) ]
         data = await self.marketplaceDB.aggregate(pipeline)
         if len(data)==0: raise ValueError("Invalid Seller Configuration")
-        return {**data[0], 'client_id': client_id, 'client_secret': client_secret, "isad": accountType==AmazonAccountType.ADVERTISING}
+        return AmazonApiObject(**{**data[0], 'client_id': client_id, 'client_secret': client_secret, "isad": accountType==AmazonAccountType.ADVERTISING})
 
     async def getCountryBidsByMarketplace(self, id: ObjectId|str)->CountryDetailsWithBids:
         pp = self.marketplaceDB.pp

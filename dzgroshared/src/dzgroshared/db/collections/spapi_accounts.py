@@ -4,6 +4,7 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.enums import CollectionType 
 from dzgroshared.models.collections.spapi_accounts import SPAPIAccountRequest, RenameSPAPIAccount
 from dzgroshared.db.DbUtils import DbManager
+from dzgroshared.amazonapi.spapi import SpApiClient
 
 class SPAPIAccountsHelper:
     db: DbManager
@@ -23,11 +24,10 @@ class SPAPIAccountsHelper:
     async def addSeller(self, data: SPAPIAccountRequest):
         await self.db.insertOne(data.model_dump(mode="json"), withUidMarketplace=True)
         
-    async def getAccountApiObject(self, id: str|ObjectId, client_id:str, client_secret:str):
+    async def getAccountApiClient(self, id: str|ObjectId, client_id:str, client_secret:str):
         urlKey = '$spapi_url'
         pipeline = [ self.db.pp.matchMarketplace({'_id': self.db.convertToObjectId(id)}), { '$lookup': { 'from': 'country_details', 'localField': 'countrycode', 'foreignField': '_id', 'pipeline': [ { '$project': { 'url': urlKey, '_id': 0 } } ], 'as': 'url' } }, { '$unwind': { 'path': '$url' } }, { '$replaceWith': { '_id': '$_id', 'sellerid': '$sellerid', 'url': '$url.url', "refreshtoken": "$refreshtoken"} }]
         data = await self.db.aggregate(pipeline)
         if len(data)==0: raise ValueError("Invalid Seller Configuration")
-        return {**data[0], "client_id":client_id, "client_secret":client_secret, "isad": False}
-            
-        
+        return SpApiClient(**{**data[0], "client_id":client_id, "client_secret":client_secret, "isad": False})
+

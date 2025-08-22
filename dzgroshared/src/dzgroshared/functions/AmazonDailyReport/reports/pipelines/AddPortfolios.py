@@ -1,6 +1,6 @@
 import asyncio
-from dzgroshared.amazonapi import AdApiClient
-from dzgroshared.models.amazonapi.errors import APIError
+from dzgroshared.amazonapi.adapi import AdApiClient
+from dzgroshared.models.model import DzgroError
 from dzgroshared.models.amazonapi.adapi.common.portfolios import ListPortfoliosRequestContent, Portfolio
 from dzgroshared.models.enums import AdAssetType
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
@@ -25,7 +25,7 @@ class PortfolioProcessor:
     async def __getPortfolioBatch(self, token:str|None):
         try:
             return await self.adapi.common.portfoliosClient.list_portfolios(ListPortfoliosRequestContent(nextToken=token))
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code == 429:
                 await asyncio.sleep(5)
                 return self.__getPortfolioBatch(token)

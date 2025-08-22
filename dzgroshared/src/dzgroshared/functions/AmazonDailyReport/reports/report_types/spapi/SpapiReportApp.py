@@ -3,7 +3,7 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
 from datetime import datetime
-from dzgroshared.models.amazonapi.errors import APIError
+from dzgroshared.models.model import DzgroError
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus, SPAPICreateReportSpecification
 from dzgroshared.models.extras.amazon_daily_report import AmazonSpapiReport, AmazonSpapiReportDB, MarketplaceObjectForReport, PyObjectId, SPAPIReport,SPAPIReportDocument
 from dzgroshared.models.enums import AmazonReportType, CollectionType, SPAPIReportType
@@ -34,8 +34,8 @@ class AmazonSpapiReportManager:
         reports: list[AmazonSpapiReport] = []
         # reports: list[AmazonSpapiReport] = await self.__getSettlementReports(startdate)
         dates = Utility.getConfDatesByMonths(months, self.timezone, 'spapi', 30)
-        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
-        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
+        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
+        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
         for date in dates:
             reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_LAST_UPDATE_GENERAL, startDate=date[0], endDate=date[1]))
         return reports
@@ -64,7 +64,7 @@ class AmazonSpapiReportManager:
         try:
             if self.createThrottle: return None
             return (await self.spapi.reports.create_report(req)).report_id
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.createThrottle = True
                 return None
@@ -76,7 +76,7 @@ class AmazonSpapiReportManager:
         try:
             if self.getThrottle: return None
             return await self.spapi.reports.get_report(reportid)
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.getThrottle = True
                 return None
@@ -86,7 +86,7 @@ class AmazonSpapiReportManager:
         try:
             if self.getDocumentThrottle: return None
             return await self.spapi.reports.get_report_document(reportDocid)
-        except APIError as e:
+        except DzgroError as e:
             if e.status_code==429:
                 self.getDocumentThrottle = True
                 return None
@@ -104,9 +104,9 @@ class AmazonSpapiReportManager:
                     processedReport, shouldContinue = await self.__processSpapiReport(processedReport)
                     if processedReport.document and processedReport.req and processedReport.res: 
                         key = f'spapi/{processedReport.req.report_type.value}/{processedReport.res.report_id}'
-                        dataStr, processedReport.filepath = reportUtil.insertToS3(key, processedReport.document.url, processedReport.document.compression_algorithm is not None)
+                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.url, processedReport.document.compression_algorithm is not None)
                         await self.__addSPAPIReport(dataStr, processedReport.req.report_type)
-                except APIError as e:
+                except DzgroError as e:
                     processedReport.error = e.error_list
                 if report.model_dump() != processedReport.model_dump():
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
@@ -132,28 +132,28 @@ class AmazonSpapiReportManager:
     async def __executeHealthReport(self, data: str):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.HealthReportConvertor import HealthReportConvertor
         report = HealthReportConvertor(self.marketplace).convertToReport(json.loads(data))
-        await self.reportUtil.update(self.client.db, CollectionType.HEALTH, [{'health': report.model_dump(exclude_none=True), '_id': self.marketplace.id}], self.reportId)
+        await self.reportUtil.update(CollectionType.HEALTH, [{'health': report.model_dump(exclude_none=True), '_id': self.marketplace.id}], self.reportId)
 
     async def __executeOrderReports(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.OrderReportConvertor import OrderReportConvertor
-        convertor = OrderReportConvertor(self.marketplace, self.spapi)
+        convertor = OrderReportConvertor(self.marketplace)
         orders, orderItems = convertor.convert(data)
-        await self.reportUtil.update(self.client.db, CollectionType.ORDERS, [item.model_dump(exclude_none=True, by_alias=True) for item in orders], self.reportId)
+        await self.reportUtil.update(CollectionType.ORDERS, [item.model_dump(exclude_none=True, by_alias=True) for item in orders], self.reportId)
         orderIdsList = list(map(lambda x: f'{str(self.marketplace.id)}_{x.orderid}', orders))
         await self.client.db.order_items.deleteOrderItems(orderIdsList)
-        await self.reportUtil.update(self.client.db, CollectionType.ORDER_ITEMS, [item.model_dump(exclude_none=True) for item in orderItems], None)
+        await self.reportUtil.update(CollectionType.ORDER_ITEMS, [item.model_dump(exclude_none=True) for item in orderItems], None)
         if convertor.hasIndiaCountry: await self.client.db.orders.replaceStateNames()
 
     async def __executeSettlementReports(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.SettlementReportConvertor import SettlementReportConvertor
         settlementIds = await self.client.db.settlements.getSettlementIds()
         settlements = SettlementReportConvertor().convert(data, settlementIds)
-        await self.reportUtil.update(self.client.db, CollectionType.SETTLEMENTS, [item.model_dump(exclude_none=True, by_alias=True) for item in settlements], None)
+        await self.reportUtil.update(CollectionType.SETTLEMENTS, [item.model_dump(exclude_none=True, by_alias=True) for item in settlements], None)
 
     async def __executeListings(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.ListingReportConvertor import ListingReportConvertor
         listings = ListingReportConvertor(self.marketplace).addListings(data)
-        await self.reportUtil.update(self.client.db, CollectionType.PRODUCTS, listings, self.reportId)
+        await self.reportUtil.update(CollectionType.PRODUCTS, listings)
 
     async def __processSpapiReport(self, report: AmazonSpapiReportDB)->tuple[AmazonSpapiReportDB, bool]:
         reportid: str|None = report.res.report_id if report.res else None
@@ -168,10 +168,10 @@ class AmazonSpapiReportManager:
                     if report.res.report_document_id: 
                         report.document = await self.__getDocument(report.res.report_document_id)
                 elif report.res.processing_status == ProcessingStatus.FATAL:
-                    raise APIError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in {report.res.processing_status} status")]))
+                    raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in {report.res.processing_status} status")]))
             return report, True
-        except APIError as e:
+        except DzgroError as e:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise APIError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)

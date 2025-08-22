@@ -85,7 +85,7 @@ class DbManager:
         return (await self.collection.insert_many(data)).inserted_ids
     
     async def insertOne(self, data: dict, withUidMarketplace = False, timestampkey:str|None=None)->ObjectId:
-        if timestampkey is not None: data.update({timestampkey: int(datetime.now().timestamp())})
+        if timestampkey is not None: data.update({timestampkey: datetime.now()})
         if withUidMarketplace: data.update(self.getFilterDict(data))
         try: return (await self.collection.insert_one(data)).inserted_id
         except Exception as e:

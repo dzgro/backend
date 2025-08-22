@@ -1,3 +1,5 @@
+from dzgroshared.models.model import DzgroError
+from dzgroshared.models.model import ErrorDetail, ErrorList
 from pydantic import BaseModel, model_validator, Field, computed_field, ConfigDict, conint
 from pydantic.json_schema import SkipJsonSchema
 from typing import Optional, Dict
@@ -48,16 +50,16 @@ class SQSMessageAttribute(BaseModel):
 
 
 class SQSRecord(BaseModel):
+    eventSource: str| SkipJsonSchema[None] = None
+    eventSourceARN: str| SkipJsonSchema[None] = None
+    awsRegion: str| SkipJsonSchema[None] = None
+    md5OfMessageAttributes: str | SkipJsonSchema[None] = None
     messageId: str
     receiptHandle: str
     body: str
     attributes: SQSAttributes | SkipJsonSchema[None] = None
     messageAttributes: dict[str, SQSMessageAttribute] = {}
     md5OfBody: str | SkipJsonSchema[None] = None
-    eventSource: str
-    eventSourceARN: str
-    awsRegion: str
-    md5OfMessageAttributes: str | SkipJsonSchema[None] = None
 
     def _safe_json_parse(self) -> Any:
         try:
@@ -125,6 +127,43 @@ class SQSRecord(BaseModel):
 class SQSEvent(BaseModel):
     Records: List[SQSRecord]
 
+    @computed_field
+    @property
+    def message_count(self) -> int:
+        """Number of messages received"""
+        return len(self.Records)
+    
+    @computed_field
+    @property
+    def has_messages(self) -> bool:
+        """Whether any messages were received"""
+        return len(self.Records) > 0
+
+    # Alias for backward compatibility with your existing code
+    @computed_field
+    @property
+    def messages(self) -> List[SQSRecord]:
+        """Alias for Messages field for backward compatibility"""
+        return self.Records
+
+
+class ReceiveMessageRequest(BaseModel):
+    QueueUrl: QueueUrl
+    AttributeNames: list[str] = Field(default=[], description="Attributes to retrieve (e.g., 'All', 'ApproximateReceiveCount')")
+    MessageAttributeNames: list[str] = Field(default=[], description="Message attributes to retrieve (e.g., 'All', 'MyAttribute.*')")
+    MaxNumberOfMessages: int= Field(default=10, description="Max messages to receive (1-10)")
+    VisibilityTimeoutSeconds: int | SkipJsonSchema[None] = Field(default=None, description="Visibility timeout in seconds (0-43200)")
+    WaitTimeSeconds: int = Field(default=0, description="Long polling wait time in seconds (0-20)")
+    ReceiveRequestAttemptId: str | SkipJsonSchema[None] = Field(default=None, description="FIFO queue deduplication token")
+
+    @model_validator(mode="after")
+    def validate_fifo_requirements(self) -> "ReceiveMessageRequest":
+        # If it's a FIFO queue, ReceiveRequestAttemptId should be provided for exactly-once processing
+        if self.QueueUrl.value.endswith('.fifo') and self.ReceiveRequestAttemptId is None:
+            # This is optional but recommended for FIFO queues
+            pass
+        return self
+
 
 # ================================
 # 📤 SENDING TO SQS
@@ -171,20 +210,77 @@ class SendMessageBatchRequest(BaseModel):
     QueueUrl: QueueUrl
     Entries: List[SendMessageBatchEntry]
 
+class DeleteMessageBatchEntry(BaseModel):
+    Id: str
+    ReceiptHandle: str
 
-from botocore.exceptions import BotoCoreError, ClientError
-from typing import Callable, Type
+class DeleteMessageBatchRequest(BaseModel):
+    QueueUrl: QueueUrl
+    Entries: List[DeleteMessageBatchEntry]
+
+class DeleteMessageBatchResultEntry(BaseModel):
+    Id: str
+
+class BatchResultErrorEntry(BaseModel):
+    Id: str
+    SenderFault: bool
+    Code: str
+    Message: Optional[str] = None
+
+class DeleteMessageBatchResponse(BaseModel):
+    Successful: List[DeleteMessageBatchResultEntry]
+    Failed: List[BatchResultErrorEntry]
+
+
+import botocore.exceptions
 from functools import wraps
 
-def aws_error_handler():
-    def decorator(func: Callable):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except (BotoCoreError, ClientError) as e:
-                return SQSSendMessageResponse(success=False, error=str(e))
-            except Exception as e:
-                return SQSSendMessageResponse(success=False, error=f"Unexpected error: {e}")
-        return wrapper
-    return decorator
+def catch_sqs_exceptions(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response['Error']['Code']
+            error = ErrorDetail(code=400)
+            if error_code == "ReceiptHandleIsInvalid":
+                error.message = "Invalid receipt handle"
+            elif error_code == "QueueDoesNotExist":
+                error.message = "Queue does not exist"
+            elif error_code == "RequestThrottled":
+                error.message = "Request throttled"
+            elif error_code == "InvalidIdFormat":
+                error.message = "Invalid ID format"
+            elif error_code == "UnsupportedOperation":
+                error.message = "Unsupported operation"
+            elif error_code == "InvalidSecurity":
+                error.message = "Invalid security token"
+            elif error_code == "InvalidAddress":
+                error.message = "Invalid address"
+            elif error_code == "TooManyEntriesInBatchRequest":
+                error.message = "Too many entries in batch request"
+            elif error_code == "EmptyBatchRequest":
+                error.message = "Empty batch request"
+            elif error_code == "BatchEntryIdsNotDistinct":
+                error.message = "Batch entry IDs must be distinct"
+            elif error_code == "InvalidBatchEntryId":
+                error.message = "Invalid batch entry ID"
+            elif error_code == "InvalidMessageContents":
+                error.message = "Invalid message contents"
+            elif error_code == "OverLimit":
+                error.message = "Over limit"
+            elif error_code == "InvalidBatchEntryId":
+                error.message = "Invalid batch entry ID"
+            elif error_code == "InvalidBatchEntryId":
+                error.message = "Invalid batch entry ID"
+            elif error_code == "InvalidBatchEntryId":
+                error.message = "Invalid batch entry ID"
+            else:
+                error.message = f"Unhandled SQS error: {error_code} - {e.response['Error']['Message']}"
+            return DzgroError(error_list=ErrorList(errors=[error], status_code=400))
+        except Exception as e:
+            print(f"Unhandled exception: {str(e)}")
+            return DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message=str(e))], status_code=500))
+    return wrapper
+
+

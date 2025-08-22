@@ -6,20 +6,24 @@ DEFAULT_REGION = 'ap-south-1'  # Change this as needed
 EU = 'eu-west-1'
 NA = 'us-east-1'
 FE = 'us-west-2'
+REGIONS = [DEFAULT_REGION, EU, NA, FE]
 
 FUNCTIONS_MAP = {
     'AmazonDailyReport': {
         'region': [DEFAULT_REGION],
+        'test': True,
         'path': 'functions/AmazonDailyReport',
         'description': 'Amazon Daily Report Lambda',
     },
     'DzgroReports': {
         'region': [DEFAULT_REGION],
+        'test': True,
         'path': 'functions/DzgroReports',
         'description': 'Dzgro Reports Lambda',
     },
     'DzgroReportsS3Trigger': {
         'region': [DEFAULT_REGION],
+        'test': True,
         'path': 'functions/DzgroReportsS3Trigger',
         'description': 'Dzgro Report Parquet to Excel Lambda',
     },
@@ -35,6 +39,7 @@ FUNCTIONS_MAP = {
     },
     'PaymentProcessor': {
         'region': [DEFAULT_REGION],
+        'test': True,
         'path': 'functions/PaymentProcessor',
         'description': 'Payment Processing Lambda',
     },
@@ -60,6 +65,7 @@ QUEUES_MAP = {
     },
     'AmazonReports': {
         'region': [DEFAULT_REGION],
+        'test': True,
         'description': 'Amazon Daily Reports',
         'function': 'AmazonDailyReport'
     },
@@ -73,6 +79,7 @@ QUEUES_MAP = {
     },
     'Payment': {
         'region': [DEFAULT_REGION],
+        'test': True,
         'description': 'Payment Processing',
         'function': 'PaymentProcessor'
     }

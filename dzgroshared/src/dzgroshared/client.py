@@ -1,5 +1,4 @@
 from bson import ObjectId
-from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.enums import ENVIRONMENT
 from dzgroshared.models.model import DzgroSecrets, LambdaContext
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -12,7 +11,7 @@ class DzgroSharedClient:
     mongoClient: AsyncIOMotorClient
     secretsClient: DzgroSecrets
 
-    def __init__(self, env: ENVIRONMENT = ENVIRONMENT.DEV):
+    def __init__(self, env: ENVIRONMENT):
         self.env = env
         
     def __getattr__(self, item):
@@ -78,15 +77,21 @@ class DzgroSharedClient:
         from dzgroshared.db.client import DbClient
         if not self.mongoClient:
             self.mongoClient = AsyncIOMotorClient(self.secrets.MONGO_DB_CONNECT_URI)
-        self.dbClient = DbClient(self, uid=self.uid, marketplace=self.marketplace)
+        self.dbClient = DbClient(self)
         return self.dbClient
     
-    def amazonapi(self, object: AmazonApiObject):
-        if self.amazonapiClient: return self.amazonapiClient
-        from dzgroshared.amazonapi import AmazonApiClient
-        self.amazonapiClient = AmazonApiClient(object)
-        return self.amazonapiClient
+    def spapi(self, object):
+        if self.spapiClient: return self.spapiClient
+        from dzgroshared.amazonapi.spapi import SpApiClient
+        self.spapiClient = SpApiClient(object)
+        return self.spapiClient
     
+    def adapi(self, object):
+        if self.adapiClient: return self.adapiClient
+        from dzgroshared.amazonapi.adapi import AdApiClient
+        self.adapiClient = AdApiClient(object)
+        return self.adapiClient
+
     def functions(self, event: dict, context: LambdaContext):
         from dzgroshared.functions import FunctionClient
         return FunctionClient(self, event, context)
