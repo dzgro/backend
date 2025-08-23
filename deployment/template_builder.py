@@ -12,6 +12,7 @@ class Tag(BaseModel):
 
 Bucket = Literal['dzgro-report-data', 'dzgro-amz-data', 'dzgro-invoices']
 
+from deployment.rolecreator import RoleCreator
 import mapping
 class TemplateBuilder:
     region: str
@@ -21,6 +22,8 @@ class TemplateBuilder:
     resources: dict
     is_default_region: bool
     tags: list[Tag] = [Tag(Environment='Prod')]
+    lambdaRoleName: str = 'DzgroLambdaRole'
+    roleCreator: RoleCreator
 
     def __init__(self, region: str, api_gateway_role: str, lambda_role: str, layer_arn: str) -> None:
         self.region = region
@@ -32,6 +35,7 @@ class TemplateBuilder:
             self.tags.append(Tag(Environment='Test'))
             self.tags.append(Tag(Environment='Dev'))
         self.resources = {}
+        self.roleCreator = RoleCreator()
 
     def deploy(self):
         self.createResources()
@@ -73,7 +77,10 @@ class TemplateBuilder:
         for func_key, func in mapping.FUNCTIONS_MAP.items():
             if self.region in func.get('region', []):
                 for tag in self.tags:
+                    lambdaRoleName = f'{func_key}{tag.Environment}Role'
                     if tag.Environment!='Dev':
+                        funcname = f'{func_key}{tag.Environment}Function'
+                        self.resources[lambdaRoleName] = self.roleCreator.generate_lambda_role(lambdaRoleName, funcname, func.get('buckets', []), func.get('queues', []))
                         resource_name = f'{func_key}{tag.Environment}Function'
                         event:dict|None=None
                         if func_key == 'DzgroReportsS3Trigger':

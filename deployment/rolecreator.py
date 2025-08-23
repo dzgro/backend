@@ -56,6 +56,7 @@ class RoleCreator:
                 raise ValueError(f"Error checking role {role_name}: {e}")
 
 
+
     def create_lambda_role(self)->str:
         role_name = 'DzgroLambdaRole'
         assume_role_policy = {
@@ -70,7 +71,7 @@ class RoleCreator:
         }
         policies = [
             'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
-            'arn:aws:iam::aws:policy/AmazonRDSFullAccess',
+            'arn:aws:iam::aws:policy/AmazonSQSFullAccess',
             'arn:aws:iam::aws:policy/AmazonS3FullAccess'
         ]
         try:
@@ -98,3 +99,5 @@ class RoleCreator:
             else:
                 raise ValueError(f"Error checking role {role_name}: {e}")
             
+
+    

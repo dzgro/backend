@@ -30,39 +30,21 @@ def run_connect_ec2_script():
 
 def main():
 	try:
-		from rolecreator import RoleCreator
-		from layer_builder import LayerBuilder
-		from template_builder import TemplateBuilder
-		import mapping, cleaner
-		layerBuilder = LayerBuilder()
-		roleCreator = RoleCreator()
-		# layerBuilder.build_layer_zip_clean()
-		LambdaRole = roleCreator.create_lambda_role()
-		ApiGatewayRole = roleCreator.create_api_gateway_role()
-
-        # Prompt user to select regions to deploy
-		# print("\nSelect regions to deploy (comma separated indices):")
-		for idx, region in enumerate(mapping.REGIONS):
-			print(f"{idx}: {region}")
-		print(f"{len(mapping.REGIONS)}: all (deploy to all regions)")
-		selected_regions:list[str] = []
-		selected = input("Enter indices (e.g. 0,2 or all): ").strip().lower()
-		if selected == "all" or str(len(mapping.REGIONS)) in selected.split(","):
-			# Always keep default_region as first entry
-			selected_regions = [mapping.DEFAULT_REGION] + [r for r in mapping.REGIONS if r != mapping.DEFAULT_REGION]
-		else:
-			selected_indices = [int(i) for i in selected.split(",") if i.strip().isdigit()]
-			# Always keep default_region as first entry if selected
-			selected_regions = []
-			if mapping.DEFAULT_REGION in mapping.REGIONS and mapping.REGIONS.index(mapping.DEFAULT_REGION) in selected_indices:
-				selected_regions.append(mapping.DEFAULT_REGION)
-			selected_regions += [mapping.REGIONS[i] for i in selected_indices if mapping.REGIONS[i] != mapping.DEFAULT_REGION and i < len(mapping.REGIONS)]
-
-		print("Selected regions for deployment:", selected_regions)
-		for region in selected_regions:
-			# LayerArn = create_layer(region)
-			LayerArn = f"arn:aws:lambda:{region}:522814698847:layer:dzgroshared_layer:7"
-			TemplateBuilder(region, ApiGatewayRole, LambdaRole, LayerArn).deploy()
+		import mapping, cleaner, inquirer
+		question = [
+			inquirer.List(
+				"script",
+				message="Select an Environment to run:",
+				choices=[x.value for x in mapping.Environment.all()],
+			)
+		]
+		answer = inquirer.prompt(question)
+		if not answer or "script" not in answer:
+			print("No selection made.")
+			exit(1)
+		env = mapping.Environment(answer["script"])
+		from template_builder_new import TemplateBuilder
+		TemplateBuilder(env).deploy()
 		
 		# Run connect EC2 script after deployment
 		# run_connect_ec2_script()

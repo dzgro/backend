@@ -1,0 +1,609 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Dev template for region ap-south-1
+Resources:
+  MyCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: api-dev.dzgro.com
+      SubjectAlternativeNames:
+      - www.api-dev.dzgro.com
+      ValidationMethod: DNS
+  MyCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: api-dev.dzgro.com
+      RegionalCertificateArn:
+        Ref: MyCertificate
+      EndpointConfiguration:
+        Types:
+        - REGIONAL
+  MyBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName:
+        Ref: MyCustomDomain
+      RestApiId:
+        Ref: ApiGatewayDev
+      Stage: Dev
+  ApiGatewayDev:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Dev
+      EndpointConfiguration: REGIONAL
+      Tags:
+        Project: Dzgro
+        Environment: Dev
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: Dzgro API
+          version: '1.0'
+        paths:
+          /webhook/rzrpay:
+            post:
+              responses:
+                '200':
+                  description: Success
+              x-amazon-apigateway-integration:
+                type: aws
+                httpMethod: POST
+                uri:
+                  Fn::Sub:
+                  - arn:aws:apigateway:${AWS::Region}:sqs:path/${AWS::AccountId}/${QueueName}
+                  - QueueName:
+                      Fn::GetAtt:
+                      - RazorpayWebhookDevQ
+                      - QueueName
+                credentials:
+                  Fn::GetAtt:
+                  - ApiGatewayRoleDev
+                  - Arn
+                requestParameters:
+                  integration.request.header.Content-Type: '''application/x-www-form-urlencoded'''
+                requestTemplates:
+                  application/x-www-form-urlencoded: Action=SendMessage&MessageBody=$input.body&MessageAttribute.1.Name=x-razorpay-event-id&MessageAttribute.1.Value.StringValue=$input.params().header.get('x-razorpay-event-id')&MessageAttribute.1.Value.DataType=String&MessageAttribute.2.Name=X-Razorpay-Signature&MessageAttribute.2.Value.StringValue=$input.params().header.get('X-Razorpay-Signature')&MessageAttribute.2.Value.DataType=String
+  ApiGatewayRoleDev:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ApiGatewayRoleDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: ApiGatewayLambdaInvoke
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource:
+              Fn::Sub: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*Dev
+      - PolicyName: ApiGatewaySQSAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: sqs:SendMessage
+            Resource:
+              Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:*Dev
+  AmazonDailyReportLambdaRoleDev:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AmazonDailyReportLambdaRoleDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: LambdaLogging
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: '*'
+      - PolicyName: SSMParameterRead
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Fn::Sub: arn:aws:secretsmanager:ap-south-1:${AWS::AccountId}:secret:dzgro/test
+      - PolicyName: LambdaSQSAccessAmazonReportsDevQ
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:SendMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - AmazonReportsDevQ
+              - Arn
+      - PolicyName: LambdaS3Accessdzgro-amz-report-data-dev
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:PutObject
+            Resource:
+            - Fn::Sub: arn:aws:s3:::dzgro-amz-report-data-dev/*
+  DzgroAmzReportDataDevBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro-amz-report-data-dev
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  AmazonReportsDevQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmazonReportsDevQ
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - AmazonReportsDevDLQ
+          - Arn
+        maxReceiveCount: 1
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  AmazonReportsDevDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: AmazonReportsDevDLQ
+      VisibilityTimeout: 900
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  AmazonReportsDevEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+        - AmazonReportsDevQ
+        - Arn
+      FunctionName:
+        Ref: AmazonDailyReportDevFunction
+  AmazonDailyReportDevFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AmazonDailyReportDevFunction
+      Handler: handler.handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      CodeUri: functions/AmazonDailyReport
+      Description: General Description
+      Timeout: 900
+      Layers:
+      - arn:aws:lambda:ap-south-1:522814698847:layer:dzgroshared_layer:7
+      Role:
+        Fn::GetAtt:
+        - AmazonDailyReportLambdaRoleDev
+        - Arn
+      Tags:
+        Project: Dzgro
+        Environment: Dev
+      Environment:
+        Variables:
+          ENV: Dev
+  DzgroReportsLambdaRoleDev:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DzgroReportsLambdaRoleDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: LambdaLogging
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: '*'
+      - PolicyName: SSMParameterRead
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Fn::Sub: arn:aws:secretsmanager:ap-south-1:${AWS::AccountId}:secret:dzgro/test
+      - PolicyName: LambdaSQSAccessDzgroReportsDevQ
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:SendMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - DzgroReportsDevQ
+              - Arn
+  DzgroReportsDevQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: DzgroReportsDevQ
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DzgroReportsDevDLQ
+          - Arn
+        maxReceiveCount: 1
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  DzgroReportsDevDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: DzgroReportsDevDLQ
+      VisibilityTimeout: 900
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  DzgroReportsDevEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+        - DzgroReportsDevQ
+        - Arn
+      FunctionName:
+        Ref: DzgroReportsDevFunction
+  DzgroReportsDevFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DzgroReportsDevFunction
+      Handler: handler.handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      CodeUri: functions/DzgroReports
+      Description: General Description
+      Timeout: 900
+      Layers:
+      - arn:aws:lambda:ap-south-1:522814698847:layer:dzgroshared_layer:7
+      Role:
+        Fn::GetAtt:
+        - DzgroReportsLambdaRoleDev
+        - Arn
+      Tags:
+        Project: Dzgro
+        Environment: Dev
+      Environment:
+        Variables:
+          ENV: Dev
+  DzgroReportsS3TriggerLambdaRoleDev:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: DzgroReportsS3TriggerLambdaRoleDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: LambdaLogging
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: '*'
+      - PolicyName: SSMParameterRead
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Fn::Sub: arn:aws:secretsmanager:ap-south-1:${AWS::AccountId}:secret:dzgro/test
+  DzgroReportDataDevBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro-report-data-dev
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  DzgroReportsS3TriggerDevFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DzgroReportsS3TriggerDevFunction
+      Handler: handler.handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      CodeUri: functions/DzgroReportsS3Trigger
+      Description: General Description
+      Timeout: 900
+      Layers:
+      - arn:aws:lambda:ap-south-1:522814698847:layer:dzgroshared_layer:7
+      Role:
+        Fn::GetAtt:
+        - DzgroReportsS3TriggerLambdaRoleDev
+        - Arn
+      Tags:
+        Project: Dzgro
+        Environment: Dev
+      Environment:
+        Variables:
+          ENV: Dev
+      Events:
+        S3UploadEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: DzgroReportDataDevBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                - Name: suffix
+                  Value: .parquet
+  PaymentProcessorLambdaRoleDev:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: PaymentProcessorLambdaRoleDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: LambdaLogging
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: '*'
+      - PolicyName: SSMParameterRead
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Fn::Sub: arn:aws:secretsmanager:ap-south-1:${AWS::AccountId}:secret:dzgro/test
+      - PolicyName: LambdaSQSAccessPaymentProcessorDevQ
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:SendMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - PaymentProcessorDevQ
+              - Arn
+      - PolicyName: LambdaS3Accessdzgro-invoice-dev
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:PutObject
+            Resource:
+            - Fn::Sub: arn:aws:s3:::dzgro-invoice-dev/*
+  DzgroInvoiceDevBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: dzgro-invoice-dev
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  PaymentProcessorDevQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: PaymentProcessorDevQ
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - PaymentProcessorDevDLQ
+          - Arn
+        maxReceiveCount: 1
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  PaymentProcessorDevDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: PaymentProcessorDevDLQ
+      VisibilityTimeout: 900
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  PaymentProcessorDevEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+        - PaymentProcessorDevQ
+        - Arn
+      FunctionName:
+        Ref: PaymentProcessorDevFunction
+  PaymentProcessorDevFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: PaymentProcessorDevFunction
+      Handler: handler.handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      CodeUri: functions/PaymentProcessor
+      Description: General Description
+      Timeout: 900
+      Layers:
+      - arn:aws:lambda:ap-south-1:522814698847:layer:dzgroshared_layer:7
+      Role:
+        Fn::GetAtt:
+        - PaymentProcessorLambdaRoleDev
+        - Arn
+      Tags:
+        Project: Dzgro
+        Environment: Dev
+      Environment:
+        Variables:
+          ENV: Dev
+  RazorpayWebhookProcessorLambdaRoleDev:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: RazorpayWebhookProcessorLambdaRoleDev
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: LambdaLogging
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: '*'
+      - PolicyName: SSMParameterRead
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Fn::Sub: arn:aws:secretsmanager:ap-south-1:${AWS::AccountId}:secret:dzgro/test
+      - PolicyName: LambdaSQSAccessRazorpayWebhookDevQ
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - sqs:ReceiveMessage
+            - sqs:SendMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+            Resource:
+            - Fn::GetAtt:
+              - RazorpayWebhookDevQ
+              - Arn
+  RazorpayWebhookDevQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: RazorpayWebhookDevQ
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - RazorpayWebhookDevDLQ
+          - Arn
+        maxReceiveCount: 1
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  RazorpayWebhookDevDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: RazorpayWebhookDevDLQ
+      VisibilityTimeout: 900
+      Tags:
+      - Key: Project
+        Value: Dzgro
+      - Key: Environment
+        Value: Dev
+  RazorpayWebhookProcessorDevFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: RazorpayWebhookProcessorDevFunction
+      Handler: handler.handler
+      Runtime: python3.12
+      Architectures:
+      - x86_64
+      CodeUri: functions/RazorpayWebhookProcessor
+      Description: General Description
+      Timeout: 900
+      Layers:
+      - arn:aws:lambda:ap-south-1:522814698847:layer:dzgroshared_layer:7
+      Role:
+        Fn::GetAtt:
+        - RazorpayWebhookProcessorLambdaRoleDev
+        - Arn
+      Tags:
+        Project: Dzgro
+        Environment: Dev
+      Environment:
+        Variables:
+          ENV: Dev
