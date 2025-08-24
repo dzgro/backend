@@ -33,7 +33,7 @@ class DzgroSharedClient:
     def secrets(self):
         if self.secretsClient: return self.secretsClient
         from dzgroshared.secrets.client import SecretManager
-        self.secretsClient = SecretManager().secrets
+        self.secretsClient = SecretManager(self.env).secrets
         return self.secretsClient
     
     @property

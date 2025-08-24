@@ -1,6 +1,7 @@
-from mapping import Region, Environment
+from mapping import Region
+from dzgroshared.models.enums import ENVIRONMENT
 
-def build_layer_zip_clean():
+def build_layer_zip_clean(env: ENVIRONMENT):
     """
     Creates dzgroshared_layer.zip at the project root with all dependencies and custom code.
     This creates a proper AWS Lambda layer structure with dependencies in python/lib/python3.12/site-packages/
@@ -16,7 +17,7 @@ def build_layer_zip_clean():
     layer_build_dir = os.path.join(os.path.dirname(__file__), 'layer_build')
     python_dir = os.path.join(layer_build_dir, 'python')
     site_packages_dir = os.path.join(python_dir, 'lib', 'python3.12', 'site-packages')
-    layer_zip = os.path.join(project_root, 'dzgroshared_layer.zip')
+    layer_zip = os.path.join(project_root, f'dzgroshared-{env.value.lower()}.zip')
 
     print("Building Lambda layer with dependencies...")
     
@@ -112,7 +113,7 @@ def build_layer_zip_clean():
             shutil.rmtree(layer_build_dir)
             print(f"Deleted intermediary build directory: {layer_build_dir}")
 
-def deploy_layer(region: Region, env: Environment):
+def deploy_layer(region: Region, env: ENVIRONMENT):
     # Publish layer using boto3
     import boto3
     client = boto3.client("lambda", region_name=region.value)

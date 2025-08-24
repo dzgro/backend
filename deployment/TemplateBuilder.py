@@ -2,7 +2,8 @@ from typing import Literal
 import yaml
 from rolecreator import RoleCreator
 import mapping
-from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, S3Bucket, QueueName, Tag, Environment, LambdaProperty, QueueRole, S3Role
+from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, S3Bucket, QueueName, Tag, LambdaProperty, QueueRole, S3Role
+from dzgroshared.models.enums import ENVIRONMENT
 
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
@@ -10,7 +11,7 @@ class NoAliasDumper(yaml.SafeDumper):
     
 
 class TemplateBuilder:
-    env: Environment
+    env: ENVIRONMENT
     envtextlower: str
     resources: dict[str, dict] = {}
     is_default_region: bool
@@ -18,18 +19,18 @@ class TemplateBuilder:
     roleCreator: RoleCreator
     apigateway: dict
 
-    def __init__(self, env: Environment) -> None:
+    def __init__(self, env: ENVIRONMENT) -> None:
         self.env = env
         self.envtextlower = env.value.lower()
         self.roleCreator = RoleCreator()
 
-    def deploy(self):
-        # import layer_builder as LayerBuilder
-        # LayerBuilder.build_layer_zip_clean()
-        for region in Region.all():
+    def deploy(self, regions: list[Region]):
+        import layer_builder as LayerBuilder
+        LayerBuilder.build_layer_zip_clean(self.env)
+        for region in regions:
             self.resources = {}
-            # LayerBuilder.deploy_layer(region, self.env)
-            LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared_layer:7"
+            LayerArn = LayerBuilder.deploy_layer(region, self.env)
+            # LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared_layer:7"
             self.createCertificateAndLinkApi(region)
             self.createResources(region, LayerArn)
             template = {
@@ -109,7 +110,7 @@ class TemplateBuilder:
 
     def createLambdaRole(self, _lambda: LambdaProperty, region: Region):
         rolename: str = self.getLambdaRoleName(_lambda.name)
-        parameter = (Environment.Prod if self.env == Environment.Prod else Environment.Test).value.lower()
+        parameter = (ENVIRONMENT.PROD if self.env == ENVIRONMENT.PROD else ENVIRONMENT.TEST).value.lower()
         secretsarn = f"arn:aws:secretsmanager:{region.value}:${{AWS::AccountId}}:secret:dzgro/{parameter}"
         role = {
             "Type": "AWS::IAM::Role",

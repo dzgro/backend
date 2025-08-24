@@ -263,7 +263,6 @@ class DzgroSecrets(BaseModel):
     COGNITO_APP_CLIENT_ID: str
     COGNITO_USER_POOL_ID: str
     RAZORPAY_CLIENT_ID: str
-    RAZORPAY_PLAN_ID: str
     RAZORPAY_CLIENT_SECRET: str
     RAZORPAY_WEBHOOK_SECRET: str
     SPAPI_CLIENT_ID: str

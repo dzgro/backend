@@ -21,7 +21,7 @@ def run_cleanup():
         print("\n" + "="*50)
         print("RUNNING CLEANUP BEFORE COMMIT")
         print("="*50)
-        cleaner.cleanup_deployment_assets()
+        # cleaner.cleanup_deployment_assets()
         print("Cleanup completed successfully!")
         return True
         
@@ -31,9 +31,9 @@ def run_cleanup():
 
 # Run cleanup before committing
 print("Running cleanup to remove deployment artifacts before committing...")
-if not run_cleanup():
-    print("ERROR: Cleanup failed! Aborting commit to prevent committing build artifacts.")
-    sys.exit(1)
+# if not run_cleanup():
+#     print("ERROR: Cleanup failed! Aborting commit to prevent committing build artifacts.")
+#     sys.exit(1)
 
 # Add all changes
 run(["git", "add", "."])

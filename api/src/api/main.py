@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     from dzgroshared.models.enums import ENVIRONMENT
     app.state.env = ENVIRONMENT(env)
     from dzgroshared.secrets.client import SecretManager
-    app.state.secrets = SecretManager().secrets
+    app.state.secrets = SecretManager(app.state.env).secrets
     from motor.motor_asyncio import AsyncIOMotorClient
     app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI)
     import jwt

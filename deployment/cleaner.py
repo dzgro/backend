@@ -1,5 +1,8 @@
 
-def cleanup_deployment_assets():
+from dzgroshared.models.enums import ENVIRONMENT
+
+
+def cleanup_deployment_assets(env: ENVIRONMENT):
 	"""
 	Cleans up all assets created during the deployment process.
 	This includes:
@@ -14,14 +17,12 @@ def cleanup_deployment_assets():
 	import os
 	import shutil
 	import glob
-	import boto3
-	from botocore.exceptions import ClientError
 	
 	print("Starting cleanup of deployment assets...")
 	project_root = os.path.dirname(os.path.dirname(__file__))
 	
 	# 1. Clean up SAM template files in project root
-	sam_templates = glob.glob(os.path.join(project_root, 'sam-template-*.yaml'))
+	sam_templates = glob.glob(os.path.join(project_root, 'dzgro-sam-*.yaml'))
 	for template in sam_templates:
 		try:
 			os.remove(template)
@@ -30,11 +31,11 @@ def cleanup_deployment_assets():
 			print(f"Error deleting {template}: {e}")
 	
 	# 2. Clean up dzgroshared_layer.zip
-	layer_zip = os.path.join(project_root, 'dzgroshared_layer.zip')
+	layer_zip = os.path.join(project_root, f'dzgroshared-{env.value.lower()}.zip')
 	if os.path.exists(layer_zip):
 		try:
 			os.remove(layer_zip)
-			print(f"Deleted layer zip: dzgroshared_layer.zip")
+			print(f"Deleted layer zip: dzgroshared-{env.value.lower()}.zip")
 		except OSError as e:
 			print(f"Error deleting layer zip: {e}")
 	

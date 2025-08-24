@@ -3,7 +3,13 @@ from enum import Enum
 
 class ENVIRONMENT(str, Enum):
     PROD = "Prod"
-    DEV = "Test"
+    TEST = "Test"
+    DEV = "Dev"
+
+    
+    @staticmethod
+    def all():
+        return list(ENVIRONMENT)
     
 class CollateTypeTag(str, Enum):
     DAYS_7 = "Last 7 Days"

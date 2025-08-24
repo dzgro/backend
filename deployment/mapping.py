@@ -5,21 +5,13 @@ Maps function names to their deployment configuration, including AWS region and 
 from enum import Enum
 from typing import Literal
 
+from dzgroshared.models.enums import ENVIRONMENT
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 
-class Environment(str, Enum):
-    Prod = "Prod"
-    Test = "Test"
-    Dev = "Dev"
-    
-    @staticmethod
-    def all():
-        return list(Environment)
-
 class Tag(BaseModel):
     Project: str = 'Dzgro'
-    Environment: Environment
+    Environment: ENVIRONMENT
 
 class QueueName(str, Enum):
     AmazonReports = "AmazonReports"
