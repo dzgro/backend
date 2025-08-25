@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 class BrandLoP(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | None = Field(None, description='Name of brand.')
     id: str | None = Field(None, description='Id of brand.')
@@ -21,7 +21,7 @@ class InternalServerException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -31,7 +31,7 @@ class InternalServerException(BaseModel):
 
 class Brand(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | None = Field(
         None,
@@ -49,14 +49,14 @@ class BrandsLoP(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[BrandLoP] = Field(..., description='List of Brands.')
 
 
 class AgeRange(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | None = Field(
         None,
@@ -70,7 +70,7 @@ class AgeRange(BaseModel):
 
 class CategoryItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     parent: str | None = Field(None, description='The category id of the parent node')
     path: str | None = Field(
@@ -88,7 +88,7 @@ class CategoryItem(BaseModel):
 
 class GenreLoP(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | None = Field(None, description='Name of Genre.')
     id: str | None = Field(
@@ -104,7 +104,7 @@ class GenreLoP(BaseModel):
 
 class AgeRangeLoP(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | None = Field(None, description='Name of Age Range.')
     id: str | None = Field(
@@ -124,7 +124,7 @@ class TargetableCategoriesLoP(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     category_tree: str | None = Field(None, alias='categoryTree')
 
@@ -135,7 +135,7 @@ class RatingRange(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     min: int | None = None
     max: int | None = None
@@ -147,7 +147,7 @@ class ThrottlingException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -161,7 +161,7 @@ class GetCategoryRecommendationsForAsinsRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[str] | None = Field(
         None,
@@ -181,14 +181,14 @@ class TargetableCategories(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     category_tree: str | None = Field(None, alias='categoryTree')
 
 
 class Genre(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | None = Field(
         None,
@@ -206,7 +206,7 @@ class Genres(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[Genre] = Field(
         ...,
@@ -220,7 +220,7 @@ class UnprocessableEntityException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -234,7 +234,7 @@ class SearchBrandsRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword: str
 
@@ -245,7 +245,7 @@ class BadRequestException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -259,7 +259,7 @@ class CategoryRecommendations(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     categories: list[CategoryItem] | None = Field(
         None, description='List of category recommendations'
@@ -272,7 +272,7 @@ class Brands(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[Brand] = Field(..., description='List of Brands.')
 
@@ -283,7 +283,7 @@ class PriceRange(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     min: float | None = None
     max: float | None = None
@@ -295,7 +295,7 @@ class UnauthorizedException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -305,7 +305,7 @@ class UnauthorizedException(BaseModel):
 
 class IntegerRange(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     min: int | None = None
     max: int | None = None
@@ -317,7 +317,7 @@ class AccessDeniedException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -327,7 +327,7 @@ class AccessDeniedException(BaseModel):
 
 class GenresLoPItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: GenreLoP = Field(..., max_items=300, min_items=0)
 
@@ -338,7 +338,7 @@ class GenresLoP(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[GenresLoPItem] = Field(
         ...,
@@ -348,7 +348,7 @@ class GenresLoP(BaseModel):
 
 class AgeRangesLoPItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: AgeRangeLoP = Field(..., max_items=15, min_items=0)
 
@@ -359,7 +359,7 @@ class AgeRangesLoP(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[AgeRangesLoPItem] = Field(
         ...,
@@ -373,7 +373,7 @@ class AgeRanges(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[AgeRange] = Field(
         ...,
@@ -387,14 +387,14 @@ class TargetableAsinCounts(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asin_counts: IntegerRange | None = Field(None, alias='asinCounts')
 
 
 class CategoryItemWithAsinCounts(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     category_path: str | None = Field(
         None,
@@ -413,7 +413,7 @@ class CategoryItemWithAsinCounts(BaseModel):
 
 class CategoryItemWithAsinCountsLoP(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     category_path: str | None = Field(
         None,
@@ -446,7 +446,7 @@ class Refinements(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     age_ranges: AgeRanges | None = Field(None, alias='ageRanges')
     brands: Brands | None = None
@@ -459,7 +459,7 @@ class RefinementsLoP(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     age_ranges: AgeRangesLoP | None = Field(None, alias='ageRanges')
     brands: BrandsLoP | None = None
@@ -468,7 +468,7 @@ class RefinementsLoP(BaseModel):
 
 class Category(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: CategoryItemWithAsinCountsLoP = Field(..., max_items=50, min_items=0)
 
@@ -479,7 +479,7 @@ class CategoryRecommendationsWithAsinCountsLoP(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     categories: list[Category] | None = Field(
         None, description='List of category recommendations'
@@ -492,7 +492,7 @@ class CategoryRecommendationsWithAsinCounts(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     categories: list[CategoryItemWithAsinCounts] | None = Field(
         None, description='List of category recommendations'
@@ -501,7 +501,7 @@ class CategoryRecommendationsWithAsinCounts(BaseModel):
 
 class GetTargetableAsinCountsRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     age_ranges: AgeRanges | None = Field(None, alias='ageRanges')
     brands: Brands | None = None

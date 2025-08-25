@@ -5,6 +5,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 
 class DzgroSharedClient:
+    ACCOUNT_ID: str
+    REGION: str
     env: ENVIRONMENT
     uid: str
     marketplace: ObjectId
@@ -13,6 +15,9 @@ class DzgroSharedClient:
 
     def __init__(self, env: ENVIRONMENT):
         self.env = env
+        self.ACCOUNT_ID = "522814698847"
+        self.REGION = "ap-south-1"
+
         
     def __getattr__(self, item):
         return None
@@ -54,7 +59,7 @@ class DzgroSharedClient:
     def storage(self):
         if self.s3: return self.s3
         from dzgroshared.storage.client import S3Storage
-        self.s3 = S3Storage()
+        self.s3 = S3Storage(self)
         return self.s3
     
     @property

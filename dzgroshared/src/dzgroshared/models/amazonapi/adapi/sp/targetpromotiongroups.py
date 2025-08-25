@@ -44,7 +44,7 @@ class SponsoredProductsTargetPromotionGroup(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     product_campaign_ad_group_ids: list[str] | None = Field(
         None,
@@ -93,7 +93,7 @@ class SponsoredProductsProductTargetV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group_id: str | None = Field(
         None,
@@ -122,7 +122,7 @@ class SponsoredProductsErrorCause(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     location: str = Field(
         ...,
@@ -142,7 +142,7 @@ class SponsoredProductsCreateTargetPromotionGroupsResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group: SponsoredProductsTargetPromotionGroup | None = Field(
         None, alias='targetPromotionGroup'
@@ -151,7 +151,7 @@ class SponsoredProductsCreateTargetPromotionGroupsResponseContent(BaseModel):
 
 class ProductTargetDetailsV2(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     product_target_details_v2: SponsoredProductsProductTargetV2 = Field(
         ..., alias='productTargetDetailsV2'
@@ -176,7 +176,7 @@ class SponsoredProductsCreateTarget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group_id: str | None = Field(
         None,
@@ -203,7 +203,7 @@ class SponsoredProductsTags(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: dict[str, str] | None = None
 
@@ -214,7 +214,7 @@ class SponsoredProductsObjectIdFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: list[str] = Field(..., max_items=1000, min_items=0)
 
@@ -225,7 +225,7 @@ class SponsoredProductsKeywordTargetV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword_id: str | None = Field(
         None, alias='keywordId', description='The id of the keyword target.'
@@ -293,7 +293,7 @@ class SponsoredProductsTarget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group_id: str | None = Field(
         None,
@@ -324,7 +324,7 @@ class SponsoredProductsListTargetPromotionGroupTargetsV2RequestContent(BaseModel
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     max_results: int = Field(
         1000,
@@ -348,7 +348,7 @@ class SponsoredProductsListTargetPromotionGroupTargetsV2RequestContent(BaseModel
 
 class SponsoredProductsAccessDeniedExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsAccessDeniedErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -373,7 +373,7 @@ class SponsoredProductsServiceUnavailableExceptionResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsServiceUnavailableExceptionErrorCode
     message: str
@@ -386,7 +386,7 @@ class SponsoredProductsExistingCampaignDetails(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     product_campaign_ad_group_ids: list[str] | None = Field(
         None,
@@ -410,7 +410,7 @@ class SponsoredProductsOtherError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsOtherErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -424,7 +424,7 @@ class SponsoredProductsListTargetPromotionGroupsV2RequestContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     max_results: int = Field(
         1000,
@@ -466,7 +466,7 @@ class SponsoredProductsEntityNotFoundErrorReason(Enum):
 
 class SponsoredProductsNewAdGroup(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_group_name: str = Field(
         ..., alias='adGroupName', description='The name of the new ad group.'
@@ -492,7 +492,7 @@ class SponsoredProductsListTargetPromotionGroupsRequestContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     max_results: int = Field(
         1000,
@@ -520,7 +520,7 @@ class SponsoredProductsRecommendationReason(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: str | None = Field(None, description='The reason for the recommendation')
     data: str | None = Field(
@@ -530,7 +530,7 @@ class SponsoredProductsRecommendationReason(BaseModel):
 
 class SponsoredProductsExpressionTypeError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsExpressionTypeErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -543,7 +543,7 @@ class SponsoredProductsNewCampaignBudget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_type: str = Field(..., alias='budgetType', description='DAILY.')
     budget: float = Field(..., description='The value of the budget.', ge=0.0)
@@ -559,7 +559,7 @@ class SponsoredProductsNewCampaignPlacementBidding(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     percentage: int = Field(..., description='The bidding placement percentage.')
     placement: str = Field(
@@ -574,7 +574,7 @@ class SponsoredProductsListTargetPromotionGroupTargetsResponseContent(BaseModel)
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int | None = Field(
         None, alias='totalResults', description='The total number of results available.'
@@ -595,7 +595,7 @@ class SponsoredProductsNewCampaignDynamicBidding(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     placement_bidding: list[SponsoredProductsNewCampaignPlacementBidding] | None = (
         Field(
@@ -622,7 +622,7 @@ class SponsoredProductsBillingErrorReason(Enum):
 
 class SponsoredProductsExistingAdGroup(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_group_id: str = Field(
         ..., alias='adGroupId', description='The id of the Ad Group.'
@@ -631,7 +631,7 @@ class SponsoredProductsExistingAdGroup(BaseModel):
 
 class SponsoredProductsInternalServerExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInternalErrorErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -657,7 +657,7 @@ class SponsoredProductsTargetingClauseSetupError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsTargetingClauseSetupErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -706,7 +706,7 @@ class SponsoredProductsNotImplementedExceptionCode(Enum):
 
 class SponsoredProductsError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_message: str | None = Field(None, alias='errorMessage')
     error_code: str | None = Field(None, alias='errorCode')
@@ -718,7 +718,7 @@ class SponsoredProductsCreateTargetRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression_type: str = Field(
         ...,
@@ -749,7 +749,7 @@ class SponsoredProductsUnauthenticatedExceptionResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsUnauthenticatedExceptionCode | None = None
     message: str | None = Field(
@@ -763,7 +763,7 @@ class SponsoredProductsMissingValueError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsMissingValueErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -773,7 +773,7 @@ class SponsoredProductsMissingValueError(BaseModel):
 
 class SponsoredProductsGetTargetPromotionGroupsRecommendationsRequestContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id_filter: SponsoredProductsObjectIdFilter | None = Field(
         None, alias='campaignIdFilter'
@@ -802,7 +802,7 @@ class SponsoredProductsListTargetPromotionGroupsResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int | None = Field(
         None, alias='totalResults', description='The total number of results available.'
@@ -832,7 +832,7 @@ class SponsoredProductsResponseAdGroup(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_group_id: str | None = Field(
         None, alias='adGroupId', description='The id of the ad group in the campaign.'
@@ -845,7 +845,7 @@ class SponsoredProductsBiddingError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsBiddingErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -861,7 +861,7 @@ class SponsoredProductsTargetPromotionGroupV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_ids: list[str] | None = Field(
         None,
@@ -918,7 +918,7 @@ class SponsoredProductsParentEntityError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsParentEntityErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -927,7 +927,7 @@ class SponsoredProductsParentEntityError(BaseModel):
 
 class SponsoredProductsSchemaValidationExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInvalidArgumentErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -939,7 +939,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsRequestContent(BaseModel
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group_id: str = Field(
         ...,
@@ -961,7 +961,7 @@ class SponsoredProductsMalformedValueError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsMalformedValueErrorReason
     fragment: str | None = Field(
@@ -974,7 +974,7 @@ class SponsoredProductsMalformedValueError(BaseModel):
 
 class SponsoredProductsRecommendedTarget(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_id: str | None = Field(
         None,
@@ -1015,7 +1015,7 @@ class SponsoredProductsNotImplementedExceptionResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsNotImplementedExceptionCode | None = None
     message: str | None = Field(
@@ -1029,7 +1029,7 @@ class SponsoredProductsBillingError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsBillingErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -1042,7 +1042,7 @@ class SponsoredProductsInvalidInputError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsInvalidInputErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -1055,7 +1055,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsSuccessResponseItem(Base
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression_type: str | None = Field(
         None,
@@ -1072,7 +1072,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsSuccessResponseItem(Base
 
 class SponsoredProductsEntityNotFoundError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsEntityNotFoundErrorReason
     entity_type: SponsoredProductsEntityType = Field(..., alias='entityType')
@@ -1085,7 +1085,7 @@ class SponsoredProductsEntityNotFoundError(BaseModel):
 
 class KeywordTargetDetailsV2(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword_target_details_v2: SponsoredProductsKeywordTargetV2 = Field(
         ..., alias='keywordTargetDetailsV2'
@@ -1094,7 +1094,7 @@ class KeywordTargetDetailsV2(BaseModel):
 
 class SponsoredProductsTargetPromotionGroupTargetDetails(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: KeywordTargetDetailsV2 | ProductTargetDetailsV2
 
@@ -1105,7 +1105,7 @@ class SponsoredProductsThrottledError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsThrottledErrorCode
     cause: SponsoredProductsErrorCause | None = None
@@ -1114,7 +1114,7 @@ class SponsoredProductsThrottledError(BaseModel):
 
 class SponsoredProductsThrottlingExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsThrottledErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -1122,7 +1122,7 @@ class SponsoredProductsThrottlingExceptionResponseContent(BaseModel):
 
 class SponsoredProductsUnsupportedMediaTypeExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsUnsupportedMediaTypeErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -1134,7 +1134,7 @@ class SponsoredProductsEntityQuotaError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsQuotaErrorReason
     quota_scope: SponsoredProductsQuotaScope | None = Field(None, alias='quotaScope')
@@ -1150,7 +1150,7 @@ class SponsoredProductsCreateProductTarget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     match_type: SponsoredProductsTargetingExpressionMatchType = Field(
         ..., alias='matchType'
@@ -1165,21 +1165,21 @@ class SponsoredProductsCreateProductTarget(BaseModel):
 
 class BiddingError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bidding_error: SponsoredProductsBiddingError = Field(..., alias='biddingError')
 
 
 class BillingError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     billing_error: SponsoredProductsBillingError = Field(..., alias='billingError')
 
 
 class EntityNotFoundError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_not_found_error: SponsoredProductsEntityNotFoundError = Field(
         ..., alias='entityNotFoundError'
@@ -1188,7 +1188,7 @@ class EntityNotFoundError(BaseModel):
 
 class EntityQuotaError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_quota_error: SponsoredProductsEntityQuotaError = Field(
         ..., alias='entityQuotaError'
@@ -1197,7 +1197,7 @@ class EntityQuotaError(BaseModel):
 
 class ExpressionTypeError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression_type_error: SponsoredProductsExpressionTypeError = Field(
         ..., alias='expressionTypeError'
@@ -1206,7 +1206,7 @@ class ExpressionTypeError(BaseModel):
 
 class MalformedValueError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     malformed_value_error: SponsoredProductsMalformedValueError = Field(
         ..., alias='malformedValueError'
@@ -1215,7 +1215,7 @@ class MalformedValueError(BaseModel):
 
 class MissingValueError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     missing_value_error: SponsoredProductsMissingValueError = Field(
         ..., alias='missingValueError'
@@ -1224,7 +1224,7 @@ class MissingValueError(BaseModel):
 
 class ParentEntityError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     parent_entity_error: SponsoredProductsParentEntityError = Field(
         ..., alias='parentEntityError'
@@ -1233,14 +1233,14 @@ class ParentEntityError(BaseModel):
 
 class OtherError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     other_error: SponsoredProductsOtherError = Field(..., alias='otherError')
 
 
 class InvalidInputError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     invalid_input_error: SponsoredProductsInvalidInputError = Field(
         ..., alias='invalidInputError'
@@ -1249,7 +1249,7 @@ class InvalidInputError(BaseModel):
 
 class ThrottledError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     throttled_error: SponsoredProductsThrottledError = Field(
         ..., alias='throttledError'
@@ -1258,7 +1258,7 @@ class ThrottledError(BaseModel):
 
 class TargetingClauseSetupError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_clause_setup_error: SponsoredProductsTargetingClauseSetupError = Field(
         ..., alias='targetingClauseSetupError'
@@ -1271,7 +1271,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsBatchError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     index: str | None = Field(None, description='index of the item in the request.')
     sub_errors: list[SponsoredProductsError] | None = Field(
@@ -1289,7 +1289,7 @@ class ProductTarget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     product_target: SponsoredProductsCreateProductTarget = Field(
         ..., alias='productTarget'
@@ -1302,7 +1302,7 @@ class SponsoredProductsListTargetPromotionGroupsV2ResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int | None = Field(
         None, alias='totalResults', description='The total number of results available.'
@@ -1323,7 +1323,7 @@ class SponsoredProductsRangeError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsValueLimitErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -1344,7 +1344,7 @@ class SponsoredProductsNewCampaignDetails(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     end_date: date | None = Field(
         None,
@@ -1380,7 +1380,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsBatchSuccess(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     index: str | None = Field(None, description='index of the item in the request.')
     target_details: SponsoredProductsTargetPromotionGroupTargetDetails | None = Field(
@@ -1394,7 +1394,7 @@ class SponsoredProductsListTargetPromotionGroupTargetsV2ResponseContent(BaseMode
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int | None = Field(
         None, alias='totalResults', description='The total number of results available.'
@@ -1415,7 +1415,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsV2ResponseContent(BaseMo
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     success: (
         list[SponsoredProductsCreateTargetPromotionGroupTargetsBatchSuccess] | None
@@ -1427,7 +1427,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsV2ResponseContent(BaseMo
 
 class SponsoredProductsDuplicateValueError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsDuplicateValueErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -1441,7 +1441,7 @@ class SponsoredProductsCreateTargetPromotionGroupsRequestContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_ids: list[str] | None = Field(
         None,
@@ -1465,7 +1465,7 @@ class SponsoredProductsCreateTargetPromotionGroupsRequestContent(BaseModel):
 
 class SponsoredProductsNewCampaign(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_groups: list[SponsoredProductsNewAdGroup] = Field(
         ...,
@@ -1500,7 +1500,7 @@ class SponsoredProductsCreateKeywordTarget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     match_type: SponsoredProductsKeywordMatchType = Field(..., alias='matchType')
     bid: float | None = Field(
@@ -1517,7 +1517,7 @@ class SponsoredProductsCreateTargetPromotionGroupsV2ResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group: SponsoredProductsTargetPromotionGroupV2 | None = Field(
         None, alias='targetPromotionGroup'
@@ -1530,7 +1530,7 @@ class SponsoredProductsEntityStateError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsEntityStateErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -1541,7 +1541,7 @@ class SponsoredProductsEntityStateError(BaseModel):
 
 class SponsoredProductsLocaleError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsLocaleErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -1554,7 +1554,7 @@ class SponsoredProductsCreateTargetPromotionGroupsV2RequestContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_ids: list[str] | None = Field(
         None,
@@ -1595,7 +1595,7 @@ class SponsoredProductsInternalServerError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsInternalErrorErrorCode
     cause: SponsoredProductsErrorCause | None = None
@@ -1606,7 +1606,7 @@ class SponsoredProductsGetTargetPromotionGroupsRecommendationsResponseContent(
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int = Field(
         ..., alias='totalResults', description='Total number of records available'
@@ -1624,7 +1624,7 @@ class SponsoredProductsGetTargetPromotionGroupsRecommendationsResponseContent(
 
 class DuplicateValueError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     duplicate_value_error: SponsoredProductsDuplicateValueError = Field(
         ..., alias='duplicateValueError'
@@ -1633,7 +1633,7 @@ class DuplicateValueError(BaseModel):
 
 class EntityStateError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_state_error: SponsoredProductsEntityStateError = Field(
         ..., alias='entityStateError'
@@ -1642,21 +1642,21 @@ class EntityStateError(BaseModel):
 
 class LocaleError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     locale_error: SponsoredProductsLocaleError = Field(..., alias='localeError')
 
 
 class RangeError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     range_error: SponsoredProductsRangeError = Field(..., alias='rangeError')
 
 
 class InternalServerError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     internal_server_error: SponsoredProductsInternalServerError = Field(
         ..., alias='internalServerError'
@@ -1665,7 +1665,7 @@ class InternalServerError(BaseModel):
 
 class SponsoredProductsCreateTargetErrorSelector(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: (
         BiddingError
@@ -1694,7 +1694,7 @@ class KeywordTarget(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword_target: SponsoredProductsCreateKeywordTarget = Field(
         ..., alias='keywordTarget'
@@ -1703,7 +1703,7 @@ class KeywordTarget(BaseModel):
 
 class SponsoredProductsCreateTargetRequestV2(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: KeywordTarget | ProductTarget = Field(
         ..., description="Request object for target promotion group's target."
@@ -1716,7 +1716,7 @@ class SponsoredProductsCreateTargetError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_type: str | None = Field(
         None, alias='errorType', description='The type of the error.'
@@ -1732,7 +1732,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsV2RequestContent(BaseMod
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_promotion_group_id: str = Field(
         ...,
@@ -1753,7 +1753,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsFailureResponseItem(Base
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression_type: str | None = Field(
         None,
@@ -1777,7 +1777,7 @@ class SponsoredProductsCreateTargetPromotionGroupTargetsResponseContent(BaseMode
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     success: (
         list[SponsoredProductsCreateTargetPromotionGroupTargetsSuccessResponseItem]

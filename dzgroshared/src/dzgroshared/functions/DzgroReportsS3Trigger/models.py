@@ -1,9 +1,11 @@
 from enum import Enum
+from dzgroshared.models.enums import S3Bucket
 from pydantic import BaseModel, model_validator
 
 class S3FileType(str, Enum):
     PARQUET = "PARQUET"
     XLSX = "XLSX"
+    CSV = "CSV"
 
 class S3TriggerType(str, Enum):
     PUT = "ObjectCreated:Put"
@@ -11,7 +13,7 @@ class S3TriggerType(str, Enum):
 
 
 class Bucket(BaseModel):
-    name: str
+    name: S3Bucket
     arn: str
 
 class S3Object(BaseModel):
@@ -27,7 +29,7 @@ class S3Object(BaseModel):
         return data
 
 
-class S3(BaseModel):
+class S3TriggerDetails(BaseModel):
     bucket: Bucket
     object: S3Object
 
@@ -37,7 +39,7 @@ class S3TriggerObject(BaseModel):
     reporttype: str
     reportid: str
     eventName: str
-    s3: S3
+    s3: S3TriggerDetails
     triggerType: S3TriggerType
 
     @model_validator(mode="before")

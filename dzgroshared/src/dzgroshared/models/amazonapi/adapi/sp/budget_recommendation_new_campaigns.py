@@ -25,7 +25,7 @@ class TargetingExpression(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     type: Type
     value: str | None = Field(None, description='The targeting expression value.')
@@ -37,7 +37,7 @@ class Clicks(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     lower: int | None = Field(None, description='lower bound.')
     upper: int | None = Field(None, description='upper bound.')
@@ -54,28 +54,28 @@ class TargetingType(Enum):
 
 class BudgetRecommendationNewCampaignsErrorMessage(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str
 
 
 class BudgetRecommendationNewCampaignsException(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     message: BudgetRecommendationNewCampaignsErrorMessage | None = None
 
 
 class Asin(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(..., regex='[a-zA-Z0-9]{10}')
 
 
 class AdGroup(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_expressions: list[TargetingExpression] = Field(
         ...,
@@ -107,7 +107,7 @@ class PlacementAdjustment(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     predicate: Predicate | None = None
     percentage: int | None = Field(None, ge=0, le=900)
@@ -119,7 +119,7 @@ class Impressions(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     lower: int | None = Field(None, description='lower bound.')
     upper: int | None = Field(None, description='upper bound.')
@@ -127,7 +127,7 @@ class Impressions(BaseModel):
 
 class Adjustment(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     placement_adjustment: PlacementAdjustment | None = Field(
         None, alias='placementAdjustment'
@@ -140,7 +140,7 @@ class Conversions(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     lower: int | None = Field(None, description='lower bound.')
     upper: int | None = Field(None, description='upper bound.')
@@ -163,7 +163,7 @@ class Bidding(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     adjustments: list[Adjustment] | None = Field(
         None,
@@ -193,7 +193,7 @@ class Values(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     conversions: Conversions | None = None
     clicks: Clicks | None = None
@@ -202,7 +202,7 @@ class Values(BaseModel):
 
 class InitialBudgetRecommendationRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bidding: Bidding
     ad_groups: list[AdGroup] = Field(
@@ -233,7 +233,7 @@ class Benchmark(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     benchmark_status: BenchmarkStatus | None = Field(
         None,
@@ -245,7 +245,7 @@ class Benchmark(BaseModel):
 
 class SpecialEvent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_modifier: float | None = Field(
         None,
@@ -278,7 +278,7 @@ class SpecialEvent(BaseModel):
 
 class InitialBudgetRecommendationResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     special_events: list[SpecialEvent] = Field(
         ...,
@@ -290,7 +290,7 @@ class InitialBudgetRecommendationResponse(BaseModel):
     daily_budget: float = Field(
         ...,
         alias='dailyBudget',
-        description='Recommended daily budget for the new campaign. Note: value -1 means we don’t have enough information to provide a recommendation.',
+        description='Recommended daily budget for the new campaign. Note: value -1 means we donï¿½t have enough information to provide a recommendation.',
     )
     recommendation_id: str | None = Field(
         None,

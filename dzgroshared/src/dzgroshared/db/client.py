@@ -16,7 +16,7 @@ class DbClient:
         if client.uid: self.uid = client.uid
         if client.marketplace: self.marketplace = client.marketplace
         if not self.client.mongoClient: raise ValueError("MongoDB client is not initialized.")
-        self.database = self.client.mongoClient['dzgro' if client.env == ENVIRONMENT.PROD else 'dzgro-dev']
+        self.database = self.client.mongoClient[f'dzgro-{client.env.value.lower()}' if client.env != ENVIRONMENT.LOCAL else 'dzgro-dev']
 
     def __getattr__(self, item):
         return None
@@ -170,6 +170,16 @@ class DbClient:
             return self.dzgroReportHelper
         self.dzgroReportHelper = DzgroReportHelper(self.client, self.uid, self.marketplace)
         return self.dzgroReportHelper
+
+    @property
+    def dzgro_reports_data(self):
+        if not self.uid or not self.marketplace:
+            raise ValueError("Marketplace and UID must be set to access dzgro_reports.")
+        from dzgroshared.db.collections.dzgro_reports_data import DzgroReportDataHelper
+        if self.dzgroReportDataHelper:
+            return self.dzgroReportDataHelper
+        self.dzgroReportDataHelper = DzgroReportDataHelper(self.client, self.uid, self.marketplace)
+        return self.dzgroReportDataHelper
 
     @property
     def query_results(self):

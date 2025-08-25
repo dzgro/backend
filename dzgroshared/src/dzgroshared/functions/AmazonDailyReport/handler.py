@@ -8,7 +8,7 @@ from dzgroshared.functions.AmazonDailyReport.reports.report_types.datakiosk.Data
 from bson import ObjectId
 from dzgroshared.db.collections.products import ProductHelper
 from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage
-from dzgroshared.models.enums import AdAssetType, AmazonAccountType, AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, QueueUrl, SQSMessageStatus, ENVIRONMENT
+from dzgroshared.models.enums import AdAssetType, AmazonAccountType, AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, QueueName, SQSMessageStatus, ENVIRONMENT
 from dzgroshared.models.extras.amazon_daily_report import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonParentReport, MarketplaceObjectForReport, AmazonSpapiReport
 from dzgroshared.utils import date_util
 from dzgroshared.models.sqs import SendMessageRequest
@@ -110,7 +110,7 @@ class AmazonReportManager:
     async def __sendMessage(self, step: AmazonDailyReportAggregationStep, delay: int=0):
         await self.client.db.sqs_messages.setMessageAsCompleted(self.messageId)
         self.message.step = step
-        queue = QueueUrl.AMAZON_REPORTS if self.client.env != ENVIRONMENT.DEV else QueueUrl.AMAZON_REPORTS_TEST
+        queue = QueueName.AMAZON_REPORTS if self.client.env != ENVIRONMENT.DEV else QueueName.AMAZON_REPORTS_TEST
         return await self.client.sqs.sendMessage(SendMessageRequest(QueueUrl=queue, DelaySeconds=delay), self.message, {'ram': self.context.memory_limit_in_mb, 'funcname': self.context.function_name})
 
     @property

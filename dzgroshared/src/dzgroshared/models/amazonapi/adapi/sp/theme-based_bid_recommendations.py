@@ -52,7 +52,7 @@ class TargetingExpression(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     type: Type1
     value: str | None = Field(None, description='The targeting expression value.')
@@ -64,7 +64,7 @@ class RangeMetricValue(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     lower: int | None = None
     upper: int | None = None
@@ -87,7 +87,7 @@ class TargetingExpressionList(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[TargetingExpression] = Field(
         ...,
@@ -104,7 +104,7 @@ class TargetingExpressionList(BaseModel):
 
 class BidRecommendationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str = Field(..., description='A machine-readable error code.')
     details: str = Field(
@@ -132,7 +132,7 @@ class TargetingExpressionV4(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     type: Type2
     value: str | None = Field(None, description='The targeting expression value.')
@@ -140,7 +140,7 @@ class TargetingExpressionV4(BaseModel):
 
 class BidAnalysisImpactMetrics(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     estimated_impression_avg: int = Field(
         ...,
@@ -161,7 +161,7 @@ class BidAnalysisImpactMetrics(BaseModel):
 
 class SuggestedBidImpactMetrics(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     estimated_impression_upper: int | None = Field(
         None, alias='estimatedImpressionUpper'
@@ -183,7 +183,7 @@ class PlacementAdjustment(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     predicate: Predicate | None = None
     percentage: int | None = Field(None, ge=0, le=900)
@@ -195,7 +195,7 @@ class ImpactMetric(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     values: list[RangeMetricValue] | None = None
 
@@ -206,7 +206,7 @@ class BidValue(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bid: float = Field(
         ..., alias='suggestedBid', description='The suggested bid.', ge=0.0
@@ -215,7 +215,7 @@ class BidValue(BaseModel):
 
 class AdGroupThemeBasedBidRecommendationRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_expressions: TargetingExpressionList = Field(
         ..., alias='targetingExpressions'
@@ -244,7 +244,7 @@ class BiddingStrategy(Enum):
 
 class BidRecommendationPerTargetingExpression(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_values: list[BidValue] = Field(..., alias='bidValues', max_items=3)
     targeting_expression: TargetingExpression = Field(..., alias='targetingExpression')
@@ -256,7 +256,7 @@ class Bidding(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     adjustments: list[PlacementAdjustment] | None = Field(
         None,
@@ -268,7 +268,7 @@ class Bidding(BaseModel):
 
 class AsinsThemeBasedBidRecommendationRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[str] = Field(
         ..., description='The list of ad ASINs in the ad group.', max_items=50
@@ -290,7 +290,7 @@ class GlobalStoreSetting(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     catalog_source_country_code: str | None = Field(
         None,
@@ -301,7 +301,7 @@ class GlobalStoreSetting(BaseModel):
 
 class ProductDetails(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     global_store_setting: GlobalStoreSetting | None = Field(
         None,
@@ -313,7 +313,7 @@ class ProductDetails(BaseModel):
 
 class BidAnalysis(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid: float = Field(..., ge=0.0)
     type: Type = Field(
@@ -325,7 +325,7 @@ class BidAnalysis(BaseModel):
 
 class BidAnalyses(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[BidAnalysis] = Field(..., max_items=10, min_items=0)
 
@@ -336,7 +336,7 @@ class TargetingExpressionListV4(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[TargetingExpressionV4] = Field(
         ...,
@@ -357,7 +357,7 @@ class ImpactMetrics(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     clicks: ImpactMetric | None = None
     orders: ImpactMetric | None = None
@@ -365,7 +365,7 @@ class ImpactMetrics(BaseModel):
 
 class BidRecommendationPerTargetingExpressionV4(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_values: list[BidValue] = Field(..., alias='bidValues', max_items=3)
     targeting_expression: TargetingExpressionV4 = Field(
@@ -375,7 +375,7 @@ class BidRecommendationPerTargetingExpressionV4(BaseModel):
 
 class BidRecommendationPerTargetingExpressionV5(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bid_impact_metrics: SuggestedBidImpactMetrics | None = Field(
         None, alias='suggestedBidImpactMetrics'
@@ -388,7 +388,7 @@ class BidRecommendationPerTargetingExpressionV5(BaseModel):
 
 class ThemeBasedBidRecommendation(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     theme: Theme
     bid_recommendations_for_targeting_expressions: list[
@@ -403,7 +403,7 @@ class ThemeBasedBidRecommendation(BaseModel):
 
 class BidAnalysesPerPlacement(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     all: BidAnalyses = Field(..., alias='ALL')
     placement_top: BidAnalyses = Field(..., alias='PLACEMENT_TOP')
@@ -413,7 +413,7 @@ class BidAnalysesPerPlacement(BaseModel):
 
 class AsinsThemeBasedBidRecommendationRequestV5(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[str] = Field(
         ..., description='The list of ad ASINs in the ad group.', max_items=50
@@ -442,7 +442,7 @@ class AsinsThemeBasedBidRecommendationRequestV5(BaseModel):
 
 class AsinsThemeBasedBidRecommendationRequestV4(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[str] = Field(
         ..., description='The list of ad ASINs in the ad group.', max_items=50
@@ -466,7 +466,7 @@ class AsinsThemeBasedBidRecommendationRequestV4(BaseModel):
 
 class AdGroupThemeBasedBidRecommendationRequestV5(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_expressions: TargetingExpressionListV4 = Field(
         ..., alias='targetingExpressions'
@@ -489,7 +489,7 @@ class AdGroupThemeBasedBidRecommendationRequestV5(BaseModel):
 
 class AdGroupThemeBasedBidRecommendationRequestV4(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_expressions: TargetingExpressionListV4 = Field(
         ..., alias='targetingExpressions'
@@ -507,7 +507,7 @@ class AdGroupThemeBasedBidRecommendationRequestV4(BaseModel):
 
 class ThemeBasedBidRecommendationV4(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     theme: Theme
     bid_recommendations_for_targeting_expressions: list[
@@ -525,7 +525,7 @@ class ThemeBasedBidRecommendationResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_recommendations: list[ThemeBasedBidRecommendation] = Field(
         ..., alias='bidRecommendations', max_items=2
@@ -534,7 +534,7 @@ class ThemeBasedBidRecommendationResponse(BaseModel):
 
 class BidAnalysesPerTargetingExpression(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_analyses: BidAnalysesPerPlacement = Field(..., alias='bidAnalyses')
     targeting_expression: TargetingExpressionV4 = Field(
@@ -548,7 +548,7 @@ class ThemeBasedBidRecommendationResponseV4(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_recommendations: list[ThemeBasedBidRecommendationV4] = Field(
         ..., alias='bidRecommendations', max_items=2
@@ -557,7 +557,7 @@ class ThemeBasedBidRecommendationResponseV4(BaseModel):
 
 class ThemeBasedBidRecommendationV5(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     theme: Theme
     bid_analyses_for_targeting_expressions: (
@@ -582,7 +582,7 @@ class ThemeBasedBidRecommendationResponseV5(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_recommendations: list[ThemeBasedBidRecommendationV5] = Field(
         ..., alias='bidRecommendations', max_items=2

@@ -8,7 +8,7 @@ from typing import Optional, Dict, List, Any
 from enum import Enum
 import json
 from datetime import datetime
-from dzgroshared.models.enums import QueueUrl
+from dzgroshared.models.enums import QueueName
 
 # ================================
 # 📥 RECEIVING FROM SQS (Lambda Input)
@@ -148,7 +148,7 @@ class SQSEvent(BaseModel):
 
 
 class ReceiveMessageRequest(BaseModel):
-    QueueUrl: QueueUrl
+    QueueUrl: QueueName
     AttributeNames: list[str] = Field(default=[], description="Attributes to retrieve (e.g., 'All', 'ApproximateReceiveCount')")
     MessageAttributeNames: list[str] = Field(default=[], description="Message attributes to retrieve (e.g., 'All', 'MyAttribute.*')")
     MaxNumberOfMessages: int= Field(default=10, description="Max messages to receive (1-10)")
@@ -190,7 +190,7 @@ class SendMessageAttribute(BaseModel):
                 raise ValueError("Binary requires 'BinaryValue'")
         return self
 class SendMessageRequest(BaseModel):
-    QueueUrl: QueueUrl
+    QueueUrl: QueueName
     DelaySeconds: int = Field( default=0, ge=0, le=900)
     MessageAttributes: Dict[str, SendMessageAttribute] | SkipJsonSchema[None] = None
 
@@ -207,7 +207,7 @@ class SendMessageBatchEntry(BaseModel):
     MessageAttributes: Dict[str, SendMessageAttribute] | SkipJsonSchema[None] = None
 
 class SendMessageBatchRequest(BaseModel):
-    QueueUrl: QueueUrl
+    QueueUrl: QueueName
     Entries: List[SendMessageBatchEntry]
 
 class DeleteMessageBatchEntry(BaseModel):
@@ -215,7 +215,7 @@ class DeleteMessageBatchEntry(BaseModel):
     ReceiptHandle: str
 
 class DeleteMessageBatchRequest(BaseModel):
-    QueueUrl: QueueUrl
+    QueueUrl: QueueName
     Entries: List[DeleteMessageBatchEntry]
 
 class DeleteMessageBatchResultEntry(BaseModel):

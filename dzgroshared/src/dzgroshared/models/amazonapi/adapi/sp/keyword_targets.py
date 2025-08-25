@@ -15,7 +15,7 @@ class SPTargetingCountryErrors(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_codes: list[str] | None = Field(
         None,
@@ -53,7 +53,7 @@ class RangeMetricValue(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     lower: int | None = None
     upper: int | None = None
@@ -79,7 +79,7 @@ class MatchType(Enum):
 
 class KeywordTarget(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     match_type: MatchType | None = Field(
         None,
@@ -104,7 +104,7 @@ class BidValues(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested: float | None = Field(None, description='The suggested bid')
     range_start: float | None = Field(
@@ -117,7 +117,7 @@ class BidValues(BaseModel):
 
 class ThemedBid(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bid: BidValues | None = Field(None, alias='suggestedBid')
     match_type: MatchType | None = Field(
@@ -142,7 +142,7 @@ class ImpactMetric(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     values: list[RangeMetricValue] | None = None
 
@@ -187,7 +187,7 @@ class Locale(Enum):
 
 class RecommendationOptions(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     max_recommendations: float = Field(
         '200',
@@ -209,7 +209,7 @@ class RecommendationOptions(BaseModel):
 
 class KeywordTargetRankRecommendationRequest(RecommendationOptions):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targets: list[KeywordTarget] | None = Field(
         None,
@@ -225,7 +225,7 @@ class SPTargetingError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -239,7 +239,7 @@ class GlobalStoreSetting(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     catalog_source_country_code: str | None = Field(
         None,
@@ -250,7 +250,7 @@ class GlobalStoreSetting(BaseModel):
 
 class ProductDetails(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     global_store_setting: GlobalStoreSetting | None = Field(
         None,
@@ -262,7 +262,7 @@ class ProductDetails(BaseModel):
 
 class CountryKeyword(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid: float | None = Field(
         None,
@@ -282,7 +282,7 @@ class BidSuggestion(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested: float | None = Field(None, description='The suggested bid')
     range_start: float | None = Field(
@@ -302,7 +302,7 @@ class RankedKeywordTargetsForAdGroupRequest(KeywordTargetRankRecommendationReque
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ..., alias='campaignId', description='The identifier of the campaign'
@@ -324,7 +324,7 @@ class RankedKeywordTargetsForAdGroupRequest(KeywordTargetRankRecommendationReque
 
 class RankedTargetWithThemedBids(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     search_term_impression_share: float | None = Field(
         None,
@@ -359,7 +359,7 @@ class RankedTargetWithThemedBids(BaseModel):
 
 class AsinsBasedRequest(RecommendationOptions):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bidding_strategy: BiddingStrategy = Field(
         'LEGACY_FOR_SALES',
@@ -380,7 +380,7 @@ class AsinsBasedRequest(RecommendationOptions):
 
 class AdGroupBasedRequest(RecommendationOptions):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str | None = Field(
         None, alias='campaignId', description='The identifier of the campaign'
@@ -402,7 +402,7 @@ class AdGroupBasedRequest(RecommendationOptions):
 
 class CountryTarget(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_keywords: dict[str, CountryKeyword] | None = Field(
         None,
@@ -422,7 +422,7 @@ class GlobalRankedKeywordTargetsForAsinsRequest(AsinsBasedRequest):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targets: list[CountryTarget] | None = Field(
         None,
@@ -449,7 +449,7 @@ class ImpactMetrics(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     clicks: ImpactMetric | None = None
     orders: ImpactMetric | None = None
@@ -457,7 +457,7 @@ class ImpactMetrics(BaseModel):
 
 class RankedTargetWithThemedBidsList(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[RankedTargetWithThemedBids] = Field(..., max_items=200, min_items=0)
 
@@ -470,7 +470,7 @@ class AsinsKeywordTargetRankRecommendationRequest(
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[str] = Field(
         ..., description='An array list of Asins', max_items=50, min_items=0
@@ -484,7 +484,7 @@ class AsinsKeywordTargetRankRecommendationRequest(
 
 class KeywordBidInfo(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bid: BidSuggestion | None = Field(None, alias='suggestedBid')
     match_type: MatchType | None = Field(
@@ -507,7 +507,7 @@ class AdGroupKeywordTargetRankRecommendationRequest(
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ..., alias='campaignId', description='The identifier of the campaign'
@@ -528,7 +528,7 @@ class GlobalRankedKeywordTargetsForAdGroupRequest(AdGroupBasedRequest):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targets: list[CountryTarget] | None = Field(
         None,
@@ -555,7 +555,7 @@ class ProductDetailsList(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[ProductDetails] = Field(
         ...,
@@ -567,7 +567,7 @@ class ProductDetailsList(BaseModel):
 
 class KeywordTargetResponse(KeywordTarget):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bid: BidSuggestion | None = Field(None, alias='suggestedBid')
     translation: str | None = Field(
@@ -582,7 +582,7 @@ class RankedKeywordTargetsForAsinsRequest(KeywordTargetRankRecommendationRequest
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[str] = Field(
         ..., description='An array list of Asins', max_items=50, min_items=0
@@ -609,7 +609,7 @@ class RankedKeywordTargetsForAsinsRequest(KeywordTargetRankRecommendationRequest
 
 class RecKeywordTarget(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     search_term_impression_share: float | None = Field(
         None,
@@ -644,7 +644,7 @@ class RecKeywordTarget(BaseModel):
 
 class RankedTargetResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword_target_list: list[RecKeywordTarget] | None = Field(
         None,
@@ -657,7 +657,7 @@ class RankedTargetResponse(BaseModel):
 
 class RankedTargetWithThemedBidsResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword_target_list: RankedTargetWithThemedBidsList | None = Field(
         None, alias='keywordTargetList'
@@ -673,7 +673,7 @@ class RankedTargetWithThemedBidsResponse(BaseModel):
 
 class GlobalRankedTargetWithThemedBidsResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_codes: dict[str, RankedTargetWithThemedBidsResponse] | None = Field(
         None, alias='countryCodes'

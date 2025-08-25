@@ -15,7 +15,7 @@ class BudgetUsageError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -27,7 +27,7 @@ class BudgetUsageError(BaseModel):
 
 class BudgetUsageCampaign(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_usage_percent: float | None = Field(
         None,
@@ -52,7 +52,7 @@ class BudgetUsageCampaign(BaseModel):
 
 class BudgetUsageCampaignBatchError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -70,7 +70,7 @@ class BudgetUsageCampaignBatchError(BaseModel):
 
 class BudgetUsageCampaignRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_ids: list[str] | None = Field(
         None,
@@ -83,7 +83,7 @@ class BudgetUsageCampaignRequest(BaseModel):
 
 class BudgetUsageCampaignResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     success: list[BudgetUsageCampaign] | None = Field(
         None,

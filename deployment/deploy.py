@@ -50,7 +50,7 @@ def askForSelection():
 def main():
 	askSelection = False
 	regions = mapping.Region.all() if askSelection else [mapping.Region.DEFAULT]
-	env = ENVIRONMENT.DEV if not askSelection else askForSelection()
+	env = ENVIRONMENT.LOCAL if not askSelection else askForSelection()
 	try:
 		from TemplateBuilder import TemplateBuilder
 		TemplateBuilder(env).deploy(regions)

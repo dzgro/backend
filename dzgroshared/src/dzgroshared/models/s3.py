@@ -1,18 +1,13 @@
+from dzgroshared.models.enums import S3Bucket
 from pydantic import BaseModel, Field
 from pydantic.json_schema import SkipJsonSchema
 from typing import Union, Dict
 from datetime import datetime
 from enum import Enum
 
-class S3Bucket(str, Enum):
-    DZGRO = "dzgro"
-    REPORTS = "dzgro-reports"
-    INVOICES = "dzgro-invoices"
-
-
 
 class S3PutObjectModel(BaseModel):
-    Bucket: S3Bucket = S3Bucket.DZGRO
+    Bucket: S3Bucket
     Key: str
     Body: Union[str, bytes]  # Required field
     ACL: str | SkipJsonSchema[None] = None
@@ -48,7 +43,7 @@ class S3PutObjectModel(BaseModel):
 
 
 class S3GetObjectModel(BaseModel):
-    Bucket: S3Bucket = S3Bucket.DZGRO
+    Bucket: S3Bucket
     Key: str
     IfMatch: str | SkipJsonSchema[None] = None
     IfModifiedSince: datetime | SkipJsonSchema[None] = None

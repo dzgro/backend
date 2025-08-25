@@ -46,7 +46,7 @@ class DayOfWeek(Enum):
 
 class BudgetRuleResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated success or error code for machine use.'
@@ -64,7 +64,7 @@ class BudgetRuleResponse(BaseModel):
 
 class CreateAssociatedBudgetRulesRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_rule_ids: List[str] | None = Field(
         None,
@@ -80,7 +80,7 @@ class DateRangeTypeRuleDuration(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     end_date: str | None = Field(
         None,
@@ -96,7 +96,7 @@ class DateRangeTypeRuleDuration(BaseModel):
 
 class AssociatedBudgetRuleResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated success or error code for machine use.'
@@ -113,7 +113,7 @@ class DisassociateAssociatedBudgetRuleResponse(BaseModel):
     pass
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
 
 class EventTypeRuleDuration(BaseModel):
@@ -122,7 +122,7 @@ class EventTypeRuleDuration(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     event_id: str = Field(
         ...,
@@ -146,7 +146,7 @@ class EventTypeRuleDuration(BaseModel):
 
 class AssociatedCampaign(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ..., alias='campaignId', description='The campaign identifier.'
@@ -163,7 +163,7 @@ class AssociatedCampaign(BaseModel):
 
 class TimeOfDay(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     start_time: str | None = Field(
         None,
@@ -179,7 +179,7 @@ class TimeOfDay(BaseModel):
 
 class RuleDuration(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     event_type_rule_duration: EventTypeRuleDuration | None = Field(
         None, alias='eventTypeRuleDuration'
@@ -207,7 +207,7 @@ class RecurrenceType(Enum):
 
 class BudgetIncreaseBy(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     type: BudgetChangeType
     value: float = Field(..., description='The budget value.')
@@ -224,7 +224,7 @@ class SPRuleType(Enum):
 
 class Recurrence(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     intra_day_schedule: List[TimeOfDay] | None = Field(
         None,
@@ -254,7 +254,7 @@ class ComparisonOperator(Enum):
 
 class CreateAssociatedBudgetRulesResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     responses: List[AssociatedBudgetRuleResponse] | None = None
 
@@ -265,7 +265,7 @@ class BudgetRuleError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -277,7 +277,7 @@ class BudgetRuleError(BaseModel):
 
 class UpdateBudgetRulesResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     responses: List[BudgetRuleResponse] | None = None
 
@@ -288,7 +288,7 @@ class CreateBudgetRulesResponse(UpdateBudgetRulesResponse):
 
 class SPGetAssociatedCampaignsResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     associated_campaigns: List[AssociatedCampaign] | None = Field(
         None,
@@ -306,7 +306,7 @@ class SPGetAssociatedCampaignsResponse(BaseModel):
 
 class PerformanceMeasureCondition(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     metric_name: PerformanceMetric = Field(..., alias='metricName')
     comparison_operator: ComparisonOperator = Field(..., alias='comparisonOperator')
@@ -319,7 +319,7 @@ class SPBudgetRuleDetails(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     duration: RuleDuration | None = None
     recurrence: Recurrence | None = None
@@ -337,7 +337,7 @@ class SPBudgetRuleDetails(BaseModel):
 
 class CreateSPBudgetRulesRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_rules_details: List[SPBudgetRuleDetails] | None = Field(
         None,
@@ -349,7 +349,7 @@ class CreateSPBudgetRulesRequest(BaseModel):
 
 class SPBudgetRule(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     rule_state: State | None = Field(None, alias='ruleState')
     last_updated_date: float | None = Field(
@@ -371,7 +371,7 @@ class SPBudgetRule(BaseModel):
 
 class SPCampaignBudgetRule(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     rule_state: State | None = Field(None, alias='ruleState')
     last_updated_date: float | None = Field(
@@ -395,14 +395,14 @@ class SPCampaignBudgetRule(BaseModel):
 
 class GetSPBudgetRuleResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_rule: SPBudgetRule | None = Field(None, alias='budgetRule')
 
 
 class SPListAssociatedBudgetRulesResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     associated_rules: List[SPCampaignBudgetRule] | None = Field(
         None, alias='associatedRules', description='A list of associated budget rules.'
@@ -411,7 +411,7 @@ class SPListAssociatedBudgetRulesResponse(BaseModel):
 
 class GetSPBudgetRulesForAdvertiserResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_rules_for_advertiser_response: List[SPBudgetRule] | None = Field(
         None,
@@ -433,7 +433,7 @@ class UpdateSPBudgetRulesRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_rules_details: List[SPBudgetRule] | None = Field(
         None,

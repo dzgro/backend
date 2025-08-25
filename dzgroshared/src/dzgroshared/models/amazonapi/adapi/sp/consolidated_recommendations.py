@@ -15,7 +15,7 @@ class InternalServerException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -29,7 +29,7 @@ class ValidationException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -39,7 +39,7 @@ class ValidationException(BaseModel):
 
 class SevenDaysEstimatedOpportunities(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     estimated_incremental_clicks_lower: int | None = Field(
         None,
@@ -78,7 +78,7 @@ class BudgetRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_budget: float | None = Field(
         None,
@@ -117,7 +117,7 @@ class KeywordTargetingRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     keyword_id: str | None = Field(
         None, alias='keywordId', description='The identifier of the keyword targeting.'
@@ -172,7 +172,7 @@ class BiddingStrategyRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bidding_strategy: SuggestedBiddingStrategy | None = Field(
         None,
@@ -216,7 +216,7 @@ class TargetingGroupBidRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_bid: float | None = Field(
         None,
@@ -243,7 +243,7 @@ class ThrottlingException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -257,7 +257,7 @@ class UnprocessableEntityException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -281,7 +281,7 @@ class PlacementBiddingRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     incremental_impressions_upper_percent: int | None = Field(
         None,
@@ -310,7 +310,7 @@ class CampaignRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     seven_days_estimated_opportunities: SevenDaysEstimatedOpportunities | None = Field(
         None, alias='sevenDaysEstimatedOpportunities'
@@ -341,7 +341,7 @@ class UnauthorizedException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -355,7 +355,7 @@ class AccessDeniedException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -365,7 +365,7 @@ class AccessDeniedException(BaseModel):
 
 class GetCampaignRecommendationsResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     next_token: str | None = Field(
         None,

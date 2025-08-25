@@ -64,7 +64,7 @@ class RazorpayWebhookProcessor:
                     gst=18,
                     date= datetime.now()
                 )
-                from dzgroshared.models.enums import QueueUrl
+                from dzgroshared.models.enums import QueueName
                 from dzgroshared.models.sqs import SendMessageRequest
-                req = SendMessageRequest(QueueUrl=QueueUrl.PAYMENT)
+                req = SendMessageRequest(QueueUrl=QueueName.PAYMENT)
                 self.client.sqs.sendMessage(req, message)

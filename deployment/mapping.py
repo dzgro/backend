@@ -5,7 +5,7 @@ Maps function names to their deployment configuration, including AWS region and 
 from enum import Enum
 from typing import Literal
 
-from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.models.enums import ENVIRONMENT, QueueName, S3Bucket
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 
@@ -13,18 +13,6 @@ class Tag(BaseModel):
     Project: str = 'Dzgro'
     Environment: ENVIRONMENT
 
-class QueueName(str, Enum):
-    AmazonReports = "AmazonReports"
-    RazorpayWebhook = "RazorpayWebhook"
-    DzgroReports = "DzgroReports"
-    AmsChange = "AmsChange"
-    AmsPerformance = "AmsPerformance"
-    PaymentProcessor = "PaymentProcessor"
-
-class S3Bucket(str, Enum):
-    DzgroReports = "dzgro-report-data"
-    AmazonReports = "dzgro-amz-report-data"
-    Invoices = "dzgro-invoice"
 
 class LambdaName(str, Enum):
     AmazonDailyReport = "AmazonDailyReport"
@@ -167,10 +155,10 @@ LAMBDAS = [
             LambdaRegion(
                 region=Region.DEFAULT,
                 queue=QueueProperty(
-                    name=QueueName.AmazonReports,
+                    name=QueueName.AMAZON_REPORTS,
                     roles=QueueRole.all()
                 ),
-                s3=S3Property(name=S3Bucket.AmazonReports, roles=S3Role.all())
+                s3=S3Property(name=S3Bucket.AMAZON_REPORTS, roles=S3Role.all())
             )
         ]
     ),
@@ -179,7 +167,7 @@ LAMBDAS = [
         regions=[LambdaRegion(
             region=Region.DEFAULT,
             queue=QueueProperty(
-                name=QueueName.DzgroReports,
+                name=QueueName.DZGRO_REPORTS,
                 roles=QueueRole.all()
             ),
         )],
@@ -190,7 +178,7 @@ LAMBDAS = [
             LambdaRegion(
                 region=Region.DEFAULT,
                 s3=S3Property(
-                    name=S3Bucket.DzgroReports, 
+                    name=S3Bucket.DZGRO_REPORTS, 
                     roles=[S3Role.GetObject], 
                     trigger=S3TiggerEvent(
                         eventName="s3:ObjectCreated:*",
@@ -205,10 +193,10 @@ LAMBDAS = [
         regions=[LambdaRegion(
             region=Region.DEFAULT,
             queue=QueueProperty(
-                name=QueueName.PaymentProcessor,
+                name=QueueName.PAYMENT_PROCESSOR,
                 roles=QueueRole.all()
             ),
-            s3=S3Property(name=S3Bucket.Invoices, roles=S3Role.all())
+            s3=S3Property(name=S3Bucket.INVOICES, roles=S3Role.all())
         )]
     ),
     LambdaProperty(
@@ -216,7 +204,7 @@ LAMBDAS = [
         regions=[LambdaRegion(
             region=Region.DEFAULT,
             queue=QueueProperty(
-                name=QueueName.RazorpayWebhook,
+                name=QueueName.RAZORPAY_WEBHOOK,
                 roles=QueueRole.all(),
                 apiTrigger=[
                     APIGatewaySQSTrigger(
@@ -233,7 +221,7 @@ LAMBDAS = [
             LambdaRegion(
                 region=region,
                 queue=QueueProperty(
-                    name=QueueName.AmsChange,
+                    name=QueueName.AMS_CHANGE,
                     roles=QueueRole.read(),
                     policy = getAMSChangeSetPolicy(region)
                 ),
@@ -246,7 +234,7 @@ LAMBDAS = [
             LambdaRegion(
                 region=region,
                 queue=QueueProperty(
-                    name=QueueName.AmsPerformance,
+                    name=QueueName.AMS_PERFORMANCE,
                     roles=QueueRole.read(),
                     policy = getAMSPerformancePolicy(region)
                 ),
@@ -255,90 +243,3 @@ LAMBDAS = [
     )
 
 ]
-
-
-
-# FUNCTIONS_MAP = {
-#     'AmazonDailyReport': {
-#         'region': [DEFAULT_REGION],
-#         'test': True,
-#         'path': 'functions/AmazonDailyReport',
-#         'description': 'Amazon Daily Report Lambda',
-#         'queue': 'AmazonReports',
-#         'queueRoles': 'AmazonReports',
-#         'bucket': 'dzgro-amz-report-data'
-#     },
-#     'DzgroReports': {
-#         'region': [DEFAULT_REGION],
-#         'test': True,
-#         'path': 'functions/DzgroReports',
-#         'description': 'Dzgro Reports Lambda',
-#         'queue': 'AmazonReports',
-#         'bucket': 'dzgro-report-data',
-#         's3Roles': ["s3:GetObject","s3:PutObject"]
-#     },
-#     'DzgroReportsS3Trigger': {
-#         'region': [DEFAULT_REGION],
-#         'test': True,
-#         'path': 'functions/DzgroReportsS3Trigger',
-#         'description': 'Dzgro Report Parquet to Excel Lambda',
-#         'bucket': 'dzgro-report-data',
-#         's3Roles': ["s3:GetObject"]
-#     },
-#     'AmsChange': {
-#         'region': [EU, NA, FE],
-#         'path': 'functions/AmsChange',
-#         'description': 'AMS Change Lambda',
-#     },
-#     'AmsPerformance': {
-#         'region': [EU, NA, FE],
-#         'path': 'functions/AmsPerformance',
-#         'description': 'AMS Performance Lambda',
-#     },
-#     'PaymentProcessor': {
-#         'region': [DEFAULT_REGION],
-#         'test': True,
-#         'path': 'functions/PaymentProcessor',
-#         'description': 'Payment Processing Lambda',
-#     },
-#     'RazorpayWebhookProcessor': {
-#         'region': [DEFAULT_REGION],
-#         'path': 'functions/RazorpayWebhookProcessor',
-#         'description': 'Razorpay Webhook Processor Lambda',
-#     },
-# }
-
-# QUEUES_MAP = {
-#     'RazorpayWebhook': {
-#         'region': [DEFAULT_REGION],
-#         'description': 'Main Queue for Razorpay Webhook',
-#         'routes': [
-#             {
-#                 'method': 'POST',
-#                 'path': '/webhook/rzrpay',
-#                 'destination': 'SQS',
-#                 'headers': ['x-razorpay-event-id', 'X-Razorpay-Signature']
-#             }
-#         ]
-#     },
-#     'AmazonReports': {
-#         'region': [DEFAULT_REGION],
-#         'test': True,
-#         'description': 'Amazon Daily Reports',
-#         'function': 'AmazonDailyReport'
-#     },
-#     'AmsChange': {
-#         'region': [EU, NA, FE],
-#         'description': 'AMSChange',
-#     },
-#     'AmsPerformance': {
-#         'region': [EU, NA, FE],
-#         'description': 'AMSPerformance',
-#     },
-#     'Payment': {
-#         'region': [DEFAULT_REGION],
-#         'test': True,
-#         'description': 'Payment Processing',
-#         'function': 'PaymentProcessor'
-#     }
-# }

@@ -1,15 +1,19 @@
 from dzgroshared.client import DzgroSharedClient
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from dzgroshared.models.enums import S3Bucket
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
 class FedDbClient:
-    db: AsyncIOMotorDatabase
+    client: DzgroSharedClient
+    collection: AsyncIOMotorCollection
 
     def __init__(self, client: DzgroSharedClient):
-        self.db = AsyncIOMotorClient(client.secrets.MONGO_DB_FED_CONNECT_URI)[client.env.value]
+        self.client = client
+        self.collection = AsyncIOMotorClient(client.secrets.MONGO_DB_FED_CONNECT_URI)['dzgro'][f'dzgro_reports_data_{self.client.env.value.lower()}']
         
 
-    def createReport(self, filename: str,pipeline: list[dict], bucket: str = 'dzgro-reports', format: str = 'parquet'):
-        pipeline.append( { '$out': { 's3': { 'bucket': bucket, 'filename': filename, 'format': { 'name': format } } } } )
-        return self.db['dzgro_report_data'].aggregate(pipeline)
+    async def createReport(self, filename: str, pipeline: list[dict], bucket: S3Bucket, format: str = 'csv'):
+        bucketName = self.client.storage.getBucketName(bucket)
+        pipeline.append( { '$out': { 's3': { 'bucket': bucketName, 'filename': filename, 'format': { 'name': format } } } } )
+        return await self.collection.aggregate(pipeline).to_list()
 
     

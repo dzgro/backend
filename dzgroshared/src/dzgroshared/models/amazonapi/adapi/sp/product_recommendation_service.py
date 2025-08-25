@@ -13,7 +13,7 @@ class InternalServerException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -27,7 +27,7 @@ class ProductRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     themes: list[str] | None = Field(
         None, description='List of themes associated with this recommended ASIN.'
@@ -44,7 +44,7 @@ class ProductRecommendation(BaseModel):
 
 class RecommendedAsin(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(..., example='BX20002121', max_length=10, min_length=10)
 
@@ -55,7 +55,7 @@ class ThemeRecommendation(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     description: str | None = Field(
         None,
@@ -80,7 +80,7 @@ class ProductRecommendationsByASIN(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     next_cursor: str | None = Field(
         None,
@@ -105,7 +105,7 @@ class ThrottlingException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -119,7 +119,7 @@ class UnprocessableEntityException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -133,7 +133,7 @@ class BadRequestException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -151,7 +151,7 @@ class GetProductRecommendationsRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     cursor: str | None = Field(
         None,
@@ -180,7 +180,7 @@ class ProductRecommendationsByTheme(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     next_cursor: str | None = Field(
         None,

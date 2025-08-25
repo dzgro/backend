@@ -24,7 +24,7 @@ class CampaignOptimizationRuleError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -54,7 +54,7 @@ class RuleAction(Enum):
 
 class RuleName(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(
         ..., description='The campaign optimization rule name.', max_length=355
@@ -63,7 +63,7 @@ class RuleName(BaseModel):
 
 class RuleCampaignId(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(..., description='campaignId')
 
@@ -79,7 +79,7 @@ class RuleStatus(Enum):
 
 class SPCampaignOptimizationNotificationAPIRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_ids: list[RuleCampaignId] = Field(
         ..., alias='campaignIds', description='A list of campaign ids', max_items=100
@@ -88,7 +88,7 @@ class SPCampaignOptimizationNotificationAPIRequest(BaseModel):
 
 class RuleRecommendationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: RuleCampaignId | None = Field(None, alias='campaignId')
     error: CampaignOptimizationRuleError | None = Field(None, alias='Error')
@@ -100,14 +100,14 @@ class RuleRecommendationMetrics(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     roas: float | None = Field(None, description='return on ad spend value')
 
 
 class RuleRecommendation(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     performance_metrics_exists: bool | None = Field(
         None,
@@ -122,7 +122,7 @@ class RuleRecommendation(BaseModel):
 
 class RuleCreationDate(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(
         ...,
@@ -132,7 +132,7 @@ class RuleCreationDate(BaseModel):
 
 class SPCampaignOptimizationRecommendationsAPIRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     require_performance_metrics: bool = Field(
         'true',
@@ -167,7 +167,7 @@ class RuleConditionMetric(Enum):
 
 class CampaignOptimizationId(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(
         ..., description='The persistent rule identifier.', max_length=355
@@ -188,7 +188,7 @@ class ComparisonOperator(Enum):
 
 class DeleteSPCampaignOptimizationRuleResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_optimization_id: CampaignOptimizationId | None = Field(
         None, alias='campaignOptimizationId'
@@ -203,7 +203,7 @@ class DeleteSPCampaignOptimizationRuleResponse(BaseModel):
 
 class RuleNotification(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     rule_state: RuleState | None = Field(None, alias='ruleState')
     campaign_optimization_id: CampaignOptimizationId | None = Field(
@@ -219,7 +219,7 @@ class RuleNotification(BaseModel):
 
 class SPCampaignOptimizationRecommendationAPIResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_optimization_recommendations: list[RuleRecommendation] | None = Field(
         None,
@@ -251,7 +251,7 @@ class UpdateSPCampaignOptimizationRuleResponse(
 
 class SPCampaignOptimizationNotificationAPIResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_optimization_recommendations_error: list[RuleNotificationError] | None = (
         Field(
@@ -271,7 +271,7 @@ class SPCampaignOptimizationNotificationAPIResponse(BaseModel):
 
 class RuleCondition(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     metric_name: RuleConditionMetric = Field(..., alias='metricName')
     comparison_operator: ComparisonOperator = Field(..., alias='comparisonOperator')
@@ -280,14 +280,14 @@ class RuleCondition(BaseModel):
 
 class RuleConditionList(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[RuleCondition] = Field(..., max_items=3)
 
 
 class CampaignOptimizationRule(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     recurrence: RecurrenceType | None = None
     rule_action: RuleAction | None = Field(None, alias='ruleAction')
@@ -306,7 +306,7 @@ class CampaignOptimizationRule(BaseModel):
 
 class GetSPCampaignOptimizationRuleResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_optimization_rule: CampaignOptimizationRule | None = Field(
         None, alias='CampaignOptimizationRule'
@@ -319,7 +319,7 @@ class UpdateSPCampaignOptimizationRulesRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     recurrence: RecurrenceType
     rule_action: RuleAction = Field(..., alias='ruleAction')
@@ -336,7 +336,7 @@ class UpdateSPCampaignOptimizationRulesRequest(BaseModel):
 
 class CreateSPCampaignOptimizationRulesRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     recurrence: RecurrenceType
     rule_action: RuleAction = Field(..., alias='ruleAction')

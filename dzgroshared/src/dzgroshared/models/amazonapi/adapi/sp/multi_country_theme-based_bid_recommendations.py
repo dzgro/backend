@@ -33,7 +33,7 @@ class BidPlacementAdjustment(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     predicate: Predicate | None = None
     percentage: int | None = Field(None, ge=0, le=900)
@@ -79,7 +79,7 @@ class CountryCodes(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[str] = Field(
         ...,
@@ -100,7 +100,7 @@ class RecommendationType(Enum):
 
 class BidAnalysisImpactMetrics(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     estimated_impression_avg: int = Field(
         ...,
@@ -121,7 +121,7 @@ class BidAnalysisImpactMetrics(BaseModel):
 
 class MultiCountryBidRecommendationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_codes: list[str] | None = Field(
         None, alias='countryCodes', description='Countries where error have occurred'
@@ -142,14 +142,14 @@ class RecommendationType1(Enum):
 
 class SuggestedBidValue(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: float = Field(..., description='The suggested bid.', ge=0.0)
 
 
 class SuggestedBidValues(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[SuggestedBidValue] = Field(..., max_items=3)
 
@@ -167,7 +167,7 @@ class BiddingStrategy(Enum):
 
 class MultiCountryThemeBasedBidRecommendationCompleteFailureResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     errors: list[MultiCountryBidRecommendationError] = Field(
         ...,
@@ -181,7 +181,7 @@ class GlobalStoreSetting(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     catalog_source_country_code: str | None = Field(
         None,
@@ -192,7 +192,7 @@ class GlobalStoreSetting(BaseModel):
 
 class ProductDetails(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     global_store_setting: GlobalStoreSetting | None = Field(
         None,
@@ -218,7 +218,7 @@ class MultiCountryTargetingExpressionType(Enum):
 
 class BidAnalysis(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid: float = Field(..., ge=0.0)
     type: Type = Field(
@@ -230,7 +230,7 @@ class BidAnalysis(BaseModel):
 
 class BidAnalyses(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[BidAnalysis] = Field(..., max_items=10, min_items=0)
 
@@ -241,7 +241,7 @@ class MultiCountryProduct(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: dict[str, ProductDetails] | None = Field(
         None, description='Product value'
@@ -254,7 +254,7 @@ class Bidding(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     adjustments: list[BidPlacementAdjustment] | None = Field(
         None,
@@ -271,7 +271,7 @@ class MultiCountryTargetingExpression(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_values: Any | None = Field(None, alias='countryValues')
     type: MultiCountryTargetingExpressionType
@@ -283,7 +283,7 @@ class MultiCountryTargetingExpressionList(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: list[MultiCountryTargetingExpression] = Field(
         ...,
@@ -300,7 +300,7 @@ class MultiCountryTargetingExpressionList(BaseModel):
 
 class MultiCountryBidRecommendationPerTargetingExpression(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_suggested_bids: Any = Field(..., alias='countrySuggestedBids')
     expression: MultiCountryTargetingExpression
@@ -308,7 +308,7 @@ class MultiCountryBidRecommendationPerTargetingExpression(BaseModel):
 
 class BidAnalysesPerPlacement(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     all: BidAnalyses = Field(..., alias='ALL')
     placement_top: BidAnalyses = Field(..., alias='PLACEMENT_TOP')
@@ -318,7 +318,7 @@ class BidAnalysesPerPlacement(BaseModel):
 
 class MultiCountryAsinsThemeBasedBidRecommendationRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_expressions: MultiCountryTargetingExpressionList = Field(
         ..., alias='targetingExpressions'
@@ -345,7 +345,7 @@ class MultiCountryAsinsThemeBasedBidRecommendationRequest(BaseModel):
 
 class MultiCountryBidAnalysesPerTargetingExpression(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression: MultiCountryTargetingExpression
     country_bid_analyses: Any | None = Field(None, alias='countryBidAnalyses')
@@ -353,7 +353,7 @@ class MultiCountryBidAnalysesPerTargetingExpression(BaseModel):
 
 class MultiCountryAdGroupThemeBasedBidRecommendationRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     targeting_expressions: MultiCountryTargetingExpressionList = Field(
         ..., alias='targetingExpressions'
@@ -377,7 +377,7 @@ class MultiCountryAdGroupThemeBasedBidRecommendationRequest(BaseModel):
 
 class MultiCountryThemeBasedBidRecommendation(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     theme: Theme
     bid_analyses_for_targeting_expressions: (
@@ -402,7 +402,7 @@ class MultiCountryThemeBasedBidRecommendationResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     bid_recommendations: list[MultiCountryThemeBasedBidRecommendation] = Field(
         ..., alias='bidRecommendations', max_items=2, min_items=0

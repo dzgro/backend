@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 class BudgetRuleRecommendation(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     suggested_budget_increase_percent: float | None = Field(
         None,
@@ -27,7 +27,7 @@ class BudgetRuleRecommendation(BaseModel):
 
 class SevenDaysMissedOpportunities(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     estimated_missed_sales_lower: float | None = Field(
         None,
@@ -78,7 +78,7 @@ class SevenDaysMissedOpportunities(BaseModel):
 
 class BudgetRecommendationRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_ids: List[str] = Field(
         ...,
@@ -91,7 +91,7 @@ class BudgetRecommendationRequest(BaseModel):
 
 class BudgetRecommendationForExistingCampaign(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ..., alias='campaignId', description='encrypted campaignId'
@@ -113,7 +113,7 @@ class BudgetRecommendationForExistingCampaign(BaseModel):
 
 class SPTORBudgetRecommendationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -123,7 +123,7 @@ class SPTORBudgetRecommendationError(BaseModel):
 
 class BudgetRecommendationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ..., alias='campaignId', description='encrypted campaignId'
@@ -137,7 +137,7 @@ class BudgetRecommendationError(BaseModel):
 
 class BudgetRecommendationResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     budget_recommendations_success_results: List[
         BudgetRecommendationForExistingCampaign

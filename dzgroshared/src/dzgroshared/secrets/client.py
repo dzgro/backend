@@ -15,6 +15,6 @@ class SecretManager:
             service_name='secretsmanager',
             region_name='ap-south-1'
         )
-        key = f'dzgro/{env.value.lower()}'
+        key = f'dzgro/prod' if env == ENVIRONMENT.PROD else f'dzgro/test'
         secrets = json.loads(client.get_secret_value(SecretId=key)['SecretString'])
         self.secrets = DzgroSecrets(**secrets)

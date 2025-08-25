@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class Asin(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: str = Field(..., description='ASIN.', max_length=32)
 
@@ -22,7 +22,7 @@ class KeywordGroupsRecommendationsRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     asins: list[Asin] = Field(
         ..., description='List of ASINs.', max_items=1000, min_items=1
@@ -59,7 +59,7 @@ class ErrorCode(Enum):
 
 class Error(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_message: str | None = Field(
         None,
@@ -85,7 +85,7 @@ class SPKeywordGroupsException(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     request_id: str | None = Field(None, alias='requestId', max_length=32)
     details: str | None = Field(
@@ -103,7 +103,7 @@ class KeywordGroup(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     impact_summary: str | None = Field(
         None, alias='impactSummary', description='Summary of impacts.'
@@ -133,7 +133,7 @@ class KeywordGroupsRecommendationsResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     country_code: str | None = Field(
         None,

@@ -91,7 +91,7 @@ class SponsoredProductsErrorCause(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     location: str = Field(
         ...,
@@ -111,7 +111,7 @@ class SponsoredProductsReducedObjectIdFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: List[str] = Field(..., max_length=100, min_length=0)
 
@@ -123,7 +123,7 @@ class SponsoredProductsNameFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     query_term_match_type: SponsoredProductsQueryTermMatchType | SkipJsonSchema[None] = Field(
         None, alias='queryTermMatchType'
@@ -153,7 +153,7 @@ class SponsoredProductsObjectIdFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: List[str] = Field(..., max_length=1000, min_length=0)
 
@@ -228,7 +228,7 @@ class SponsoredProductsUnauthorizedErrorCode(Enum):
 
 class SponsoredProductsAccessDeniedExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsAccessDeniedErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -244,7 +244,7 @@ class SponsoredProductsOtherError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsOtherErrorReason
     marketplace: SponsoredProductsMarketplace | SkipJsonSchema[None] = None
@@ -261,7 +261,7 @@ class SponsoredProductsValueLimitErrorReason(Enum):
 
 class SponsoredProductsCreateAdGroup(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ...,
@@ -279,7 +279,7 @@ class SponsoredProductsCreateAdGroup(BaseModel):
 
 class SponsoredProductsAdGroupServingStatusDetail(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: SponsoredProductsAdGroupServingStatusReason | SkipJsonSchema[None] = None
     help_url: str | SkipJsonSchema[None] = Field(
@@ -299,7 +299,7 @@ class SponsoredProductsEntityNotFoundErrorReason(Enum):
 
 class SponsoredProductsCreateSponsoredProductsAdGroupsRequestContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_groups: List[SponsoredProductsCreateAdGroup] = Field(
         ...,
@@ -325,7 +325,7 @@ class SponsoredProductsBillingErrorReason(Enum):
 
 class SponsoredProductsUpdateAdGroup(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: str | SkipJsonSchema[None] = Field(default=None, description='The name of the ad group.')
     state: SponsoredProductsCreateOrUpdateEntityState | SkipJsonSchema[None] = None
@@ -341,7 +341,7 @@ class SponsoredProductsUpdateAdGroup(BaseModel):
 
 class SponsoredProductsInternalServerExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInternalErrorErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -420,7 +420,7 @@ class SponsoredProductsMissingValueError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsMissingValueErrorReason
     marketplace: SponsoredProductsMarketplace | SkipJsonSchema[None] = None
@@ -447,7 +447,7 @@ class SponsoredProductsBiddingError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsBiddingErrorReason
     marketplace: SponsoredProductsMarketplace | SkipJsonSchema[None] = None
@@ -469,7 +469,7 @@ class SponsoredProductsParentEntityError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsParentEntityErrorReason
     cause: SponsoredProductsErrorCause | SkipJsonSchema[None] = None
@@ -478,7 +478,7 @@ class SponsoredProductsParentEntityError(BaseModel):
 
 class SponsoredProductsUnauthorizedExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsUnauthorizedErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -490,7 +490,7 @@ class SponsoredProductsApplicableMarketplacesError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsApplicableMarketplacesErrorReason
     cause: SponsoredProductsErrorCause | SkipJsonSchema[None] = None
@@ -504,7 +504,7 @@ class SponsoredProductsMalformedValueError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsMalformedValueErrorReason
     fragment: str | SkipJsonSchema[None] = Field(
@@ -517,7 +517,7 @@ class SponsoredProductsMalformedValueError(BaseModel):
 
 class SponsoredProductsDeleteSponsoredProductsAdGroupsRequestContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_group_id_filter: SponsoredProductsObjectIdFilter = Field(
         ..., alias='adGroupIdFilter'
@@ -530,7 +530,7 @@ class SponsoredProductsBillingError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsBillingErrorReason
     cause: SponsoredProductsErrorCause | SkipJsonSchema[None] = None
@@ -543,7 +543,7 @@ class SponsoredProductsInvalidInputError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsInvalidInputErrorReason
     cause: SponsoredProductsErrorCause | SkipJsonSchema[None] = None
@@ -552,7 +552,7 @@ class SponsoredProductsInvalidInputError(BaseModel):
 
 class SponsoredProductsEntityNotFoundError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsEntityNotFoundErrorReason
     entity_type: SponsoredProductsEntityType = Field(..., alias='entityType')
@@ -569,7 +569,7 @@ class SponsoredProductsThrottledError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsThrottledErrorCode
     cause: SponsoredProductsErrorCause | SkipJsonSchema[None] = None
@@ -578,7 +578,7 @@ class SponsoredProductsThrottledError(BaseModel):
 
 class SponsoredProductsThrottlingExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsThrottledErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -586,7 +586,7 @@ class SponsoredProductsThrottlingExceptionResponseContent(BaseModel):
 
 class SponsoredProductsUnsupportedMediaTypeExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsUnsupportedMediaTypeErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -598,7 +598,7 @@ class SponsoredProductsEntityQuotaError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsQuotaErrorReason
     quota_scope: SponsoredProductsQuotaScope | SkipJsonSchema[None] = Field(default=None, alias='quotaScope')
@@ -614,7 +614,7 @@ class SponsoredProductsRangeError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsValueLimitErrorReason
     marketplace: SponsoredProductsMarketplace | SkipJsonSchema[None] = None
@@ -631,7 +631,7 @@ class SponsoredProductsRangeError(BaseModel):
 
 class SponsoredProductsAdGroupExtendedData(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     last_update_date_time: datetime | SkipJsonSchema[None] = Field(
         None, alias='lastUpdateDateTime', description='Last updated date in ISO 8601.'
@@ -653,7 +653,7 @@ class SponsoredProductsAdGroupExtendedData(BaseModel):
 
 class SponsoredProductsUpdateSponsoredProductsAdGroupsRequestContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_groups: List[SponsoredProductsUpdateAdGroup] = Field(
         ...,
@@ -670,14 +670,14 @@ class SponsoredProductsEntityStateFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: List[SponsoredProductsEntityState] = Field(..., max_length=10, min_length=0)
 
 
 class SponsoredProductsDuplicateValueError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsDuplicateValueErrorReason
     marketplace: SponsoredProductsMarketplace | SkipJsonSchema[None] = None
@@ -691,7 +691,7 @@ class SponsoredProductsEntityStateError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsEntityStateErrorReason
     marketplace: SponsoredProductsMarketplace | SkipJsonSchema[None] = None
@@ -706,7 +706,7 @@ class SponsoredProductsInternalServerError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsInternalErrorErrorCode
     cause: SponsoredProductsErrorCause | SkipJsonSchema[None] = None
@@ -715,7 +715,7 @@ class SponsoredProductsInternalServerError(BaseModel):
 
 class SponsoredProductsListSponsoredProductsAdGroupsRequestContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id_filter: SponsoredProductsReducedObjectIdFilter | SkipJsonSchema[None] = Field(
         default=None, alias='campaignIdFilter'
@@ -749,7 +749,7 @@ class SponsoredProductsListSponsoredProductsAdGroupsRequestContent(BaseModel):
 
 class SponsoredProductsAdGroup(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ...,
@@ -773,7 +773,7 @@ class SponsoredProductsAdGroup(BaseModel):
 
 class SponsoredProductsAdGroupMutationErrorSelector(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_state_error: SponsoredProductsEntityStateError | SkipJsonSchema[None] = Field(
         None, alias='entityStateError'
@@ -817,7 +817,7 @@ class SponsoredProductsAdGroupMutationErrorSelector(BaseModel):
 
 class SponsoredProductsAdGroupAccessErrorSelector(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_not_found_error: SponsoredProductsEntityNotFoundError | SkipJsonSchema[None] = Field(
         None, alias='entityNotFoundError'
@@ -843,7 +843,7 @@ class SponsoredProductsAdGroupAccessErrorSelector(BaseModel):
 
 class SponsoredProductsListSponsoredProductsAdGroupsResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int | SkipJsonSchema[None] = Field(
         None, alias='totalResults', description='The total number of entities'
@@ -860,7 +860,7 @@ class SponsoredProductsListSponsoredProductsAdGroupsResponseContent(BaseModel):
 
 class SponsoredProductsAdGroupSuccessResponseItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_group: SponsoredProductsAdGroup | SkipJsonSchema[None] = Field(default=None, alias='adGroup')
     index: int = Field(
@@ -875,7 +875,7 @@ class SponsoredProductsAdGroupSuccessResponseItem(BaseModel):
 
 class SponsoredProductsAdGroupMutationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_type: str = Field(..., alias='errorType', description='The type of the error')
     error_value: SponsoredProductsAdGroupMutationErrorSelector = Field(
@@ -885,7 +885,7 @@ class SponsoredProductsAdGroupMutationError(BaseModel):
 
 class SponsoredProductsAdGroupAccessError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_type: str = Field(..., alias='errorType', description='The type of the error')
     error_value: SponsoredProductsAdGroupAccessErrorSelector = Field(
@@ -899,7 +899,7 @@ class SponsoredProductsAdGroupMutationExceptionResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInvalidArgumentErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -908,7 +908,7 @@ class SponsoredProductsAdGroupMutationExceptionResponseContent(BaseModel):
 
 class SponsoredProductsAdGroupFailureResponseItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     index: int = Field(
         ...,
@@ -926,7 +926,7 @@ class SponsoredProductsAdGroupAccessExceptionResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInvalidArgumentErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -935,7 +935,7 @@ class SponsoredProductsAdGroupAccessExceptionResponseContent(BaseModel):
 
 class SponsoredProductsBulkAdGroupOperationResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     success: List[SponsoredProductsAdGroupSuccessResponseItem] | SkipJsonSchema[None] = Field(
         None, max_length=1000, min_length=0
@@ -947,7 +947,7 @@ class SponsoredProductsBulkAdGroupOperationResponse(BaseModel):
 
 class SponsoredProductsCreateSponsoredProductsAdGroupsResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     ad_groups: SponsoredProductsBulkAdGroupOperationResponse = Field(
         ..., alias='adGroups'

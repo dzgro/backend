@@ -5,12 +5,13 @@ class ENVIRONMENT(str, Enum):
     PROD = "Prod"
     TEST = "Test"
     DEV = "Dev"
+    LOCAL = "Local"
 
     
     @staticmethod
     def all():
         return list(ENVIRONMENT)
-    
+
 class CollateTypeTag(str, Enum):
     DAYS_7 = "Last 7 Days"
     DAYS_30 = "Last 30 Days"
@@ -434,10 +435,19 @@ class SQSMessageStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     
-class QueueUrl(str, Enum):
-    AMAZON_REPORTS = "https://sqs.ap-south-1.amazonaws.com/522814698847/AmazonReportsQ"
-    AMAZON_REPORTS_TEST = "https://sqs.ap-south-1.amazonaws.com/522814698847/AmazonReportsQ-test"
-    PAYMENT = "https://sqs.ap-south-1.amazonaws.com/522814698847/PaymentQ"
+class QueueName(str, Enum):
+    AMAZON_REPORTS = "AmazonReports"
+    RAZORPAY_WEBHOOK = "RazorpayWebhook"
+    DZGRO_REPORTS = "DzgroReports"
+    AMS_CHANGE = "AmsChange"
+    AMS_PERFORMANCE = "AmsPerformance"
+    PAYMENT_PROCESSOR = "PaymentProcessor"
+
+class S3Bucket(str, Enum):
+    DZGRO_REPORTS = "dzgro-report-data"
+    AMAZON_REPORTS = "dzgro-amz-report-data"
+    INVOICES = "dzgro-invoice"
+
 
 class PlanDuration(str, Enum):
     MONTHLY = "monthly"
@@ -512,3 +522,15 @@ class AMSDataSet(Enum):
     BUDGET_USAGE = "budget-usage"
     CAMPAIGN_DIAGNOSTICS = "campaign-diagnostics"
     SP_BUDGET_RECOMMENDATIONS = "sp-budget-recommendations"
+
+
+class DzgroReportType(str, Enum):
+    PAYMENT_RECON = "Payment Reconciliation"
+    PROFITABILITY = "Profitability"
+    INVENTORY_PLANNING = "Inventory Planning"
+    OUT_OF_STOCK = "Stock Out Skus"
+
+class DzroReportPaymentReconSettlementRangeType(str, Enum):
+    NO_END_DATE = 'NO_END_DATE'
+    SAME_END_DATE = 'SAME_END_DATE'
+    DIFFERENT_END_DATE = 'DIFFERENT_END_DATE'

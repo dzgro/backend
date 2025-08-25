@@ -24,7 +24,7 @@ class OptimizationRulesAPISwaggerAssociateOptimizationRulesToCampaignRequest(Bas
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rule_ids: list[str] = Field(
         ...,
@@ -72,7 +72,7 @@ class OptimizationRulesAPISwaggerOptimizationRulesError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -131,7 +131,7 @@ class OptimizationRulesAPISwaggerActionDetails(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     action_unit: ActionUnit = Field(..., alias='actionUnit')
     value: float = Field(
@@ -165,7 +165,7 @@ class OptimizationRulesAPISwaggerEntityFieldFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     values: list[str] | None = Field(None, max_items=100, min_items=1)
     filter_type: OptimizationRulesAPISwaggerFilterType | None = Field(
@@ -179,7 +179,7 @@ class OptimizationRulesAPISwaggerCampaignFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: OptimizationRulesAPISwaggerEntityFieldFilter | None = Field(
         None, alias='campaignId'
@@ -192,7 +192,7 @@ class OptimizationRulesAPISwaggerRuleAction(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     action_type: OptimizationRulesAPISwaggerActionType = Field(..., alias='actionType')
     action_details: OptimizationRulesAPISwaggerActionDetails = Field(
@@ -206,7 +206,7 @@ class OptimizationRulesAPISwaggerOptimizationRuleFilterV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     rule_category: OptimizationRulesAPISwaggerEntityFieldFilter | None = Field(
         None, alias='ruleCategory'
@@ -228,7 +228,7 @@ class OptimizationRulesAPISwaggerRangeTypeRuleCriteria(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     min_value: float = Field(..., alias='minValue')
     max_value: float = Field(..., alias='maxValue')
@@ -263,7 +263,7 @@ class OptimizationRulesAPISwaggerDuration(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     event_id: str | None = Field(
         None,
@@ -293,7 +293,7 @@ class OptimizationRulesAPISwaggerValueTypeRuleCriteria(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     comparison_operator: OptimizationRulesAPISwaggerComparisonOperator = Field(
         ..., alias='comparisonOperator'
@@ -307,7 +307,7 @@ class TimesOfDayItem(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     start_time: str = Field(
         ...,
@@ -329,7 +329,7 @@ class OptimizationRulesAPISwaggerRuleRecurrence(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     duration: OptimizationRulesAPISwaggerDuration
     times_of_day: list[TimesOfDayItem] | None = Field(
@@ -386,7 +386,7 @@ class OptimizationRulesAPISwaggerRuleCategoryV2(Enum):
 
 class OptimizationRulesAPISwaggerRuleCriteria(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     __root__: (
         OptimizationRulesAPISwaggerRangeTypeRuleCriteria
@@ -400,7 +400,7 @@ class OptimizationRulesAPISwaggerSingleOptimizationRuleAssociationResponse(BaseM
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated success or error code for machine use.'
@@ -430,7 +430,7 @@ class OptimizationRulesAPISwaggerOptimizationRuleFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     rule_category: OptimizationRulesAPISwaggerEntityFieldFilter | None = Field(
         None, alias='ruleCategory'
@@ -445,7 +445,7 @@ class OptimizationRulesAPISwaggerOptimizationRuleFilter(BaseModel):
 
 class OptimizationRulesAPISwaggerRuleConditionV2(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     criteria: OptimizationRulesAPISwaggerRuleCriteria | None = Field(
         None, description='Only Value Type Criteria is supported right now.'
@@ -461,7 +461,7 @@ class OptimizationRulesAPISwaggerSearchOptimizationRulesRequestV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     max_results: float | None = Field(
         None,
@@ -496,7 +496,7 @@ class OptimizationRulesAPISwaggerSearchOptimizationRulesRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     next_token: str | None = Field(None, alias='nextToken')
     optimization_rule_filter: (
@@ -510,7 +510,7 @@ class OptimizationRulesAPISwaggerSearchOptimizationRulesRequest(BaseModel):
 
 class OptimizationRulesAPISwaggerRuleTargeting(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression_types: list[OptimizationRulesAPISwaggerExpressionType] = Field(
         ..., alias='expressionTypes', max_items=3, min_items=1
@@ -529,7 +529,7 @@ class OptimizationRulesAPISwaggerRuleTargeting(BaseModel):
 
 class OptimizationRulesAPISwaggerRuleCondition(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     criteria: OptimizationRulesAPISwaggerRuleCriteria | None = None
     attribute_name: OptimizationRulesAPISwaggerRuleAttribute | None = Field(
@@ -539,7 +539,7 @@ class OptimizationRulesAPISwaggerRuleCondition(BaseModel):
 
 class OptimizationRulesAPISwaggerOptimizationRuleWithoutRuleIdV2(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     recurrence: OptimizationRulesAPISwaggerRuleRecurrence | None = None
     targeting: list[OptimizationRulesAPISwaggerRuleTargeting] | None = Field(
@@ -567,7 +567,7 @@ class OptimizationRulesAPISwaggerAssociateOptimizationRulesToCampaignResponse(
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -584,7 +584,7 @@ class OptimizationRulesAPISwaggerCreateOptimizationRulesRequestV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rules: list[
         OptimizationRulesAPISwaggerOptimizationRuleWithoutRuleIdV2
@@ -593,7 +593,7 @@ class OptimizationRulesAPISwaggerCreateOptimizationRulesRequestV2(BaseModel):
 
 class OptimizationRulesAPISwaggerOptimizationRuleWithoutRuleId(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     recurrence: OptimizationRulesAPISwaggerRuleRecurrence
     rule_category: OptimizationRulesAPISwaggerRuleCategory = Field(
@@ -616,7 +616,7 @@ class OptimizationRulesAPISwaggerCreateOptimizationRulesRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rules: list[
         OptimizationRulesAPISwaggerOptimizationRuleWithoutRuleId
@@ -627,7 +627,7 @@ class OptimizationRulesAPISwaggerOptimizationRuleV2(
     OptimizationRulesAPISwaggerOptimizationRuleWithoutRuleIdV2
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rule_id: str | None = Field(
         None, alias='optimizationRuleId', description='The rule identifier.'
@@ -638,7 +638,7 @@ class OptimizationRulesAPISwaggerOptimizationRule(
     OptimizationRulesAPISwaggerOptimizationRuleWithoutRuleId
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rule_id: str | None = Field(
         None, alias='optimizationRuleId', description='The rule identifier.'
@@ -651,7 +651,7 @@ class OptimizationRulesAPISwaggerSingleOptimizationRuleResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated success or error code for machine use.'
@@ -670,7 +670,7 @@ class OptimizationRulesAPISwaggerSingleOptimizationRuleResponseV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated success or error code for machine use.'
@@ -689,7 +689,7 @@ class OptimizationRulesAPISwaggerUpdateOptimizationRulesRequestV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rules: list[OptimizationRulesAPISwaggerOptimizationRuleV2] = Field(
         ..., alias='optimizationRules', max_items=300, min_items=1
@@ -698,7 +698,7 @@ class OptimizationRulesAPISwaggerUpdateOptimizationRulesRequestV2(BaseModel):
 
 class OptimizationRulesAPISwaggerSearchOptimizationRulesResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -711,7 +711,7 @@ class OptimizationRulesAPISwaggerSearchOptimizationRulesResponse(BaseModel):
 
 class OptimizationRulesAPISwaggerSearchOptimizationRulesResponseV2(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -728,7 +728,7 @@ class OptimizationRulesAPISwaggerUpdateOptimizationRulesRequest(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     optimization_rules: list[OptimizationRulesAPISwaggerOptimizationRule] = Field(
         ..., alias='optimizationRules', max_items=25, min_items=1
@@ -741,7 +741,7 @@ class OptimizationRulesAPISwaggerOptimizationRulesResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -757,7 +757,7 @@ class OptimizationRulesAPISwaggerOptimizationRulesResponseV2(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(
         None, description='An enumerated error code for machine use.'
@@ -775,7 +775,7 @@ class OptimizationRulesAPISwaggerUpdateOptimizationRulesResponseV2(
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
 
 class OptimizationRulesAPISwaggerCreateOptimizationRulesResponseV2(
@@ -786,4 +786,4 @@ class OptimizationRulesAPISwaggerCreateOptimizationRulesResponseV2(
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True

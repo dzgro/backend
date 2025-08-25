@@ -2,8 +2,8 @@ from typing import Literal
 import yaml
 from rolecreator import RoleCreator
 import mapping
-from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, S3Bucket, QueueName, Tag, LambdaProperty, QueueRole, S3Role
-from dzgroshared.models.enums import ENVIRONMENT
+from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, Tag, LambdaProperty, QueueRole, S3Role
+from dzgroshared.models.enums import ENVIRONMENT, S3Bucket, QueueName
 
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
@@ -25,13 +25,16 @@ class TemplateBuilder:
         self.roleCreator = RoleCreator()
 
     def deploy(self, regions: list[Region]):
-        import layer_builder as LayerBuilder
-        LayerBuilder.build_layer_zip_clean(self.env)
+        if self.env != ENVIRONMENT.LOCAL:
+            import layer_builder as LayerBuilder
+            LayerBuilder.build_layer_zip_clean(self.env)
         for region in regions:
             self.resources = {}
-            LayerArn = LayerBuilder.deploy_layer(region, self.env)
-            # LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared_layer:7"
-            self.createCertificateAndLinkApi(region)
+            LayerArn: str = ""
+            if self.env != ENVIRONMENT.LOCAL:
+                LayerArn = LayerBuilder.deploy_layer(region, self.env)
+                # LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared_layer:7"
+                self.createCertificateAndLinkApi(region)
             self.createResources(region, LayerArn)
             template = {
                 'AWSTemplateFormatVersion': '2010-09-09',
@@ -224,13 +227,14 @@ class TemplateBuilder:
             for _lambdaRegion in _lambda.regions:
                 if _lambdaRegion.region == region:
                     if region==Region.DEFAULT:
-                        self.createRawApiGateway(region)
-                        self.createApiGatewayRole(region)
-                    self.createLambdaRole(_lambda, region)
-                    if _lambdaRegion.s3: self.addBucket(region, _lambdaRegion.s3)
-                    if _lambdaRegion.queue: 
-                        self.addQueue(region, _lambdaRegion.queue, _lambda.name)
-                    self.createFunction(_lambda.name, _lambdaRegion, LayerArn)
+                        if _lambdaRegion.s3: self.addBucket(region, _lambdaRegion.s3)
+                        if self.env != ENVIRONMENT.LOCAL:
+                            self.createRawApiGateway(region)
+                            self.createApiGatewayRole(region)
+                            self.createLambdaRole(_lambda, region)
+                            if _lambdaRegion.queue: 
+                                self.addQueue(region, _lambdaRegion.queue, _lambda.name)
+                            self.createFunction(_lambda.name, _lambdaRegion, LayerArn)
                 
 
     def createRawApiGateway(self, region: Region):

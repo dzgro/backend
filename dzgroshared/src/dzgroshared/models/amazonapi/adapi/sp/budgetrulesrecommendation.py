@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 class SPBudgetRulesRecommendationEvent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     event_id: str | None = Field(
         None, alias='eventId', description='The event identifier.'
@@ -35,7 +35,7 @@ class SPBudgetRulesRecommendationEvent(BaseModel):
 
 class SPBudgetRulesRecommendationEventRequest(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     campaign_id: str = Field(
         ..., alias='campaignId', description='The campaign identifier.'
@@ -48,7 +48,7 @@ class SPBudgetRulesRecommendationEventResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     recommended_budget_rule_events: List[SPBudgetRulesRecommendationEvent] | None = (
         Field(
@@ -61,7 +61,7 @@ class SPBudgetRulesRecommendationEventResponse(BaseModel):
 
 class SPIndividualEvent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     event_id: str | None = Field(
         None, alias='eventId', description='The event identifier.'
@@ -83,7 +83,7 @@ class SPBudgetRulesRecommendationError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: str | None = Field(None, description='The HTTP status code of the response.')
     details: str | None = Field(
@@ -93,7 +93,7 @@ class SPBudgetRulesRecommendationError(BaseModel):
 
 class SPGroupedEvent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     grouped_event_id: str | None = Field(
         None, alias='groupedEventId', description='The grouped event identifier.'
@@ -113,7 +113,7 @@ class SPGetAllRuleEventRequest(BaseModel):
     pass
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
 
 class SPGetRuleEventError(SPBudgetRulesRecommendationError):
@@ -128,7 +128,7 @@ class SPGetAllRuleEventResponse(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     grouped_events: List[SPGroupedEvent] | None = Field(
         None,

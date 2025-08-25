@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.models.collections.dzgro_reports import DzgroReportType
-from dzgroshared.models.enums import CollateTypeTag
+from dzgroshared.models.enums import CollateTypeTag, S3Bucket
 from dzgroshared.models.sqs import SQSEvent
 from dzgroshared.models.collections.queue_messages import DzgroReportQueueMessage
 from dzgroshared.client import DzgroSharedClient
@@ -32,7 +32,7 @@ class DzgroReportProcessor:
     
     async def setMessageAsProcessing(self):
         updated, id = await self.client.db.sqs_messages.setMessageAsProcessing(self.messageid)
-        return updated==0
+        return updated==1
     
     async def setError(self, error: str):
         await self.client.db.sqs_messages.setMessageAsFailed(self.messageid, error)
@@ -40,15 +40,12 @@ class DzgroReportProcessor:
 
     async def processReport(self):
         try:
-            
+            count: int=0
             if await self.setMessageAsProcessing():
                 report = await self.client.db.dzgro_reports.getReport(self.message.index)
-            if report.messageid==self.messageid:
-                if report.reporttype==DzgroReportType.PAYMENT_RECON: 
-                    orders = self.client.db.orders
-                    from dzgroshared.functions.DzgroReports.pipelines import PaymentReconciliation
-                    pipeline = PaymentReconciliation.pipeline(orders.db.pp, self.message.index)
-                    await orders.db.aggregate(pipeline)
+                if report.paymentrecon: 
+                    from dzgroshared.functions.DzgroReports.ReportTypes.PaymentReconciliation import PaymentReconReportCreator
+                    count = await PaymentReconReportCreator(self.client, report.id, report.paymentrecon).execute()
                 elif report.reporttype==DzgroReportType.INVENTORY_PLANNING: 
                     _queries = self.client.db.queries
                     queries = await _queries.getQueries()
@@ -64,9 +61,14 @@ class DzgroReportProcessor:
                     from dzgroshared.functions.DzgroReports.pipelines import OutOfStock
                     pipeline = OutOfStock.pipeline(products.db.pp, self.message.index)
                     await products.db.aggregate(pipeline)
-                pipeline = [{"$match": {"reportid": ObjectId(self.message.index)}}]
-                filename = f'{self.message.uid}/{str(self.message.marketplace)}/{report.reporttype.name}/{self.message.index}/data'
-                self.client.fedDb.createReport(filename, pipeline)
+                else: return
+                if count==0:
+                    await self.client.db.dzgro_reports.addError(report.id, "No data found")
+                else:
+                    pipeline = [{"$match": {"reportid": report.id}}]
+                    filename = f'{self.message.uid}/{str(self.message.marketplace)}/{report.reporttype.name}/{self.message.index}/data'
+                    await self.client.fedDb.createReport(filename, pipeline, S3Bucket.DZGRO_REPORTS)
+                    await self.client.db.dzgro_reports.addCount(report.id, count)
         except Exception as e:
             await self.setError(e.args[0] if e.args else str(e))
 

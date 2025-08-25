@@ -1,4 +1,4 @@
-from dzgroshared.models.enums import QueueUrl
+from dzgroshared.models.enums import ENVIRONMENT, QueueName
 from pydantic import BaseModel
 from dzgroshared.models.sqs import DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, DeleteMessageBatchEntry, BatchResultErrorEntry
 import uuid, botocore.exceptions
@@ -6,9 +6,13 @@ from mypy_boto3_sqs import SQSClient
 from dzgroshared.client import DzgroSharedClient
 
 class SqsHelper:
+    sqsclient: SQSClient
+
     def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
-        self.sqsclient: SQSClient | None = None
+
+    def __getattr__(self, item):
+        return None
 
     def getClient(self) -> SQSClient:
         if self.sqsclient: 
@@ -16,44 +20,57 @@ class SqsHelper:
         from botocore.config import Config
         from typing import cast
         import boto3
-        self.sqsclient = cast(SQSClient, boto3.client('sqs', config=Config(region_name='ap-south-1')))
+        self.sqsclient = cast(SQSClient, boto3.client('sqs', config=Config(region_name=self.client.REGION)))
         return self.sqsclient
     
+    def getQueueUrl(self, queue: QueueName) -> str:
+        return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.env.value}Q"
+
     @catch_sqs_exceptions
     async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> SQSSendMessageResponse:
-        client = self.getClient()
-        
-        send_args = {
-            "QueueUrl": payload.QueueUrl.value,
-            "MessageBody": MessageBody.model_dump_json(),
-            "DelaySeconds": payload.DelaySeconds or 0,
-        }
-        if payload.MessageAttributes: 
-            send_args["MessageAttributes"] = { 
-                key: attr.model_dump(exclude_none=True) 
-                for key, attr in payload.MessageAttributes.items() 
+        if self.client.env!=ENVIRONMENT.LOCAL:
+            client = self.getClient()
+            send_args = {
+                "QueueUrl": payload.QueueUrl.value,
+                "MessageBody": MessageBody.model_dump_json(),
+                "DelaySeconds": payload.DelaySeconds or 0,
             }
-        
-        response = client.send_message(**send_args)
-        res = SQSSendMessageResponse(
-            success=True,
-            message_id=response.get("MessageId", ""),
-            sequence_number=response.get("SequenceNumber")
-        )
-        await self.client.db.sqs_messages.addMessageToDb(res.message_id, MessageBody, extras)
-        return res
-    
-    @catch_sqs_exceptions
-    async def mockMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> SQSSendMessageResponse:
-        res = SQSSendMessageResponse(
+            if payload.MessageAttributes: 
+                send_args["MessageAttributes"] = { 
+                    key: attr.model_dump(exclude_none=True) 
+                    for key, attr in payload.MessageAttributes.items() 
+                }
+            
+            response = client.send_message(**send_args)
+            res = SQSSendMessageResponse(
+                success=True,
+                message_id=response.get("MessageId", ""),
+                sequence_number=response.get("SequenceNumber")
+            )
+        else:
+            res = SQSSendMessageResponse(
             success=True,
             message_id=str(uuid.uuid4())
         )
+
         await self.client.db.sqs_messages.addMessageToDb(res.message_id, MessageBody, extras)
         return res
     
+    def getSQSEventByMessage(self, message: SQSSendMessageResponse, body: BaseModel):
+        return {
+            "Records": [
+                {
+                    "messageId": message.message_id,
+                    "receiptHandle": 'rec123',
+                    "md5OfBody": 'md5OfBody',
+                    "body": body.model_dump_json(exclude_none=True),
+                    "messageAttributes": {}
+                }
+            ]
+        }
+
     @catch_sqs_exceptions
-    async def deleteMessage(self, queue: QueueUrl, receipt_handle: str) -> None:
+    async def deleteMessage(self, queue: QueueName, receipt_handle: str) -> None:
         try:
             self.getClient().delete_message(
                 QueueUrl=queue.value,

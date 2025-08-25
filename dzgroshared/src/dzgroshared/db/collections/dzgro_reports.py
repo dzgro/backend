@@ -1,8 +1,11 @@
 from bson import ObjectId
+from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerDetails, S3TriggerObject, S3TriggerType
 from dzgroshared.models.collections.dzgro_reports import ListDzgroReportsRequest, CreateDzgroReportRequest, DzgroReport
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.models.enums import CollectionType
+from dzgroshared.models.collections.queue_messages import DzgroReportQueueMessage
+from dzgroshared.models.enums import ENVIRONMENT, CollectionType, QueueName, S3Bucket
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.models.sqs import SQSEvent, SendMessageRequest
 
 
 class DzgroReportHelper:
@@ -25,10 +28,20 @@ class DzgroReportHelper:
         item = request.model_dump(exclude_none=True)
         item.update({"requested": self.db.date()})
         item = self.db.addUidMarketplaceToDict(item)
-        id = self.db.insertOne(item)
+        id = await self.db.insertOne(item)
         reportId = str(id)
-        res = self.client.sqs.sendMessage({"uid": self.uid, "marketplace": str(self.marketplace), "reportid": reportId}, delay=2)
+        message = DzgroReportQueueMessage(uid=self.uid, marketplace=self.marketplace, index=reportId, reporttype=request.reporttype)
+        req = SendMessageRequest(QueueUrl=QueueName.DZGRO_REPORTS)
+        res = await self.client.sqs.sendMessage(req, message)
         await self.addMessageId(reportId,res.message_id)
+        if self.client.env==ENVIRONMENT.LOCAL:
+            message = await self.client.db.sqs_messages.getMessage(res.message_id)
+            sqsEvent = self.client.sqs.getSQSEventByMessage(res, message)
+            from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor
+            await DzgroReportProcessor(self.client).execute(sqsEvent)
+            data = {"eventName": "ObjectCreated:Put", "s3": {"bucket": {"name": self.client.storage.getBucketName(bucket=S3Bucket.DZGRO_REPORTS), "arn": ""}, "object": {"key": f"{self.uid}/{self.client.marketplace}/{request.reporttype}/{reportId}/{request.reporttype}.parquet", "size": 0}}}
+            from dzgroshared.functions.DzgroReportsS3Trigger.handler import DzgroReportS3TriggerProcessor
+            await DzgroReportS3TriggerProcessor(self.client).execute(self.client.storage.getS3TriggerObject(data))
         return await self.getReport(reportId)
 
     def listReports(self, body: ListDzgroReportsRequest):
@@ -39,22 +52,24 @@ class DzgroReportHelper:
         pipeline = [matchStage, skip, limit]
         return self.db.aggregate(pipeline)
     
-    async def getReport(self, reportid: str):
-        return DzgroReport(**await self.db.findOne({'_id': ObjectId(reportid)}))
+    async def getReport(self, reportid: str|ObjectId):
+        return DzgroReport(**await self.db.findOne({'_id': self.db.convertToObjectId(reportid)}))
 
-    async def addurl(self, reportid: str, url: str):
-        await self.db.updateOne({'_id': ObjectId(reportid)}, {'url': url, "completed": self.db.date()})
+    async def addurl(self, reportid: str|ObjectId, url: str):
+        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'url': url, "completed": self.db.date()})
 
-    async def addError(self, reportid: str, error: str):
-        await self.db.updateOne({'_id': ObjectId(reportid)}, {'error': error, "completed": self.db.date()})
+    async def addCount(self, reportid: str|ObjectId, count: int):
+        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'count': count})
 
-    async def addMessageId(self, reportid: str, messageId: str):
-        await self.db.updateOne({'_id': ObjectId(reportid)}, {'messageid': messageId})
+    async def addError(self, reportid: str|ObjectId, error: str):
+        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'error': error, "completed": self.db.date()})
 
-    async def deleteReport(self, reportid: str):
-        await self.db.deleteOne({'_id': ObjectId(reportid)})
+    async def addMessageId(self, reportid: str|ObjectId, messageId: str):
+        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'messageid': messageId})
 
-    
+    async def deleteReport(self, reportid: str|ObjectId):
+        await self.db.deleteOne({'_id': self.db.convertToObjectId(reportid)})
+
 
 
 

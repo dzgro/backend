@@ -1,14 +1,14 @@
+from sys import prefix
 from botocore.exceptions import ClientError
 import boto3
 from botocore.config import Config
+from dzgroshared.client import DzgroSharedClient
+from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerObject
 from dzgroshared.models.model import CustomError
-from dzgroshared.models.s3 import S3PutObjectModel, S3GetObjectModel, S3Bucket
-
-my_config = Config(
-    region_name = 'ap-south-1'
-)
-s3 = boto3.client('s3', config=my_config)
-from botocore.exceptions import ClientError, BotoCoreError, NoCredentialsError, EndpointConnectionError
+from dzgroshared.models.enums import S3Bucket
+from dzgroshared.models.s3 import S3PutObjectModel, S3GetObjectModel
+from mypy_boto3_s3 import S3Client
+from botocore.exceptions import ClientError, NoCredentialsError, EndpointConnectionError
 
 def s3_exception_handler(func):
     def wrapper(*args, **kwargs):
@@ -17,7 +17,6 @@ def s3_exception_handler(func):
 
         except NoCredentialsError:
             raise CustomError({"error": "AWS credentials not found. Please configure them."})
-        
         except EndpointConnectionError as e:
             raise CustomError({"error": f"Could not connect to the endpoint"})
         
@@ -33,18 +32,51 @@ def s3_exception_handler(func):
 
 
 class S3Storage:
+    client: DzgroSharedClient
+    s3Client: S3Client
 
-    def __init__(self):
-        pass
+    def __init__(self, client: DzgroSharedClient):
+        self.client = client
+
+    def __getattr__(self, item):
+        return None
+
+    def getBucketName(self, bucket: S3Bucket):
+        return f"{bucket.value}-{self.client.env.value.lower()}"
+    
+    def getS3TriggerObject(self, data: dict):
+        return {'Records': [
+            data
+        ]}
+    
+    def getS3Client(self):
+        if self.s3Client: return self.s3Client
+        from botocore.config import Config
+        from typing import cast
+        import boto3
+        self.s3Client = cast(S3Client, boto3.client('s3', config=Config(region_name=self.client.REGION)))
+        return self.s3Client
 
     @s3_exception_handler
     def put_object(self, req: S3PutObjectModel):
-        return s3.put_object(**req.model_dump(mode="json", exclude_none=True))
+        obj = req.model_dump(mode="json", exclude_none=True)
+        obj['Bucket'] = self.getBucketName(req.Bucket)
+        return self.getS3Client().put_object(**obj)
 
     @s3_exception_handler
     def get_object(self, req: S3GetObjectModel):
-        return s3.get_object(**req.model_dump(mode="json", exclude_none=True))
+        obj = req.model_dump(mode="json", exclude_none=True)
+        obj['Bucket'] = self.getBucketName(req.Bucket)
+        return self.getS3Client().get_object(**obj)
     
+    @s3_exception_handler
+    def create_signed_url_by_path(self, path:str, bucket: S3Bucket):
+        return self.getS3Client().generate_presigned_url('get_object', Params={'Bucket': self.getBucketName(bucket), 'Key': path},ExpiresIn=604800)
+    
+    @s3_exception_handler
+    def list_objects_v2(self, Bucket: S3Bucket, Prefix:str):
+        return self.getS3Client().list_objects_v2(Bucket=self.getBucketName(Bucket), Prefix=Prefix)
+
     # def uploadPilImage(self, image, path: str):
     #     in_mem_file = BytesIO()
     #     image.save(in_mem_file, format=image.format, quality=100)
@@ -84,9 +116,7 @@ class S3Storage:
     #         raise ValueError('Objects cannot be listed for this path')
     #     except:
     #         raise ValueError('Internal Error Occurred')
-    @s3_exception_handler
-    def create_signed_url_by_path(self, path:str, bucket: S3Bucket=S3Bucket.DZGRO):
-        return s3.generate_presigned_url('get_object', Params={'Bucket': bucket.value, 'Key': path},ExpiresIn=604800)
+    
 
     # def get_object(self, path):
     #     try:

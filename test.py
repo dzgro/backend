@@ -35,14 +35,14 @@ async def buildReports():
     from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage
     from dzgroshared.models.enums import AmazonDailyReportAggregationStep
     from dzgroshared.models.model import MockLambdaContext, DataCollections
-    from dzgroshared.models.sqs import SendMessageRequest, QueueUrl, ReceiveMessageRequest, DeleteMessageBatchEntry, DeleteMessageBatchRequest
-    QueueUrl = QueueUrl.AMAZON_REPORTS_TEST
+    from dzgroshared.models.sqs import SendMessageRequest, QueueName, ReceiveMessageRequest, DeleteMessageBatchEntry, DeleteMessageBatchRequest
+    QueueName = QueueName.AMAZON_REPORTS_TEST
     startfresh = False
     if startfresh:
         while startfresh:
-            sqsevent = await client.sqs.getMessages(ReceiveMessageRequest(QueueUrl=QueueUrl, MaxNumberOfMessages=1))
+            sqsevent = await client.sqs.getMessages(ReceiveMessageRequest(QueueUrl=QueueName, MaxNumberOfMessages=1))
             startfresh = sqsevent.has_messages
-            for message in sqsevent.messages: await client.sqs.deleteMessage(queue=QueueUrl, receipt_handle=message.receiptHandle)
+            for message in sqsevent.messages: await client.sqs.deleteMessage(queue=QueueName, receipt_handle=message.receiptHandle)
         message = AmazonParentReportQueueMessage(
             marketplace=client.marketplace,
             uid=client.uid,
@@ -60,17 +60,17 @@ async def buildReports():
                     await client.db.database.get_collection(collection.value).delete_many({})
         elif index is not None: message.index = index
         else: raise ValueError("Index is required for this step")
-        await client.sqs.sendMessage(SendMessageRequest(QueueUrl=QueueUrl, DelaySeconds=0), message)
+        await client.sqs.sendMessage(SendMessageRequest(QueueUrl=QueueName, DelaySeconds=0), message)
     from dzgroshared.functions.AmazonDailyReport.handler import AmazonReportManager
     manager = AmazonReportManager(client)
     shouldContinue = True
     while shouldContinue:
-        sqsevent = await client.sqs.getMessages(ReceiveMessageRequest(QueueUrl=QueueUrl, MaxNumberOfMessages=1))
+        sqsevent = await client.sqs.getMessages(ReceiveMessageRequest(QueueUrl=QueueName, MaxNumberOfMessages=1))
         shouldContinue = sqsevent.has_messages
         if shouldContinue:
             res = await manager.execute(sqsevent, MockLambdaContext())
             if client.env==ENVIRONMENT.DEV: 
-                req = DeleteMessageBatchRequest(QueueUrl=QueueUrl, Entries=[
+                req = DeleteMessageBatchRequest(QueueUrl=QueueName, Entries=[
                     DeleteMessageBatchEntry(Id=record.messageId, ReceiptHandle=record.receiptHandle)
                     for record in sqsevent.Records
                 ])

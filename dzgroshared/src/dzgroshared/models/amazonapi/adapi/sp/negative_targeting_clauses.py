@@ -52,7 +52,7 @@ class SponsoredProductsMarketplace(Enum):
 
 class SponsoredProductsAsinFilter(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     query_term_match_type: SponsoredProductsQueryTermMatchType | None = Field(
         None, alias='queryTermMatchType'
@@ -66,7 +66,7 @@ class SponsoredProductsErrorCause(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     location: str = Field(
         ...,
@@ -86,7 +86,7 @@ class SponsoredProductsReducedObjectIdFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: list[str] = Field(..., max_length=100, min_length=0)
 
@@ -101,7 +101,7 @@ class SponsoredProductsObjectIdFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: list[str] = Field(..., max_length=1000, min_length=0)
 
@@ -163,7 +163,7 @@ class SponsoredProductsUnauthorizedErrorCode(Enum):
 
 class SponsoredProductsAccessDeniedExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsAccessDeniedErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -194,7 +194,7 @@ class SponsoredProductsOtherError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsOtherErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -228,7 +228,7 @@ class SponsoredProductsBillingErrorReason(Enum):
 
 class SponsoredProductsInternalServerExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInternalErrorErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -240,7 +240,7 @@ class SponsoredProductsTargetingClauseSetupError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsTargetingClauseSetupErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -304,7 +304,7 @@ class SponsoredProductsEntityType(Enum):
 
 class SponsoredProductsCreateOrUpdateNegativeTargetingExpressionPredicate(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     type: SponsoredProductsCreateOrUpdateNegativeTargetingExpressionPredicateType
     value: str | None = Field(None, description='The expression value')
@@ -324,7 +324,7 @@ class SponsoredProductsMissingValueError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsMissingValueErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -437,7 +437,7 @@ class SponsoredProductsParentEntityError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsParentEntityErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -448,7 +448,7 @@ class SponsoredProductsDeleteSponsoredProductsNegativeTargetingClausesRequestCon
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     negative_target_id_filter: SponsoredProductsObjectIdFilter = Field(
         ..., alias='negativeTargetIdFilter'
@@ -457,7 +457,7 @@ class SponsoredProductsDeleteSponsoredProductsNegativeTargetingClausesRequestCon
 
 class SponsoredProductsUnauthorizedExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsUnauthorizedErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -465,7 +465,7 @@ class SponsoredProductsUnauthorizedExceptionResponseContent(BaseModel):
 
 class SponsoredProductsKeywordServingStatusDetail(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     name: SponsoredProductsKeywordServingStatusReason | None = None
     help_url: str | None = Field(
@@ -481,7 +481,7 @@ class SponsoredProductsKeywordServingStatusDetail(BaseModel):
 
 class SponsoredProductsNegativeTargetingExpressionPredicate(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     type: SponsoredProductsNegativeTargetingExpressionPredicateType | None = None
     value: str | None = Field(None, description='The expression value')
@@ -494,7 +494,7 @@ class SponsoredProductsMalformedValueError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsMalformedValueErrorReason
     fragment: str | None = Field(
@@ -511,7 +511,7 @@ class SponsoredProductsBillingError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsBillingErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -524,7 +524,7 @@ class SponsoredProductsInvalidInputError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsInvalidInputErrorReason
     cause: SponsoredProductsErrorCause | None = None
@@ -533,7 +533,7 @@ class SponsoredProductsInvalidInputError(BaseModel):
 
 class SponsoredProductsCreateNegativeTargetingClause(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression: list[
         SponsoredProductsCreateOrUpdateNegativeTargetingExpressionPredicate
@@ -558,7 +558,7 @@ class SponsoredProductsCreateNegativeTargetingClause(BaseModel):
 
 class SponsoredProductsEntityNotFoundError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsEntityNotFoundErrorReason
     entity_type: SponsoredProductsEntityType = Field(..., alias='entityType')
@@ -575,7 +575,7 @@ class SponsoredProductsThrottledError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsThrottledErrorCode
     cause: SponsoredProductsErrorCause | None = None
@@ -584,7 +584,7 @@ class SponsoredProductsThrottledError(BaseModel):
 
 class SponsoredProductsThrottlingExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsThrottledErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -592,7 +592,7 @@ class SponsoredProductsThrottlingExceptionResponseContent(BaseModel):
 
 class SponsoredProductsUnsupportedMediaTypeExceptionResponseContent(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsUnsupportedMediaTypeErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -604,7 +604,7 @@ class SponsoredProductsEntityQuotaError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsQuotaErrorReason
     quota_scope: SponsoredProductsQuotaScope | None = Field(None, alias='quotaScope')
@@ -616,7 +616,7 @@ class SponsoredProductsEntityQuotaError(BaseModel):
 
 class SponsoredProductsNegativeTargetingClauseExtendedData(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     last_update_date_time: datetime | None = Field(
         None, alias='lastUpdateDateTime', description='Last updated date in ISO 8601.'
@@ -638,7 +638,7 @@ class SponsoredProductsNegativeTargetingClauseExtendedData(BaseModel):
 
 class SponsoredProductsUpdateNegativeTargetingClause(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression: (
         list[SponsoredProductsCreateOrUpdateNegativeTargetingExpressionPredicate] | None
@@ -658,7 +658,7 @@ class SponsoredProductsRangeError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsValueLimitErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -679,14 +679,14 @@ class SponsoredProductsEntityStateFilter(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     include: list[SponsoredProductsEntityState] = Field(..., max_length=10, min_length=0)
 
 
 class SponsoredProductsDuplicateValueError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsDuplicateValueErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -700,7 +700,7 @@ class SponsoredProductsEntityStateError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsEntityStateErrorReason
     marketplace: SponsoredProductsMarketplace | None = None
@@ -715,7 +715,7 @@ class SponsoredProductsInternalServerError(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     reason: SponsoredProductsInternalErrorErrorCode
     cause: SponsoredProductsErrorCause | None = None
@@ -726,7 +726,7 @@ class SponsoredProductsListSponsoredProductsNegativeTargetingClausesRequestConte
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     negative_target_id_filter: SponsoredProductsObjectIdFilter | None = Field(
         None, alias='negativeTargetIdFilter'
@@ -762,7 +762,7 @@ class SponsoredProductsCreateSponsoredProductsNegativeTargetingClausesRequestCon
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     negative_targeting_clauses: list[SponsoredProductsCreateNegativeTargetingClause] = (
         Field(
@@ -779,7 +779,7 @@ class SponsoredProductsUpdateSponsoredProductsNegativeTargetingClausesRequestCon
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     negative_targeting_clauses: list[SponsoredProductsUpdateNegativeTargetingClause] = (
         Field(
@@ -794,7 +794,7 @@ class SponsoredProductsUpdateSponsoredProductsNegativeTargetingClausesRequestCon
 
 class SponsoredProductsNegativeTargetingClause(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     expression: list[SponsoredProductsNegativeTargetingExpressionPredicate] = Field(
         ...,
@@ -832,7 +832,7 @@ class SponsoredProductsListSponsoredProductsNegativeTargetingClausesResponseCont
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     total_results: int | None = Field(
         None, alias='totalResults', description='The total number of entities'
@@ -849,7 +849,7 @@ class SponsoredProductsListSponsoredProductsNegativeTargetingClausesResponseCont
 
 class SponsoredProductsNegativeTargetAccessErrorSelector(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_not_found_error: SponsoredProductsEntityNotFoundError | None = Field(
         None, alias='entityNotFoundError'
@@ -875,7 +875,7 @@ class SponsoredProductsNegativeTargetAccessErrorSelector(BaseModel):
 
 class SponsoredProductsNegativeTargetingClauseSuccessResponseItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     target_id: str | None = Field(
         None, alias='targetId', description='the NegativeTargetingClause ID'
@@ -892,7 +892,7 @@ class SponsoredProductsNegativeTargetingClauseSuccessResponseItem(BaseModel):
 
 class SponsoredProductsNegativeTargetAccessError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_type: str = Field(..., alias='errorType', description='The type of the error')
     error_value: SponsoredProductsNegativeTargetAccessErrorSelector = Field(
@@ -902,7 +902,7 @@ class SponsoredProductsNegativeTargetAccessError(BaseModel):
 
 class SponsoredProductsNegativeTargetMutationErrorSelector(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     entity_state_error: SponsoredProductsEntityStateError | None = Field(
         None, alias='entityStateError'
@@ -943,7 +943,7 @@ class SponsoredProductsNegativeTargetMutationErrorSelector(BaseModel):
 
 class SponsoredProductsNegativeTargetMutationError(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     error_type: str = Field(..., alias='errorType', description='The type of the error')
     error_value: SponsoredProductsNegativeTargetMutationErrorSelector = Field(
@@ -953,7 +953,7 @@ class SponsoredProductsNegativeTargetMutationError(BaseModel):
 
 class SponsoredProductsNegativeTargetingClauseFailureResponseItem(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     index: int = Field(
         ...,
@@ -971,7 +971,7 @@ class SponsoredProductsNegativeTargetAccessExceptionResponseContent(BaseModel):
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInvalidArgumentErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -984,7 +984,7 @@ class SponsoredProductsNegativeTargetMutationExceptionResponseContent(BaseModel)
     """
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     code: SponsoredProductsInvalidArgumentErrorCode
     message: str = Field(..., description='Human readable error message')
@@ -993,7 +993,7 @@ class SponsoredProductsNegativeTargetMutationExceptionResponseContent(BaseModel)
 
 class SponsoredProductsBulkNegativeTargetingClauseOperationResponse(BaseModel):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     success: (
         list[SponsoredProductsNegativeTargetingClauseSuccessResponseItem] | None
@@ -1007,7 +1007,7 @@ class SponsoredProductsUpdateSponsoredProductsNegativeTargetingClausesResponseCo
     BaseModel
 ):
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name= True
 
     negative_targeting_clauses: (
         SponsoredProductsBulkNegativeTargetingClauseOperationResponse
