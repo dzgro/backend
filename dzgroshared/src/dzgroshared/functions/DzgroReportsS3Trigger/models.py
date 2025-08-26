@@ -13,7 +13,7 @@ class S3TriggerType(str, Enum):
 
 
 class Bucket(BaseModel):
-    name: S3Bucket
+    name: str
     arn: str
 
 class S3Object(BaseModel):
@@ -25,6 +25,7 @@ class S3Object(BaseModel):
     def setFileType(cls, data: dict):
         if data['key'].endswith('.parquet'): data['filetype'] = S3FileType.PARQUET
         elif data['key'].endswith('.xlsx'): data['filetype'] = S3FileType.XLSX
+        elif data['key'].endswith('.csv'): data['filetype'] = S3FileType.CSV
         else: raise ValueError("Invalid File Type")
         return data
 

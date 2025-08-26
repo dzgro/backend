@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from dzgroshared.models.model import PyObjectId, Sort
 from bson import ObjectId
@@ -43,11 +43,6 @@ class DbManager:
         obj.update(data)
         return obj
     
-    def date(self):
-        import pytz
-        tz = pytz.timezone('Etc/GMT')
-        return datetime.now(tz=tz)
-    
     def getFilterDict(self, filterDict: dict)->dict:
         if "_id" in filterDict: return filterDict
         if self.uid and 'uid' not in filterDict and self.uid not in filterDict.values(): filterDict.update({"uid": self.uid})
@@ -84,8 +79,8 @@ class DbManager:
         data = [self.getFilterDict(item) for item in data]
         return (await self.collection.insert_many(data)).inserted_ids
     
-    async def insertOne(self, data: dict, withUidMarketplace = False, timestampkey:str|None=None)->ObjectId:
-        if timestampkey is not None: data.update({timestampkey: datetime.now()})
+    async def insertOne(self, data: dict, withUidMarketplace = False, timestamp:bool=False, timestampKey: str="createdat")->ObjectId:
+        if timestamp: data.update({timestampKey: datetime.now(timezone.utc)})
         if withUidMarketplace: data.update(self.getFilterDict(data))
         try: return (await self.collection.insert_one(data)).inserted_id
         except Exception as e:
@@ -100,9 +95,9 @@ class DbManager:
         filterDict = self.getFilterDict(filterDict)
         return (await self.collection.delete_one(filterDict)).deleted_count
     
-    async def updateOne(self, filterDict: dict = {}, setDict: dict = {}, unsetFields: list[str]=[], upsert: bool = False, timestampkey:str|None=None)->tuple[int, ObjectId|str|None]:
-        if timestampkey is not None: filterDict.update({timestampkey: int(datetime.now().timestamp())})
+    async def updateOne(self, filterDict: dict = {}, setDict: dict = {}, unsetFields: list[str]=[], upsert: bool = False, markCompletion: bool=False)->tuple[int, ObjectId|str|None]:
         filterDict = self.getFilterDict(filterDict)
+        if markCompletion: setDict.update({"completedat": datetime.now(timezone.utc)})
         result = await self.collection.update_one(filterDict, {"$set": setDict, "$unset": {f: "" for f in unsetFields}}, upsert=upsert)
         return result.modified_count, result.upserted_id
     

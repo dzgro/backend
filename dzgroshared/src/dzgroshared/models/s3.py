@@ -9,7 +9,6 @@ from enum import Enum
 class S3PutObjectModel(BaseModel):
     Bucket: S3Bucket
     Key: str
-    Body: Union[str, bytes]  # Required field
     ACL: str | SkipJsonSchema[None] = None
     CacheControl: str | SkipJsonSchema[None] = None
     ContentDisposition: str | SkipJsonSchema[None] = None

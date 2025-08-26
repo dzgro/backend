@@ -5,7 +5,7 @@ from dzgroshared.models.collections.user import UserProfileWithSubscription, Use
 from dzgroshared.models.model import SuccessResponse
 router = APIRouter(prefix="/user", tags=["User"])
 
-@router.get("/marketplace/{marketplace}", response_model=Marketplace, response_model_exclude_none=True)
+@router.get("/marketplace/{marketplace}", response_model=Marketplace, response_model_exclude_none=True, response_model_by_alias=False)
 async def getActiveAMarketplace(request: Request, marketplace: str):
     return await RequestHelper(request).client.db.marketplaces.getMarketplace(marketplace)
 

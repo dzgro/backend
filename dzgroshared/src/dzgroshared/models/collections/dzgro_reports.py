@@ -2,7 +2,7 @@ from dzgroshared.models.enums import DzgroReportType, DzroReportPaymentReconSett
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
-from dzgroshared.models.model import ItemId, Paginator
+from dzgroshared.models.model import ItemId, ItemIdWithDate, Paginator
 
 reportTypes = [
 	{
@@ -28,8 +28,8 @@ reportTypes = [
 
 
 class DzgroReportDates(BaseModel):
-    startdate: datetime|SkipJsonSchema[None]=None
-    enddate: datetime|SkipJsonSchema[None]=None
+    startDate: datetime|SkipJsonSchema[None]=None
+    endDate: datetime|SkipJsonSchema[None]=None
 
 class DzroReportPaymentReconRequest(BaseModel):
     dates: DzgroReportDates
@@ -43,16 +43,17 @@ class CreateDzgroReportRequest(BaseModel):
     reporttype: DzgroReportType
     paymentrecon: DzroReportPaymentReconRequest|SkipJsonSchema[None]=None
 
-class DzgroReport(CreateDzgroReportRequest, ItemId):
-    requested: datetime
+class DzgroReport(CreateDzgroReportRequest, ItemIdWithDate):
     messageid: str
     count: int|SkipJsonSchema[None]=None
-    url: str|SkipJsonSchema[None]=None
+    key: str|SkipJsonSchema[None]=None
     error: str|SkipJsonSchema[None]=None
+    completedat: datetime|SkipJsonSchema[None]=None
 
-class ListDzgroReportsRequest(BaseModel):
-    reporttype: DzgroReportType|SkipJsonSchema[None]=None
-    paginator: Paginator
+    @model_validator(mode="after")
+    def setErrorIfNoData(self):
+        if self.count == 0: self.error = "No data found"
+        return self
 
 class AvailableDzgroReport(BaseModel):
     reporttype: DzgroReportType

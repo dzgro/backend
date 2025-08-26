@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI
+import time
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import Response, RedirectResponse
 from api.exception_handlers import register_exception_handlers
 from fastapi.openapi.utils import get_openapi
@@ -56,6 +57,16 @@ app.openapi = custom_openapi
 origins: list[str] = ["http://localhost:4200", "https://dzgro.com"]
 headers: list[str] = ["Authorization","marketplaceId"]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+@app.middleware("http")
+async def log_request_time(request: Request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time_seconds = (time.perf_counter() - start_time)  # ms
+    if request.method!="OPTIONS":
+        if process_time_seconds>1:print(f"{request.method} {request.url.path} completed in {process_time_seconds:.2f} seconds")
+        else: print(f"{request.method} {request.url.path} completed in {process_time_seconds*1000:.2f} milliseconds")
+    return response
 
 register_exception_handlers(app)
 

@@ -1,10 +1,10 @@
 from bson import ObjectId
-from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerDetails, S3TriggerObject, S3TriggerType
-from dzgroshared.models.collections.dzgro_reports import ListDzgroReportsRequest, CreateDzgroReportRequest, DzgroReport
+from dzgroshared.models.collections.dzgro_reports import CreateDzgroReportRequest, DzgroReport
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.models.collections.queue_messages import DzgroReportQueueMessage
 from dzgroshared.models.enums import ENVIRONMENT, CollectionType, QueueName, S3Bucket
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.models.model import Paginator
 from dzgroshared.models.sqs import SQSEvent, SendMessageRequest
 
 
@@ -25,10 +25,7 @@ class DzgroReportHelper:
         return dzgro_reports.reportTypes
 
     async def createReport(self, request: CreateDzgroReportRequest):
-        item = request.model_dump(exclude_none=True)
-        item.update({"requested": self.db.date()})
-        item = self.db.addUidMarketplaceToDict(item)
-        id = await self.db.insertOne(item)
+        id = await self.db.insertOne(request.model_dump(exclude_none=True), withUidMarketplace=True)
         reportId = str(id)
         message = DzgroReportQueueMessage(uid=self.uid, marketplace=self.marketplace, index=reportId, reporttype=request.reporttype)
         req = SendMessageRequest(QueueUrl=QueueName.DZGRO_REPORTS)
@@ -39,30 +36,33 @@ class DzgroReportHelper:
             sqsEvent = self.client.sqs.getSQSEventByMessage(res, message)
             from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor
             await DzgroReportProcessor(self.client).execute(sqsEvent)
-            data = {"eventName": "ObjectCreated:Put", "s3": {"bucket": {"name": self.client.storage.getBucketName(bucket=S3Bucket.DZGRO_REPORTS), "arn": ""}, "object": {"key": f"{self.uid}/{self.client.marketplace}/{request.reporttype}/{reportId}/{request.reporttype}.parquet", "size": 0}}}
-            from dzgroshared.functions.DzgroReportsS3Trigger.handler import DzgroReportS3TriggerProcessor
-            await DzgroReportS3TriggerProcessor(self.client).execute(self.client.storage.getS3TriggerObject(data))
         return await self.getReport(reportId)
 
-    def listReports(self, body: ListDzgroReportsRequest):
-        matchDict = {"reporttype": body.reporttype} if body.reporttype else {}
-        matchStage = self.db.pp.matchMarketplace(matchDict)
-        skip = self.db.pp.skip(body.paginator.skip)
-        limit = self.db.pp.limit(body.paginator.limit)
+    async def listReports(self, paginator: Paginator):
+        matchStage = self.db.pp.matchMarketplace({})
+        skip = self.db.pp.skip(paginator.skip)
+        limit = self.db.pp.limit(paginator.limit)
         pipeline = [matchStage, skip, limit]
-        return self.db.aggregate(pipeline)
+        data = await self.db.aggregate(pipeline)
+        return data
     
     async def getReport(self, reportid: str|ObjectId):
         return DzgroReport(**await self.db.findOne({'_id': self.db.convertToObjectId(reportid)}))
+    
+    async def getDownloadUrl(self, reportid: str|ObjectId):
+        report = await self.getReport(reportid)
+        if report.error: raise ValueError("Report could not be generated")
+        if not report.key: raise ValueError("Report not yet generated")
+        return self.client.storage.create_signed_url_by_path(report.key, S3Bucket.DZGRO_REPORTS, 30)
 
-    async def addurl(self, reportid: str|ObjectId, url: str):
-        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'url': url, "completed": self.db.date()})
+    async def addKey(self, reportid: str|ObjectId, key: str):
+        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'key': key}, markCompletion=True)
 
     async def addCount(self, reportid: str|ObjectId, count: int):
         await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'count': count})
 
     async def addError(self, reportid: str|ObjectId, error: str):
-        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'error': error, "completed": self.db.date()})
+        await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'error': error}, markCompletion=True)
 
     async def addMessageId(self, reportid: str|ObjectId, messageId: str):
         await self.db.updateOne({'_id': self.db.convertToObjectId(reportid)}, {'messageid': messageId})

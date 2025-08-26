@@ -1,4 +1,5 @@
 from sys import prefix
+from typing import Union
 from botocore.exceptions import ClientError
 import boto3
 from botocore.config import Config
@@ -58,9 +59,10 @@ class S3Storage:
         return self.s3Client
 
     @s3_exception_handler
-    def put_object(self, req: S3PutObjectModel):
+    def put_object(self, req: S3PutObjectModel, Body: Union[str, bytes]):
         obj = req.model_dump(mode="json", exclude_none=True)
         obj['Bucket'] = self.getBucketName(req.Bucket)
+        obj['Body'] = Body
         return self.getS3Client().put_object(**obj)
 
     @s3_exception_handler
@@ -70,9 +72,9 @@ class S3Storage:
         return self.getS3Client().get_object(**obj)
     
     @s3_exception_handler
-    def create_signed_url_by_path(self, path:str, bucket: S3Bucket):
-        return self.getS3Client().generate_presigned_url('get_object', Params={'Bucket': self.getBucketName(bucket), 'Key': path},ExpiresIn=604800)
-    
+    def create_signed_url_by_path(self, path:str, bucket: S3Bucket, ExpiresIn: int = 604800):
+        return self.getS3Client().generate_presigned_url('get_object', Params={'Bucket': self.getBucketName(bucket), 'Key': path},ExpiresIn=ExpiresIn)
+
     @s3_exception_handler
     def list_objects_v2(self, Bucket: S3Bucket, Prefix:str):
         return self.getS3Client().list_objects_v2(Bucket=self.getBucketName(Bucket), Prefix=Prefix)
