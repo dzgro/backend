@@ -63,11 +63,7 @@ class MarketplaceHelper:
         unwind = pp.unwind("detail")
         replaceWith = pp.replaceRoot("$detail")
         res = await self.marketplaceDB.aggregate([matchStage, lookupDetail, unwind, replaceWith])
-        try:
-            return CountryDetailsWithBids(**res[0])
-        except Exception as e:
-            print(e.args[0])
-            raise Exception
+        return CountryDetailsWithBids(**res[0])
 
     
     async def lookbackPeriod(self, id: ObjectId|str)->int:

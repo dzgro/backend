@@ -1,4 +1,4 @@
-import cleaner, inquirer, mapping
+import inquirer, cleaner, mapping
 from dzgroshared.models.enums import ENVIRONMENT
 
 def run_connect_ec2_script():
@@ -32,6 +32,7 @@ def run_connect_ec2_script():
 		print(f"Unexpected error running connect-ec2.ps1: {e}")
 
 def askForSelection():
+	
 	question = [
 		inquirer.List(
 			"script",
@@ -48,8 +49,9 @@ def askForSelection():
 
 
 def main():
-	askSelection = False
-	regions = mapping.Region.all() if askSelection else [mapping.Region.DEFAULT]
+	askSelection = True
+	deployAllRegions = False
+	regions = mapping.Region.all() if deployAllRegions else [mapping.Region.DEFAULT]
 	env = ENVIRONMENT.LOCAL if not askSelection else askForSelection()
 	try:
 		from TemplateBuilder import TemplateBuilder
@@ -57,6 +59,7 @@ def main():
 
 		# Run connect EC2 script after deployment
 		# run_connect_ec2_script()
+		
 		
 		# Clean up deployment assets
 		print("\n" + "="*50)

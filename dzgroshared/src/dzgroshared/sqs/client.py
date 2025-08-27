@@ -31,7 +31,7 @@ class SqsHelper:
         if self.client.env!=ENVIRONMENT.LOCAL:
             client = self.getClient()
             send_args = {
-                "QueueUrl": payload.QueueUrl.value,
+                "QueueUrl": self.getQueueUrl(payload.Queue),
                 "MessageBody": MessageBody.model_dump_json(),
                 "DelaySeconds": payload.DelaySeconds or 0,
             }
@@ -73,7 +73,7 @@ class SqsHelper:
     async def deleteMessage(self, queue: QueueName, receipt_handle: str) -> None:
         try:
             self.getClient().delete_message(
-                QueueUrl=queue.value,
+                QueueUrl=self.getQueueUrl(queue),
                 ReceiptHandle=receipt_handle
             )
         except botocore.exceptions.ClientError as e:

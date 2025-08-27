@@ -36,6 +36,9 @@ class QueueRole(str, Enum):
     @staticmethod
     def read():
         return [QueueRole.ReceiveMessage, QueueRole.GetQueueAttributes, QueueRole.DeleteMessage]
+    
+class S3LifeCycleRule(BaseModel):
+    Rules: list[dict]
 
 class S3Role(str, Enum):
     GetObject = "s3:GetObject"
@@ -87,6 +90,7 @@ class S3Property(BaseModel):
     name: S3Bucket
     roles: list[S3Role]
     trigger: S3TiggerEvent|SkipJsonSchema[None]=None
+    lifeCycleConfiguration: S3LifeCycleRule|SkipJsonSchema[None]=None
 
 class LambdaRegion(BaseModel):
     region: Region
@@ -182,7 +186,16 @@ LAMBDAS = [
                     roles=[S3Role.GetObject], 
                     trigger=S3TiggerEvent(
                         eventName="s3:ObjectCreated:*",
-                        filter={ "S3Key": { "Rules": [ { "Name": "suffix", "Value": ".parquet" } ] } }
+                        filter={ "S3Key": { "Rules": [ { "Name": "suffix", "Value": ".csv" } ] } }
+                    ),
+                    lifeCycleConfiguration = S3LifeCycleRule(
+                        Rules=[
+                            {
+                                "Id": "ExpireAfter3Days",
+                                "Status": "Enabled",
+                                "ExpirationInDays": 3
+                            }
+                        ]
                     )
                 )
             ),

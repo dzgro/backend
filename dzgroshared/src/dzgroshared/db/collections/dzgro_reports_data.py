@@ -18,8 +18,7 @@ class DzgroReportDataHelper:
     async def count(self, reportid: str|ObjectId):
         return await self.db.count({'reportid': self.db.convertToObjectId(reportid)})
 
-    
-
-
+    async def deleteReportData(self, reportid: str|ObjectId):
+        return await self.db.deleteMany({'reportid': self.db.convertToObjectId(reportid)})  
 
         

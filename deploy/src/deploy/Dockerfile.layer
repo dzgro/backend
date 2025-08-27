@@ -1,0 +1,13 @@
+
+FROM public.ecr.aws/lambda/python:3.12
+RUN microdnf update -y && microdnf install -y zip
+COPY dzgroshared/pyproject.toml /tmp/
+COPY dzgroshared/src /tmp/src
+RUN pip install toml
+RUN python3 -c "import toml; pyproject = toml.load('/tmp/pyproject.toml'); deps = pyproject.get('tool', {}).get('poetry', {}).get('dependencies', {}); [print(f'{pkg}=={ver}' if isinstance(ver, str) and not ver.startswith(('^', '~', '>=')) else pkg) for pkg, ver in deps.items() if pkg.lower() != 'python']" > /tmp/requirements.txt
+RUN cat /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt -t /tmp/layer/python/lib/python3.12/site-packages/
+RUN cp -r /tmp/src/dzgroshared /tmp/layer/python/lib/python3.12/site-packages/
+WORKDIR /tmp/layer
+RUN zip -r dzgroshared-dev.zip python/
+RUN ls -la /tmp/layer/

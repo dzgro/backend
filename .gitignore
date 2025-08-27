@@ -266,4 +266,8 @@ secrets.json
 # Local development
 .local/
 
+# Zip and Yaml
+*.zip
+*.yaml
+
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode

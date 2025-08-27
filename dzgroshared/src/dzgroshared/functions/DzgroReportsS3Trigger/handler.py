@@ -25,15 +25,14 @@ class DzgroReportS3TriggerProcessor:
                 self.model = S3TriggerObject(**record)
                 self.client.setUid(self.model.uid)
                 self.client.setMarketplace(ObjectId(self.model.marketplace))
-                self.reportType = DzgroReportType(self.model.reporttype)
+                self.reportType = DzgroReportType[self.model.reporttype]
                 self.prefix = f"{self.model.uid}/{self.model.marketplace}/{self.model.reporttype}/{self.model.reportid}/"
                 if data is not None: 
                     df = pd.DataFrame(data)
                     await self.createExcel(df)
                 elif self.model.triggerType==S3TriggerType.PUT and self.model.s3.object.filetype==S3FileType.CSV: 
                     self.report = await self.client.db.dzgro_reports.getReport(self.model.reportid)
-                    df = await self.processCSV(self.model, self.reportType)
-                    if df: await self.createExcel(df)
+                    await self.collate()
             except Exception as e:
                 print(e)
 
@@ -52,7 +51,8 @@ class DzgroReportS3TriggerProcessor:
             part_df.columns = df.columns  # align with header order
             df = pd.concat([df, part_df], ignore_index=True)
         count = len(df)
-        return df if self.report.count == count else None
+        if self.report.count == count:
+            await self.createExcel(df)
 
     async def createExcel(self, df: pd.DataFrame):
         output_buffer = BytesIO()
@@ -63,25 +63,3 @@ class DzgroReportS3TriggerProcessor:
         self.client.s3.put_object(req, Body=output_buffer.getvalue())
         await self.client.db.dzgro_reports.addKey(self.model.reportid, final_key)
         return final_key
-
-
-    async def processCSV(self, model: S3TriggerObject, reportType: DzgroReportType):
-        print(model.model_dump())
-        import pandas as pd
-        import io
-        print(model.s3.object.key)
-        from dzgroshared.models.s3 import S3GetObjectModel, S3Bucket, S3PutObjectModel
-        bucket = S3Bucket.DZGRO_REPORTS
-        stream = self.client.storage.get_object(S3GetObjectModel(Bucket=bucket, Key=model.s3.object.key))['Body']
-        df = pd.read_parquet(io.BytesIO(stream.read()), engine='pyarrow')
-        from dzgroshared.functions.DzgroReportsS3Trigger import cols as ColumnProcessor
-        df = ColumnProcessor.convertDataFrame(df, reportType)
-        with io.BytesIO() as output:
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False)
-            data = output.getvalue()
-        path = f'{model.uid}/{model.marketplace}/{model.reporttype}/{model.reportid}/{model.reporttype}.xlsx'
-        self.client.storage.put_object(S3PutObjectModel(Bucket=bucket, Key=path, Body=data, ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
-        url = self.client.storage.create_signed_url_by_path(path, bucket)
-        await self.addSignedUrl(model, url)
-

@@ -1,10 +1,10 @@
 from typing import Literal
-import yaml
+import yaml, os
 from rolecreator import RoleCreator
 import mapping
 from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, Tag, LambdaProperty, QueueRole, S3Role
 from dzgroshared.models.enums import ENVIRONMENT, S3Bucket, QueueName
-
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..'))
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
         return True
@@ -24,33 +24,114 @@ class TemplateBuilder:
         self.envtextlower = env.value.lower()
         self.roleCreator = RoleCreator()
 
-    def deploy(self, regions: list[Region]):
-        if self.env != ENVIRONMENT.LOCAL:
-            import layer_builder as LayerBuilder
-            LayerBuilder.build_layer_zip_clean(self.env)
-        for region in regions:
-            self.resources = {}
-            LayerArn: str = ""
-            if self.env != ENVIRONMENT.LOCAL:
-                LayerArn = LayerBuilder.deploy_layer(region, self.env)
-                # LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared_layer:7"
-                self.createCertificateAndLinkApi(region)
-            self.createResources(region, LayerArn)
-            template = {
-                'AWSTemplateFormatVersion': '2010-09-09',
-                'Transform': 'AWS::Serverless-2016-10-31',
-                'Description': f'SAM {self.env.value} template for region {region.value}',
-                'Resources': self.resources
-            }
-            import os
-            name = f'dzgro-sam-{region.value}-{self.envtextlower}'
-            filename = os.path.join(f'{name}.yaml')
-            with open(filename, 'w') as f:
-                yaml.dump(template, f, sort_keys=False, Dumper=NoAliasDumper)
+    
+    def build_layer_with_docker(self):
+        """Build layer using Docker for proper Linux compatibility"""
+        import subprocess
+        
+        dockerfile_content = f'''
+    FROM public.ecr.aws/lambda/python:3.12
+    RUN microdnf update -y && microdnf install -y zip
+    COPY dzgroshared/pyproject.toml /tmp/
+    COPY dzgroshared/src /tmp/src
+    RUN pip install toml
+    RUN python3 -c "import toml; pyproject = toml.load('/tmp/pyproject.toml'); deps = pyproject.get('tool', {{}}).get('poetry', {{}}).get('dependencies', {{}}); [print(f'{{pkg}}=={{ver}}' if isinstance(ver, str) and not ver.startswith(('^', '~', '>=')) else pkg) for pkg, ver in deps.items() if pkg.lower() != 'python']" > /tmp/requirements.txt
+    RUN cat /tmp/requirements.txt
+    RUN pip install -r /tmp/requirements.txt -t /tmp/layer/python/lib/python3.12/site-packages/
+    RUN cp -r /tmp/src/dzgroshared /tmp/layer/python/lib/python3.12/site-packages/
+    WORKDIR /tmp/layer
+    RUN zip -r dzgroshared-{self.env.value.lower()}.zip python/
+    RUN ls -la /tmp/layer/
+    '''
+        
+        # Save Dockerfile
+        dockerfile_path = os.path.join(os.path.dirname(__file__), 'Dockerfile.layer')
+        with open(dockerfile_path, 'w') as f:
+            f.write(dockerfile_content)
+        
+        # Build with Docker
+        try:
+            print("Building Lambda layer with Docker...")
+            subprocess.run(['docker', 'build', '-f', dockerfile_path, '-t', 'lambda-layer-builder', project_root], check=True)
+            
+            # Copy the zip file out of the container
+            layer_zip_name = f'dzgroshared-{self.env.value.lower()}.zip'
+            container_id = subprocess.run([
+                'docker', 'create', 'lambda-layer-builder'
+            ], capture_output=True, text=True, check=True).stdout.strip()
+            
+            # Copy file from container to host
+            subprocess.run([
+                'docker', 'cp', f'{container_id}:/tmp/layer/{layer_zip_name}', project_root
+            ], check=True)
+            
+            # Clean up container
+            subprocess.run(['docker', 'rm', container_id], check=True)
+            
+            print("✓ Successfully built layer with Docker")
+            return layer_zip_name
+        except subprocess.CalledProcessError as e:
+            print(f"Docker build failed: {e}")
+            print("Falling back to current method...")
+            raise ValueError("Docker build failed")
+        except Exception as e:
+            print(f"Docker build failed: {e}")
+            print("Falling back to current method...")
+            raise ValueError("Docker build failed")
 
-            self.validate(filename, region)
-            print(f"SAM template for region {region.value} saved to {filename}")
-            self.build_deploy_sam_template(name, region)
+    def deploy_layer(self, zipname: str, region: Region):
+        # Publish layer using boto3
+        import boto3
+        client = boto3.client("lambda", region_name=region.value)
+        layer_name = f"dzgroshared-{self.env.value.lower()}"
+        with open(zipname, "rb") as f:
+            response = client.publish_layer_version(
+                LayerName=layer_name,
+                Description=f"Dzgroshared Layer for {self.env.value} environment",
+                Content={"ZipFile": f.read()},
+                CompatibleRuntimes=["python3.12"],
+                LicenseInfo="MIT"
+            )
+        layer_arn = response["LayerVersionArn"]
+        print(f"Published Lambda layer ARN: {layer_arn}")
+        return layer_arn
+
+
+
+    def deploy(self, regions: list[Region]):
+        for region in regions:
+            try:
+                self.resources = {}
+                LayerArn: str = ""
+                if self.env != ENVIRONMENT.LOCAL:
+                    zipname = self.build_layer_with_docker()
+                    LayerArn = self.deploy_layer(zipname, region)
+                if self.env != ENVIRONMENT.LOCAL:
+                    
+                    # LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared-dev:3"
+                    self.createCertificateAndLinkApi(region)
+                self.createResources(region, LayerArn)
+                template = {
+                    'AWSTemplateFormatVersion': '2010-09-09',
+                    'Transform': 'AWS::Serverless-2016-10-31',
+                    'Description': f'SAM {self.env.value} template for region {region.value}',
+                    'Resources': self.resources
+                }
+                import os
+                name = f'dzgro-sam-{region.value}-{self.envtextlower}'
+                filename = os.path.join(f'{name}.yaml')
+                with open(filename, 'w') as f:
+                    yaml.dump(template, f, sort_keys=False, Dumper=NoAliasDumper)
+
+                self.validate(filename, region)
+                print(f"SAM template for region {region.value} saved to {filename}")
+                self.build_deploy_sam_template(name, region)
+            except ValueError as e:
+                print(f"Error occurred while building SAM template for region {region.value}: {e}")
+                raise e
+            except Exception as e:
+                print(f"Unexpected error occurred while building SAM template for region {region.value}: {e}")
+                raise e
 
     def createCertificateAndLinkApi(self, region: Region):
         api = f"api-{self.envtextlower}.dzgro.com"
@@ -258,18 +339,21 @@ class TemplateBuilder:
         if _lambda.s3 and _lambda.s3.trigger:
             event = { "Bucket": { "Ref": self.getBucketResourceName(_lambda.s3.name) }, "Events": _lambda.s3.trigger.eventName }
             if _lambda.s3.trigger.filter:
-                event["Filter"] = { "S3Key": { "Rules": [ { "Name": "suffix", "Value": ".parquet" } ] } }
+                event["Filter"] = _lambda.s3.trigger.filter
             resource['Properties']['Events'] = { "S3UploadEvent": { "Type": "S3", "Properties": event } }
         self.resources[fnName] = resource
 
     def addBucket(self, region: Region, s3: S3Property):
         resource_name = self.getBucketResourceName(s3.name)
+        properties = {
+            'BucketName': self.getBucketName(s3.name),
+            'Tags': self.getListTag()
+        }
+        if s3.lifeCycleConfiguration:
+            properties['LifecycleConfiguration'] = s3.lifeCycleConfiguration.model_dump(mode="json")
         self.resources[resource_name] = {
             'Type': 'AWS::S3::Bucket',
-            'Properties': {
-                'BucketName': self.getBucketName(s3.name),
-                'Tags': self.getListTag()
-            }
+            'Properties': properties
         }
 
     def createDLQ(self, name:str):
@@ -335,7 +419,7 @@ class TemplateBuilder:
         """
         import subprocess
         import os
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..'))
         template_file = os.path.join(f'{name}.yaml')
         built_template_file = os.path.join(project_root, '.aws-sam', 'build', 'template.yaml')
 

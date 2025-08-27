@@ -17,6 +17,7 @@ mypy_boto3_sqs = "1.40.0"
 mypy-boto3-s3 = "1.40.0"
 mypy_boto3_cognito_idp = "1.39.0"
 motor = "3.7.1"
+pymongo = "4.10.1"
 pytz = "2025.2"
 
 

@@ -28,14 +28,13 @@ reportTypes = [
 
 
 class DzgroReportDates(BaseModel):
-    startDate: datetime|SkipJsonSchema[None]=None
-    endDate: datetime|SkipJsonSchema[None]=None
+    startDate: datetime
+    endDate: datetime
 
 class DzroReportPaymentReconRequest(BaseModel):
     dates: DzgroReportDates
     settlementRange: DzroReportPaymentReconSettlementRangeType
     settlementDate: datetime|SkipJsonSchema[None]=None
-    includeExpenseTypes: bool
     includeProducts: bool
 
 

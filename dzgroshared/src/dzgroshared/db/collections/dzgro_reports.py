@@ -25,18 +25,23 @@ class DzgroReportHelper:
         return dzgro_reports.reportTypes
 
     async def createReport(self, request: CreateDzgroReportRequest):
-        id = await self.db.insertOne(request.model_dump(exclude_none=True), withUidMarketplace=True)
-        reportId = str(id)
-        message = DzgroReportQueueMessage(uid=self.uid, marketplace=self.marketplace, index=reportId, reporttype=request.reporttype)
-        req = SendMessageRequest(QueueUrl=QueueName.DZGRO_REPORTS)
-        res = await self.client.sqs.sendMessage(req, message)
-        await self.addMessageId(reportId,res.message_id)
-        if self.client.env==ENVIRONMENT.LOCAL:
-            message = await self.client.db.sqs_messages.getMessage(res.message_id)
-            sqsEvent = self.client.sqs.getSQSEventByMessage(res, message)
-            from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor
-            await DzgroReportProcessor(self.client).execute(sqsEvent)
-        return await self.getReport(reportId)
+        try:
+            id = await self.db.insertOne(request.model_dump(exclude_none=True), withUidMarketplace=True)
+            reportId = str(id)
+            message = DzgroReportQueueMessage(uid=self.uid, marketplace=self.marketplace, index=reportId, reporttype=request.reporttype)
+            req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
+            res = await self.client.sqs.sendMessage(req, message)
+            await self.addMessageId(reportId,res.message_id)
+            if self.client.env in ENVIRONMENT.LOCAL:
+                message = await self.client.db.sqs_messages.getMessage(res.message_id)
+                sqsEvent = self.client.sqs.getSQSEventByMessage(res, message)
+                from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor
+                await DzgroReportProcessor(self.client).execute(sqsEvent)
+            return await self.getReport(reportId)
+        except Exception as e:
+            if not res.message_id: await self.client.db.dzgro_reports.deleteReport(reportId)
+            else: await self.client.db.dzgro_reports.addError(reportId, str(e))
+            raise e
 
     async def listReports(self, paginator: Paginator):
         matchStage = self.db.pp.matchMarketplace({})

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal, Any
 from bson import ObjectId
 from dzgroshared.models.model import PyObjectId, SATKey
@@ -35,9 +36,13 @@ class PipelineProcessor:
     def matchAllEQExpressions(self, keys: list[str]):
         return self.matchAllExpressions(list(map(lambda x: LookUpPipelineMatchExpression(key=x), keys)))
 
-    
+    def getDatesBetweenTwoDates(self, startDate: datetime, endDate: datetime) -> dict:
+        return { '$let': { 'vars': { 'startDate': startDate, 'endDate': endDate }, 'in': { '$reduce': { 'input': { '$range': [ 0, { '$sum': [ { '$dateDiff': { 'startDate': '$$startDate', 'endDate': '$$endDate', 'unit': 'day' } }, 1 ] } ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$dateAdd': { 'startDate': '$$startDate', 'unit': 'day', 'amount': '$$this' } } ] ] } } } } }
+
     def matchAllExpressions(self, expressions: list[LookUpPipelineMatchExpression]):
-        expr: list[dict] = [{"$eq": ["$uid","$$uid"]}, {"$eq": ["$marketplace","$$marketplace"]}]
+        expr: list[dict] = []
+        if self.uid: expr.append({"$eq": ["$uid",self.uid]})
+        if self.marketplace: expr.append({"$eq": ["$marketplace",self.marketplace]})
         for e in expressions: 
             val = f'$${e.key}' if not e.value else e.value if not e.isValueVariable else f'$${e.value}'
             if e.operator==Operator.NOTIN: expr.append({"$not": {'$in': [f'${e.key}', val]}})
@@ -58,7 +63,7 @@ class PipelineProcessor:
     
 
     def unwind(self, key: str):
-        return {"$unwind": f'${key}'}
+        return {"$unwind": f'${key}' if not key.startswith('$') else key}
 
     def unset(self, keys: list[str]):
         return {"$unset": keys}
@@ -77,8 +82,8 @@ class PipelineProcessor:
         return {"$mergeObjects": objects}
     
     def first(self, key:str):
-        return {"$first": f'${key}'}
-    
+        return {"$first": f'${key}' if not key.startswith('$') else key}
+
     def setCondtion(self, condition: bool|dict, ifTrue: Any, ifFalse: Any):
         return {"$cond": [condition, ifTrue, ifFalse]}
     
@@ -180,6 +185,9 @@ class PipelineProcessor:
     def removeDataTypesFromObject(self, key: str, removeTypes: list[Literal['array','object','str','int','float']] = []):
         return { '$arrayToObject': { '$reduce': { 'input': { '$objectToArray': f'${key}' }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { "$let": { "vars": { "objType": { '$type': '$$this.v' } }, "in": { '$cond': [ { '$not': { "$in": ["$$objType", removeTypes] } }, [ '$$this' ], [] ] } } } ] } } } }
     
+    def roundAllDouble(self, decimalplaces:int=2):
+        return self.replaceRoot({ "$arrayToObject": { "$reduce": { "input": {"$objectToArray": "$$ROOT"}, "initialValue": [], "in": { "$concatArrays": [ "$$value", [ { "k": "$$this.k", "v": { "$cond": { "if": { "$eq": [ {"$type": "$$this.v"}, "double" ] }, "then": {"$round": ["$$this.v",decimalplaces]}, "else": "$$this.v" } } } ] ] } } } })
+
     def mergeAllObjectsInObjectToObject(self, key: str):
         return { '$arrayToObject': { '$reduce': { 'input': { '$objectToArray': f'${key}' }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$cond': [ { '$eq': [ { '$type': '$$this.v' }, 'object' ] }, { '$objectToArray': '$$this.v' }, [] ] } ] } } } }
     

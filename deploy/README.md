@@ -1,41 +1,45 @@
-Step 1: Create User Roles
-------------------------
+## Step 1: Create User Roles
 
 There will be two user roles:
 
-
 1. DzgroLambdaRole
+
    - This IAM role is assigned to your Lambda functions.
    - Permissions required:
-      * AWSLambdaBasicExecutionRole (CloudWatch Logs)
-      * Full access to SQS
-      * Full access to S3 buckets used by the application
+     - AWSLambdaBasicExecutionRole (CloudWatch Logs)
+     - Full access to SQS
+     - Full access to S3 buckets used by the application
 
 2. DzgroAPIGatewayRole
    - This IAM role is assigned to API Gateway.
    - Permissions required:
-      * Invoke Lambda functions
-      * Add messages to SQS queues
+     - Invoke Lambda functions
+     - Add messages to SQS queues
    - Create using AWS Console, CLI, or CloudFormation. Attach policies for Lambda invocation (AWSLambdaRole) and SQS message sending (AmazonSQSFullAccess or custom policy).
-Step 2: Get Deployment Regions
------------------------------
+     Step 2: Get Deployment Regions
+
+---
+
 Identify all AWS regions where deployment is required. This information can be obtained from the region mappings defined in your project (e.g., mapping.py or sam-template files).
 
 Actions:
-- Review the region mappings in deployment/mapping.py and the SAM template files (sam-template-*.yaml).
+
+- Review the region mappings in deployment/mapping.py and the SAM template files (sam-template-\*.yaml).
 - List all target regions for deployment.
 - Ensure all subsequent deployment steps are performed for each region.
 
-Step 3: Execute Deployment Steps Per Region
-------------------------------------------
+## Step 3: Execute Deployment Steps Per Region
+
 Create AWS SAM templates for all regions from step 2 dynamically using below information:
 For every region:
-   - Read the functions map and Queues map objects from the mappings file (deployment/mapping.py).
-   - Use these mappings to determine which functions and SQS queues need to be deployed or configured for the region.
 
-    -------------------------------
-    AWS SAM Template Requirements
-    -------------------------------
+- Read the functions map and Queues map objects from the mappings file (deployment/mapping.py).
+- Use these mappings to determine which functions and SQS queues need to be deployed or configured for the region.
+
+  ***
+
+  ## AWS SAM Template Requirements
+
 
     General
     -------
@@ -167,43 +171,40 @@ For every region:
 
 Step 4: Create Deployment Template Per Region
 For each region identified in Step 2:
-   - Generate an AWS SAM or CloudFormation template that includes all resources required for that region:
-         * Lambda functions (with correct configuration and IAM roles)
-         * SQS queues and DLQs (with redrive policy and visibility timeout)
-         * SQS-to-Lambda event mappings
-         * API Gateway (if region is the default region)
-         * IAM roles and permissions
-   - Ensure all mappings, routes, and integration templates are correctly defined for the region's resources.
-      - Validate the template for syntax and completeness before deploying.
-      - Name each template file by appending the region name (e.g., sam-template-<region>.yaml).
-      - Save each template in the deployment folder for organized access and deployment.
 
-Step 4: Create Deployment Template Per Region
---------------------------------------------
+- Generate an AWS SAM or CloudFormation template that includes all resources required for that region:
+  _ Lambda functions (with correct configuration and IAM roles)
+  _ SQS queues and DLQs (with redrive policy and visibility timeout)
+  _ SQS-to-Lambda event mappings
+  _ API Gateway (if region is the default region) \* IAM roles and permissions
+- Ensure all mappings, routes, and integration templates are correctly defined for the region's resources.
+  - Validate the template for syntax and completeness before deploying.
+  - Name each template file by appending the region name (e.g., sam-template-<region>.yaml).
+  - Save each template in the deployment folder for organized access and deployment.
+
+## Step 4: Create Deployment Template Per Region
+
 For each region identified in Step 2:
-   - Generate an AWS SAM or CloudFormation template that includes all resources required for that region:
-         * Lambda functions (with correct configuration and IAM roles)
-         * SQS queues and DLQs (with redrive policy and visibility timeout)
-         * SQS-to-Lambda event mappings
-         * API Gateway (if region is the default region)
-         * IAM roles and permissions
-   - Ensure all mappings, routes, and integration templates are correctly defined for the region's resources.
-   - Validate the template for syntax and completeness before deploying.
-   - Name each template file by appending the region name (e.g., sam-template-<region>.yaml).
-   - Save each template in the deployment folder for organized access and deployment.
+
+- Generate an AWS SAM or CloudFormation template that includes all resources required for that region:
+  _ Lambda functions (with correct configuration and IAM roles)
+  _ SQS queues and DLQs (with redrive policy and visibility timeout)
+  _ SQS-to-Lambda event mappings
+  _ API Gateway (if region is the default region) \* IAM roles and permissions
+- Ensure all mappings, routes, and integration templates are correctly defined for the region's resources.
+- Validate the template for syntax and completeness before deploying.
+- Name each template file by appending the region name (e.g., sam-template-<region>.yaml).
+- Save each template in the deployment folder for organized access and deployment.
 
 Step 5: Build and Deploy Templates
-For each region:
-    - Use AWS SAM CLI or CloudFormation to build the generated template (e.g., sam build -t sam-template-<region>.yaml).
-    - Deploy the template to the corresponding AWS region using a non-interactive command that does not prompt for permissions or user input. Use the S3 bucket 'dzgro-sam' for deployment artifacts. Example:
-       sam deploy --template-file sam-template-<region>.yaml --region <region> --no-confirm-changeset --no-execute-changeset --no-interactive --s3-bucket dzgro-sam
-    - Monitor the deployment process and verify that all resources are created and configured correctly.
-
+For each region: - Use AWS SAM CLI or CloudFormation to build the generated template (e.g., sam build -t sam-template-<region>.yaml). - Deploy the template to the corresponding AWS region using a non-interactive command that does not prompt for permissions or user input. Use the S3 bucket 'dzgro-sam' for deployment artifacts. Example:
+sam deploy --template-file sam-template-<region>.yaml --region <region> --no-confirm-changeset --no-execute-changeset --no-interactive --s3-bucket dzgro-sam - Monitor the deployment process and verify that all resources are created and configured correctly.
 
 Step 6: Deploy FastAPI Application on EC2 Server
 This is a general deployment step (not region-specific):
-   - Provision an EC2 server to host the FastAPI application (receipt server).
-   - Configure the server with necessary security groups, IAM roles, and networking settings.
-   - Install Python, FastAPI, and all required dependencies on the EC2 instance.
-   - Deploy the FastAPI application code to the server.
-   - Run the `connect-ec2.ps1` script located in the deployment folder to set up and connect to the EC2 system.
+
+- Provision an EC2 server to host the FastAPI application (receipt server).
+- Configure the server with necessary security groups, IAM roles, and networking settings.
+- Install Python, FastAPI, and all required dependencies on the EC2 instance.
+- Deploy the FastAPI application code to the server.
+- Run the `connect-ec2.ps1` script located in the deployment folder to set up and connect to the EC2 system.

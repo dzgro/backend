@@ -11,6 +11,7 @@ class DzgroReportProcessor:
     messageid: str
     message: DzgroReportQueueMessage
     report: DzgroReport
+    filename: str
 
     def __init__(self, client: DzgroSharedClient):
         self.client = client
@@ -24,16 +25,22 @@ class DzgroReportProcessor:
                 self.client.setMarketplace(message.marketplace)
                 self.messageid = record.messageId
                 self.message = message
-                if await self.setMessageAsProcessing():
-                    try:
-                        self.report = await self.client.db.dzgro_reports.getReport(self.message.index)
-                        count, projection = await self.getCountAndProjection()
-                        if count==0: return
-                        elif count<2000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere(projection)
-                        else: await self.runFedQuery(projection)
-                        await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
-                    except Exception as e:
-                        await self.setError(e)
+                self.report = await self.client.db.dzgro_reports.getReport(self.message.index)
+                if self.report.messageid==self.messageid:
+                    if await self.setMessageAsProcessing():
+                        try:
+                            self.filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/{self.report.reporttype.value.replace(' ','_')}'
+                            count, projection = await self.getCountAndProjection()
+                            if count==0: 
+                                return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
+                            # elif count<2000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere(projection)
+                            else: await self.runFedQuery(projection)
+                            await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
+                            await self.client.db.dzgro_reports_data.deleteReportData(self.report.id)
+                        except Exception as e:
+                            await self.setError(e)
+                    else: print(f"[WARNING] Message {record.messageId} is already being processed")
+                else: print(f"[WARNING] Message {record.messageId} is not for this report")
 
         except Exception as e:
             print(f"[ERROR] Failed to process message {record.messageId}: {e}")
@@ -52,26 +59,30 @@ class DzgroReportProcessor:
 
     async def getCountAndProjection(self):
         count = 0
-        projection = {}
+        projections: list[dict] = []
         if self.report.paymentrecon:
             from dzgroshared.functions.DzgroReports.ReportTypes.PaymentReconciliation import PaymentReconReportCreator
             creator = PaymentReconReportCreator(self.client, self.report.id, self.report.paymentrecon)
-            count, projection = await creator.execute()
+            count, projections = await creator.execute()
         await self.client.db.dzgro_reports.addCount(self.report.id, count)
-        return count, projection
+        return count, projections
 
-    async def runFedQuery(self, projection: dict):
-        pipeline = [{"$match": {"reportid": self.report.id}}, {"$project": projection}]
-        filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/data'
-        await self.client.fedDb.createReport(filename, pipeline, S3Bucket.DZGRO_REPORTS)
+    async def runFedQuery(self, projections: list[dict]):
+        pipeline = self.getPipeline(projections)
+        res = await self.client.fedDb.createReport(self.filename, pipeline, S3Bucket.DZGRO_REPORTS)
+        if self.client.env==ENVIRONMENT.LOCAL:
+            await self.triggerLocal()
 
-    def getPipeline(self, projection: dict):
-        return [{"$match": {"reportid": self.report.id}}, {"$project": projection}]
+    def getPipeline(self, projections: list[dict]):
+        return [{"$match": {"reportid": self.report.id}}]+projections
 
-    async def executeHere(self, projection: dict):
-        data = await self.client.db.dzgro_reports_data.db.aggregate(self.getPipeline(projection))
+    async def executeHere(self, projections: list[dict]):
+        data = await self.client.db.dzgro_reports_data.db.aggregate(self.getPipeline(projections))
+        await self.triggerLocal(data)
+        
+    async def triggerLocal(self, data: list[dict]|None=None):
         bucket = self.client.storage.getBucketName(bucket=S3Bucket.DZGRO_REPORTS)
-        key = f"{self.client.uid}/{self.client.marketplace}/{self.report.reporttype.value}/{str(self.report.id)}/{self.report.reporttype.value}.csv"
+        key = f"{self.filename}.csv"
         triggerObj = {"eventName": "ObjectCreated:Put", "s3": {"bucket": {"name": bucket, "arn": ""}, "object": {"key": key, "size": 0}}}
         from dzgroshared.functions.DzgroReportsS3Trigger.handler import DzgroReportS3TriggerProcessor
         await DzgroReportS3TriggerProcessor(self.client).execute(self.client.storage.getS3TriggerObject(triggerObj), data)

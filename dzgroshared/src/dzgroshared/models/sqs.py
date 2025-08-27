@@ -190,7 +190,7 @@ class SendMessageAttribute(BaseModel):
                 raise ValueError("Binary requires 'BinaryValue'")
         return self
 class SendMessageRequest(BaseModel):
-    QueueUrl: QueueName
+    Queue: QueueName
     DelaySeconds: int = Field( default=0, ge=0, le=900)
     MessageAttributes: Dict[str, SendMessageAttribute] | SkipJsonSchema[None] = None
 
