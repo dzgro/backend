@@ -37,22 +37,24 @@ class DzgroReportS3TriggerProcessor:
                 print(e)
 
     async def collate(self):
-        resp = self.client.s3.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)
+        resp = self.client.storage.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)
         csv_keys = sorted([key for key in (obj.get("Key") for obj in resp.get("Contents", [])) if key is not None and key.endswith(".csv")])
         if not csv_keys: return None
         print(f"Found {len(csv_keys)} CSV parts for Report {self.model.reportid}")
-        first_obj = self.client.s3.get_object(S3GetObjectModel(Bucket=self.bucket, Key=csv_keys[0]))
+        first_obj = self.client.storage.get_object(S3GetObjectModel(Bucket=self.bucket, Key=csv_keys[0]))
         first_csv = first_obj["Body"].read().decode("utf-8")
         df = pd.read_csv(StringIO(first_csv))
         for key in csv_keys[1:]:
-            obj = self.client.s3.get_object(S3GetObjectModel(Bucket=self.bucket, Key=key))
+            obj = self.client.storage.get_object(S3GetObjectModel(Bucket=self.bucket, Key=key))
             csv_data = obj["Body"].read().decode("utf-8")
             part_df = pd.read_csv(StringIO(csv_data), header=None)
             part_df.columns = df.columns  # align with header order
             df = pd.concat([df, part_df], ignore_index=True)
         count = len(df)
+        print(f"Total rows in collated DataFrame: {count}", "Total", self.report.count)
         if self.report.count == count:
             await self.createExcel(df)
+            self.client.storage.delete_objects(Bucket=self.bucket, Keys=csv_keys)
 
     async def createExcel(self, df: pd.DataFrame):
         output_buffer = BytesIO()

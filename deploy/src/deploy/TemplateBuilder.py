@@ -1,5 +1,6 @@
 from typing import Literal
 import yaml, os
+from LambdaCustomLayerBuilder import CustomLambdaLayerBuilder
 from rolecreator import RoleCreator
 import mapping
 from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, Tag, LambdaProperty, QueueRole, S3Role
@@ -83,10 +84,10 @@ class TemplateBuilder:
         # Publish layer using boto3
         import boto3
         client = boto3.client("lambda", region_name=region.value)
-        layer_name = f"dzgroshared-{self.env.value.lower()}"
-        with open(zipname, "rb") as f:
+        path = os.path.join(project_root, zipname)
+        with open(path, "rb") as f:
             response = client.publish_layer_version(
-                LayerName=layer_name,
+                LayerName=zipname.split('.')[0],
                 Description=f"Dzgroshared Layer for {self.env.value} environment",
                 Content={"ZipFile": f.read()},
                 CompatibleRuntimes=["python3.12"],
@@ -101,14 +102,16 @@ class TemplateBuilder:
     def deploy(self, regions: list[Region]):
         for region in regions:
             try:
+                name = f'dzgro-sam-{region.value}-{self.envtextlower}'
+                filename = os.path.join(project_root, f'{name}.yaml')
                 self.resources = {}
-                LayerArn: str = ""
-                if self.env != ENVIRONMENT.LOCAL:
+                LayerArn: str|None = None
+                LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared-dev:20"
+                buildLayer = self.env != ENVIRONMENT.LOCAL and (LayerArn is None or self.envtextlower not in LayerArn)
+                if buildLayer:
                     zipname = self.build_layer_with_docker()
                     LayerArn = self.deploy_layer(zipname, region)
                 if self.env != ENVIRONMENT.LOCAL:
-                    
-                    # LayerArn = f"arn:aws:lambda:{region.value}:522814698847:layer:dzgroshared-dev:3"
                     self.createCertificateAndLinkApi(region)
                 self.createResources(region, LayerArn)
                 template = {
@@ -117,15 +120,12 @@ class TemplateBuilder:
                     'Description': f'SAM {self.env.value} template for region {region.value}',
                     'Resources': self.resources
                 }
-                import os
-                name = f'dzgro-sam-{region.value}-{self.envtextlower}'
-                filename = os.path.join(f'{name}.yaml')
                 with open(filename, 'w') as f:
                     yaml.dump(template, f, sort_keys=False, Dumper=NoAliasDumper)
 
                 self.validate(filename, region)
                 print(f"SAM template for region {region.value} saved to {filename}")
-                self.build_deploy_sam_template(name, region)
+                self.build_deploy_sam_template(name, region, filename)
             except ValueError as e:
                 print(f"Error occurred while building SAM template for region {region.value}: {e}")
                 raise e
@@ -195,7 +195,7 @@ class TemplateBuilder:
     def createLambdaRole(self, _lambda: LambdaProperty, region: Region):
         rolename: str = self.getLambdaRoleName(_lambda.name)
         parameter = (ENVIRONMENT.PROD if self.env == ENVIRONMENT.PROD else ENVIRONMENT.TEST).value.lower()
-        secretsarn = f"arn:aws:secretsmanager:{region.value}:${{AWS::AccountId}}:secret:dzgro/{parameter}"
+        secretsarn = f"arn:aws:secretsmanager:{region.value}:${{AWS::AccountId}}:secret:dzgro/{parameter}*"
         role = {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -230,8 +230,8 @@ class TemplateBuilder:
             }
         }
         queueNames: dict[str, list[QueueRole]] = {self.getQueueName(region.queue.name, 'Q'): region.queue.roles for region in _lambda.regions if region.queue}
-        bucketnames: dict[str, list[S3Role]] = {self.getBucketName(region.s3.name): region.s3.roles for region in _lambda.regions if region.s3 and not region.s3.trigger}
-        
+        bucketnames: dict[str, list[S3Role]] = {self.getBucketName(region.s3.name): region.s3.roles for region in _lambda.regions if region.s3}
+
         for k,v in queueNames.items() :
             role["Properties"]["Policies"].append({
                 "PolicyName": f"LambdaSQSAccess{k}",
@@ -241,15 +241,23 @@ class TemplateBuilder:
                 }
             })
 
-        for k,v in bucketnames.items() :
-            role["Properties"]["Policies"].append({
-                "PolicyName": f"LambdaS3Access{k}",
-                "PolicyDocument": {
-                    "Version": "2012-10-17",
-                    "Statement": [ { "Effect": "Allow", "Action": [x.value for x in v], "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}/*"} ] } ]
-                }
-            })
+        for k,v in bucketnames.items():
+            s3ListStatements = []
+            s3OtherStatements = []
 
+            asteriskActions = [x.value for x in v if x in [S3Role.GetObject, S3Role.PutObject, S3Role.DeleteObject]]
+            if asteriskActions: s3ListStatements = [{ "Effect": "Allow", "Action": asteriskActions, "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}"} ] }]
+            nonAsteriskActions = [x.value for x in v if x not in [S3Role.GetObject, S3Role.PutObject]]
+            if nonAsteriskActions: s3OtherStatements = [{ "Effect": "Allow", "Action": nonAsteriskActions, "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}/*"} ] }]
+            statements = s3ListStatements + s3OtherStatements
+            if statements:
+                role["Properties"]["Policies"].append({
+                    "PolicyName": f"LambdaS3Access{k}",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": statements
+            }
+        })
         self.resources[rolename] = role
 
 
@@ -303,7 +311,7 @@ class TemplateBuilder:
 
 
 
-    def createResources(self, region: Region, LayerArn: str):
+    def createResources(self, region: Region, LayerArn: str|None):
         for _lambda in mapping.LAMBDAS:
             for _lambdaRegion in _lambda.regions:
                 if _lambdaRegion.region == region:
@@ -315,32 +323,38 @@ class TemplateBuilder:
                             self.createLambdaRole(_lambda, region)
                             if _lambdaRegion.queue: 
                                 self.addQueue(region, _lambdaRegion.queue, _lambda.name)
-                            self.createFunction(_lambda.name, _lambdaRegion, LayerArn)
+                            self.createFunction(_lambda, _lambdaRegion, LayerArn)
                 
 
     def createRawApiGateway(self, region: Region):
         self.resources[self.getApiGatewayName()] = { 'Type': 'AWS::Serverless::Api', 'Properties': { 'StageName': self.env.value, 'EndpointConfiguration': 'REGIONAL', 'Tags': self.getDictTag(), 'DefinitionBody': { 'openapi': '3.0.1', 'info': {'title': 'Dzgro API', 'version': '1.0'}, 'paths': {} } } }
 
-    def createFunction(self, name: LambdaName,  _lambda: LambdaRegion, layer_arn: str):
-        fnName = self.getFunctionName(name)
-        resource = { 'Type': 'AWS::Serverless::Function', 'Properties': { 
+    def createFunction(self, property: LambdaProperty,  _lambda: LambdaRegion, layer_arn: str|None):
+        fnName = self.getFunctionName(property.name)
+        properties = { 
             'FunctionName': fnName,
             'Handler': 'handler.handler',
             'Runtime': 'python3.12',
             'Architectures': ['x86_64'],
-            'CodeUri': f"functions/{name.value}",
+            'CodeUri': f"functions/{property.name.value}",
             'Description': _lambda.description,
             'Timeout': 900,
-            'Layers': [layer_arn],
-            'Role': {"Fn::GetAtt": [self.getLambdaRoleName(name), "Arn"]},
+            'Role': {"Fn::GetAtt": [self.getLambdaRoleName(property.name), "Arn"]},
             'Tags': self.getDictTag(),
             "Environment": {"Variables": {"ENV": self.env.value}}
-        }}
+        }
+        layers = [] if not layer_arn else [layer_arn]
+        if property.requirements:
+            builder = CustomLambdaLayerBuilder(self.env, property.name, property.requirements, _lambda.region)
+            arn = builder.create_or_reuse_requirements_layer()
+            layers.append(arn)
+        if layers: properties['Layers'] = layers
         if _lambda.s3 and _lambda.s3.trigger:
             event = { "Bucket": { "Ref": self.getBucketResourceName(_lambda.s3.name) }, "Events": _lambda.s3.trigger.eventName }
             if _lambda.s3.trigger.filter:
                 event["Filter"] = _lambda.s3.trigger.filter
-            resource['Properties']['Events'] = { "S3UploadEvent": { "Type": "S3", "Properties": event } }
+            properties['Events'] = { "S3UploadEvent": { "Type": "S3", "Properties": event } }
+        resource = { 'Type': 'AWS::Serverless::Function', 'Properties': properties }
         self.resources[fnName] = resource
 
     def addBucket(self, region: Region, s3: S3Property):
@@ -413,17 +427,16 @@ class TemplateBuilder:
         except subprocess.CalledProcessError as e:
             print(f"Error validating, building, or deploying SAM template for region {region.value} for {self.env.value}: {e.stderr}")
 
-    def build_deploy_sam_template(self, name:str,region: Region):
+    def build_deploy_sam_template(self, name:str, region: Region, template_file:str):
         """
-        Builds and deploys the SAM template for the given region using AWS SAM CLI.
+        Builds and deploys the SAM template for the given region using AWS SAM CLI with Docker containers.
         """
         import subprocess
         import os
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..'))
-        template_file = os.path.join(f'{name}.yaml')
+        
         built_template_file = os.path.join(project_root, '.aws-sam', 'build', 'template.yaml')
 
-        # Check if dzgro-sam bucket exists in the region, create if not
+        # Check if bucket exists in the region, create if not
         import boto3
         s3 = boto3.client('s3', region_name=region.value)
         try:
@@ -436,13 +449,17 @@ class TemplateBuilder:
                 s3.create_bucket(Bucket=name, CreateBucketConfiguration={'LocationConstraint': region.value})
             print(f"Bucket {name} created in region {region.value}.")
 
+        # Build using Docker container
         build_command = [
             'sam', 'build',
+            '--use-container',  # This flag tells SAM to use Docker
             '--template-file', template_file
         ]
+        
+        # Deploy command remains the same
         deploy_command = [
             'sam', 'deploy',
-            '--template-file', built_template_file,  # Use built template from .aws-sam/build
+            '--template-file', built_template_file,
             '--region', region.value,
             '--no-confirm-changeset',
             '--capabilities', 'CAPABILITY_NAMED_IAM',
@@ -451,7 +468,12 @@ class TemplateBuilder:
         ]
         
         try:
-            subprocess.run(build_command, check=True, shell=True)
+            print(f"Building SAM template using Docker containers...")
+            subprocess.run(build_command, check=True, shell=True, cwd=project_root)
+            
+            print(f"Deploying SAM template to region {region.value}...")
             subprocess.run(deploy_command, check=True, shell=True)
+            
+            print(f"✓ Successfully deployed {name} to {region.value}")
         except subprocess.CalledProcessError as e:
-            print(f"Error building or deploying SAM template for region {region.value} for {self.env.value}: {e.stderr}")
+            print(f"Error building or deploying SAM template for region {region.value} for {self.env.value}: {e}")

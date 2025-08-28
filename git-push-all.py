@@ -14,27 +14,6 @@ def run(cmd):
     if result.returncode != 0:
         sys.exit(result.returncode)
 
-def run_cleanup():
-    """Import and run the cleanup function from deployment/deploy.py"""
-    try:
-        from deployment import cleaner
-        print("\n" + "="*50)
-        print("RUNNING CLEANUP BEFORE COMMIT")
-        print("="*50)
-        # cleaner.cleanup_deployment_assets()
-        print("Cleanup completed successfully!")
-        return True
-        
-    except Exception as e:
-        print(f"Error during cleanup: {e}")
-        return False
-
-# Run cleanup before committing
-print("Running cleanup to remove deployment artifacts before committing...")
-# if not run_cleanup():
-#     print("ERROR: Cleanup failed! Aborting commit to prevent committing build artifacts.")
-#     sys.exit(1)
-
 # Add all changes
 run(["git", "add", "."])
 

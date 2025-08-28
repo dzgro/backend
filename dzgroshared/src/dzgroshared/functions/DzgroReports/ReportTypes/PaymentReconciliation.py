@@ -1,78 +1,54 @@
 from datetime import datetime, timezone
 from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.collections.dzgro_reports import DzroReportPaymentReconRequest
-from dzgroshared.models.enums import Operator,CollectionType
+from dzgroshared.models.collections.dzgro_reports import DzgroPaymentReconRequest, DzgroReport
+from dzgroshared.models.enums import DzgroReportType, DzroReportPaymentReconSettlementRangeType, Operator,CollectionType
 from dzgroshared.db.PipelineProcessor import LookUpLetExpression, LookUpPipelineMatchExpression, PipelineProcessor
 from dzgroshared.models.model import PyObjectId
 
 class PaymentReconReportCreator:
     client: DzgroSharedClient
     reportId: PyObjectId
-    options: DzroReportPaymentReconRequest
+    options: DzgroPaymentReconRequest
+    reporttype: DzgroReportType
 
-    def __init__(self, client: DzgroSharedClient, reportId: PyObjectId, options: DzroReportPaymentReconRequest ) -> None:
+    def __init__(self, client: DzgroSharedClient, report: DzgroReport, options: DzgroPaymentReconRequest ) -> None:
         self.client = client
-        self.reportId = reportId
+        self.reportId = report.id
+        self.reporttype = report.reporttype
         self.options = options
-
-    def getProjection(self)->list[dict]:
-        return [
-            {
-                "$project": {
-                    'Order Id': "$orderid",
-                    'Order Date': '$orderdate',
-                    'SKU': '$sku',
-                    'ASIN': '$asin',
-                    'Price': '$price',
-                    'Tax': '$tax',
-                    'Gift Wrap Price': '$giftwrapprice',
-                    'Gift Wrap Tax': '$giftwraptax',
-                    'Shipping Price': '$shippingprice',
-                    'Shipping Tax': '$shippingtax',
-                    'Shipping Promotion Discount': '$shippromotiondiscount',
-                    'Item Promotion Discount': '$itempromotiondiscount',
-                    'Net Price': '$netprice',
-                    'Net Tax': '$nettax',
-                    'Expense': '$expense',
-                    'Net Proceeds': '$netproceeds'
-                }
-            },
-            {
-                "$project": {
-                    '_id': 0,
-                    'uid': 0,
-                    'marketplace': 0,
-                    'reportid': 0,
-                    'createdat': 0
-                }
-            }
-        ]
 
     async def execute(self):
         orders = self.client.db.orders
         timezone = (await self.client.db.marketplaces.getCountryBidsByMarketplace(self.client.marketplace)).timezone
         pipeline = self.pipeline(orders.db.pp, timezone)
+        print(pipeline)
         await orders.db.aggregate(pipeline)
-        count = await self.client.db.dzgro_reports_data.count(self.reportId)
-        return count, self.getProjection()
 
     def pipeline(self, pp: PipelineProcessor, timezone: str):
         dates = pp.getDatesBetweenTwoDates(self.options.dates.startDate, self.options.dates.endDate)
         pipeline: list[dict] = [pp.matchAllExpressions([LookUpPipelineMatchExpression(key='date', value=dates, operator=Operator.IN)])]
+        letkeys = ['sku','asin'] if self.reporttype == DzgroReportType.PRODUCT_PAYMENT_RECON else None
         lookupOrderItems =  pp.lookup(CollectionType.ORDER_ITEMS, 'item', localField="_id", foreignField="order", pipeline=[
-            pp.group(letkeys=['sku','asin'], groupings={'price': { '$sum': '$price' }, 'tax': { '$sum': '$tax' }, 'shippingprice': { '$sum': '$shippingprice' }, 'shippingtax': { '$sum': '$shippingtax' }, 'giftwrapprice': { '$sum': '$giftwrapprice' }, 'giftwraptax': { '$sum': '$giftwraptax' }, 'itempromotiondiscount': { '$sum': '$itempromotiondiscount' }, 'shippromotiondiscount': { '$sum': '$shippromotiondiscount' } }),
+            pp.group(letkeys=letkeys, groupings={'price': { '$sum': '$price' }, 'tax': { '$sum': '$tax' }, 'shippingprice': { '$sum': '$shippingprice' }, 'shippingtax': { '$sum': '$shippingtax' }, 'giftwrapprice': { '$sum': '$giftwrapprice' }, 'giftwraptax': { '$sum': '$giftwraptax' }, 'itempromotiondiscount': { '$sum': '$itempromotiondiscount' }, 'shippromotiondiscount': { '$sum': '$shippromotiondiscount' } }),
             pp.replaceRoot(pp.mergeObjects(['$$ROOT', '$_id'])),
             pp.project([],['_id'])
         ])
-        lookupSettlements = pp.lookup(CollectionType.SETTLEMENTS, 'settlements', letkeys=['orderid'], pipeline=[
+        settlementPipeline = [
             pp.matchAllExpressions(expressions=[
                 LookUpPipelineMatchExpression(key='orderid', value='$$orderid'),
                 LookUpPipelineMatchExpression(key='amounttype', value='ItemPrice', operator=Operator.NE),
             ]),
             pp.project([],['_id'])
-        ])
+        ]
+        settlementdates: dict|None = None
+        if self.options.settlementRange==DzroReportPaymentReconSettlementRangeType.SAME_END_DATE: settlementdates=dates
+        elif self.options.settlementRange==DzroReportPaymentReconSettlementRangeType.DIFFERENT_END_DATE and self.options.settlementDate: settlementdates=pp.getDatesBetweenTwoDates(self.options.dates.startDate, self.options.settlementDate)
+        if settlementdates: settlementPipeline.append(pp.match({"$expr": {"$in": ["$date", settlementdates]}}))
+        lookupSettlements = pp.lookup(CollectionType.SETTLEMENTS, 'settlements', letkeys=['orderid'], pipeline=settlementPipeline)
         setProducts = pp.set({'products': { '$reduce': { 'input': '$item', 'initialValue': [ { 'expense': { '$reduce': { 'input': { '$filter': { 'input': '$settlements', 'as': 's', 'cond': { '$eq': [ { '$ifNull': [ '$$s.sku', None ] }, None ] } } }, 'initialValue': 0, 'in': { '$sum': [ '$$value', '$$this.amount' ] } } } } ], 'in': { '$concatArrays': [ '$$value', [ { '$mergeObjects': [ '$$this', { 'expense': { '$reduce': { 'input': { '$filter': { 'input': '$settlements', 'as': 's', 'cond': { '$eq': [ '$$this.sku', '$$s.sku' ] } } }, 'initialValue': 0, 'in': { '$sum': [ '$$value', '$$this.amount' ] } } } } ] } ] ] } } }})
+        if self.reporttype == DzgroReportType.ORDER_PAYMENT_RECON:
+            setProducts = pp.set({ 'products': { '$reduce': { 'input': '$item', 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$mergeObjects': [ '$$this', { 'expense': { '$reduce': { 'input': '$settlements', 'initialValue': 0, 'in': { '$sum': [ '$$value', '$$this.amount' ] } } } } ] } ] ] } } }})
         projectProjects = pp.project(['orderid','orderdate','products'], ['_id'])
         unwindProducts = pp.unwind('products')
         setNewRoot = pp.replaceRoot(pp.mergeObjects([{ '$unsetField': { 'input': '$$ROOT', 'field': 'products' } }, '$products']))
@@ -82,5 +58,8 @@ class PaymentReconReportCreator:
         setProceeds = pp.set({ 'netproceeds': { '$round': [ { '$add': [ '$netprice', '$expense' ] }, 2 ] }, 'createdat': "$$NOW", 'reportid': self.reportId, "orderdate": { "$dateToString": { "date": "$orderdate", "timezone": timezone } } })
         sortByDate = pp.sort({ 'orderdate': 1 })
         merge = pp.merge(CollectionType.DZGRO_REPORT_DATA, whenMatched="merge", whenNotMatched="insert")
-        pipeline.extend([lookupOrderItems, lookupSettlements, setProducts, projectProjects, unwindProducts, setNewRoot, roundAllDouble, setPrice, filteroutNull, setProceeds, sortByDate, merge])
+        pipeline.extend([lookupOrderItems, lookupSettlements, setProducts, projectProjects, unwindProducts, setNewRoot, roundAllDouble, setPrice])
+        if self.reporttype == DzgroReportType.PRODUCT_PAYMENT_RECON: pipeline.append(filteroutNull)
+        pipeline.extend([setProceeds, sortByDate, merge])
+        print(pipeline)
         return pipeline

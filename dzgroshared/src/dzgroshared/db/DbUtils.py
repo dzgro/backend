@@ -50,7 +50,7 @@ class DbManager:
         return filterDict
     
     def getProjectionDict(self, projectionInc: list[str], projectionExc: list[str])->dict|None:
-        if len(projectionInc+projectionExc)>0: return {**{k: 0 for k in projectionExc}, **{k: 1 for k in projectionInc}}
+        if (projectionInc+projectionExc): return {**{k: 0 for k in projectionExc}, **{k: 1 for k in projectionInc}}
 
     def getFilterAndProjection(self, filterDict: dict, projectionInc: list[str], projectionExc: list[str], withUidMarketplace)->tuple[dict, dict|None]:
         if not withUidMarketplace: return filterDict, self.getProjectionDict(projectionInc, projectionExc)
@@ -66,9 +66,8 @@ class DbManager:
     async def find(self, filterDict: dict = {}, projectionInc: list[str] = [], projectionExc: list[str] = [], limit: int|None=None, skip: int|None=None, sort: Sort|None=None, withUidMarketplace = True)->list[dict]:
         try:
             filterDict, projection = self.getFilterAndProjection(filterDict, projectionInc, projectionExc, withUidMarketplace = withUidMarketplace)
-            if projection: res = self.collection.find(filterDict, projection)
-            else: res = self.collection.find(filterDict)
-            if sort: res = res.sort({sort.field: sort.order})
+            res = self.collection.find(filter=filterDict, projection=projection)
+            if sort: res = res.sort(sort.field, sort.order)
             if skip: res = res.skip(skip)
             if limit: res = res.limit(limit)
             return await res.to_list()

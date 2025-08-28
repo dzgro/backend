@@ -20,14 +20,12 @@ class DzgroReportHelper:
         self.marketplace = marketplace
         self.db = DbManager(client.db.database.get_collection(CollectionType.DZGRO_REPORTS), uid, marketplace)
 
-    def getReportTypes(self):
-        from dzgroshared.models.collections import dzgro_reports
-        return dzgro_reports.reportTypes
 
     async def createReport(self, request: CreateDzgroReportRequest):
         try:
             id = await self.db.insertOne(request.model_dump(exclude_none=True), withUidMarketplace=True)
             reportId = str(id)
+            print(reportId)
             message = DzgroReportQueueMessage(uid=self.uid, marketplace=self.marketplace, index=reportId, reporttype=request.reporttype)
             req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
             res = await self.client.sqs.sendMessage(req, message)

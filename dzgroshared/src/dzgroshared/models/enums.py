@@ -399,6 +399,7 @@ class CollectionType(str,Enum):
     HEALTH = 'health'
     REPORT_DATA = 'report_data'
     TRAFFIC = 'traffic'
+    DZGRO_REPORT_TYPES = 'dzgro_report_types'
     DZGRO_REPORTS = 'dzgro_reports'
     DZGRO_REPORT_DATA = 'dzgro_report_data'
     ADV = 'adv'
@@ -525,7 +526,8 @@ class AMSDataSet(Enum):
 
 
 class DzgroReportType(str, Enum):
-    PAYMENT_RECON = "Payment Reconciliation"
+    ORDER_PAYMENT_RECON = "Order Payment Reconciliation"
+    PRODUCT_PAYMENT_RECON = "Product Payment Reconciliation"
     PROFITABILITY = "Profitability"
     INVENTORY_PLANNING = "Inventory Planning"
     OUT_OF_STOCK = "Stock Out Skus"

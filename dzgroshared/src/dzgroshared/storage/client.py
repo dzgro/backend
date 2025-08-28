@@ -79,6 +79,14 @@ class S3Storage:
     def list_objects_v2(self, Bucket: S3Bucket, Prefix:str):
         return self.getS3Client().list_objects_v2(Bucket=self.getBucketName(Bucket), Prefix=Prefix)
 
+    @s3_exception_handler
+    def delete_objects(self, Bucket: S3Bucket, Keys:list[str]):
+        return self.getS3Client().delete_objects(Bucket=self.getBucketName(Bucket), Delete={"Objects":[{'Key': key} for key in Keys]})
+
+    @s3_exception_handler
+    def delete_object(self, Bucket: S3Bucket, Key:str):
+        return self.getS3Client().delete_object(Bucket=self.getBucketName(Bucket), Key=Key)
+
     # def uploadPilImage(self, image, path: str):
     #     in_mem_file = BytesIO()
     #     image.save(in_mem_file, format=image.format, quality=100)

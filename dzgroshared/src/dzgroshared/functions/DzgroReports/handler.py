@@ -30,11 +30,11 @@ class DzgroReportProcessor:
                     if await self.setMessageAsProcessing():
                         try:
                             self.filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/{self.report.reporttype.value.replace(' ','_')}'
-                            count, projection = await self.getCountAndProjection()
+                            count = await self.getCount()
                             if count==0: 
                                 return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
-                            # elif count<2000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere(projection)
-                            else: await self.runFedQuery(projection)
+                            elif count<12000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere()
+                            else: await self.runFedQuery()
                             await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
                             await self.client.db.dzgro_reports_data.deleteReportData(self.report.id)
                         except Exception as e:
@@ -57,26 +57,42 @@ class DzgroReportProcessor:
         await self.client.db.sqs_messages.setMessageAsFailed(self.messageid, error)
         await self.client.db.dzgro_reports.addError(self.message.index, error)
 
-    async def getCountAndProjection(self):
+    async def getCount(self):
         count = 0
-        projections: list[dict] = []
-        if self.report.paymentrecon:
+        if self.report.reporttype==DzgroReportType.ORDER_PAYMENT_RECON:
+            if not self.report.orderPaymentRecon: raise ValueError("No options provided for Payment Reconciliation Report")
             from dzgroshared.functions.DzgroReports.ReportTypes.PaymentReconciliation import PaymentReconReportCreator
-            creator = PaymentReconReportCreator(self.client, self.report.id, self.report.paymentrecon)
-            count, projections = await creator.execute()
+            await PaymentReconReportCreator(self.client, self.report, self.report.orderPaymentRecon).execute()
+        elif self.report.reporttype==DzgroReportType.PRODUCT_PAYMENT_RECON:
+            if not self.report.productPaymentRecon: raise ValueError("No options provided for Product Payment Reconciliation Report")
+            from dzgroshared.functions.DzgroReports.ReportTypes.PaymentReconciliation import PaymentReconReportCreator
+            await PaymentReconReportCreator(self.client, self.report, self.report.productPaymentRecon).execute()
+        elif self.report.reporttype==DzgroReportType.INVENTORY_PLANNING: 
+            from dzgroshared.functions.DzgroReports.ReportTypes.InventoryPlanning import InventoryPlannerReport
+            await InventoryPlannerReport(self.client, self.report.id).execute()
+        elif self.report.reporttype==DzgroReportType.OUT_OF_STOCK: 
+            from dzgroshared.functions.DzgroReports.ReportTypes.OutOfStock import OutofStockReport
+            await OutofStockReport(self.client, self.report.id).execute()
+        count = await self.client.db.dzgro_reports_data.count(self.report.id)
         await self.client.db.dzgro_reports.addCount(self.report.id, count)
-        return count, projections
+        return count
 
-    async def runFedQuery(self, projections: list[dict]):
+    async def runFedQuery(self):
+        projections = await self.client.db.dzgro_report_types.getProjection(self.report.reporttype)
         pipeline = self.getPipeline(projections)
-        res = await self.client.fedDb.createReport(self.filename, pipeline, S3Bucket.DZGRO_REPORTS)
+        await self.client.fedDb.createReport(self.filename, pipeline, S3Bucket.DZGRO_REPORTS)
         if self.client.env==ENVIRONMENT.LOCAL:
             await self.triggerLocal()
 
-    def getPipeline(self, projections: list[dict]):
-        return [{"$match": {"reportid": self.report.id}}]+projections
+    def getPipeline(self, projections: dict):
+        return [
+            {"$match": {"reportid": self.report.id}},
+            {"$project": projections},
+            {"$project": {"_id": 0}}
+        ]
 
-    async def executeHere(self, projections: list[dict]):
+    async def executeHere(self):
+        projections = await self.client.db.dzgro_report_types.getProjection(self.report.reporttype)
         data = await self.client.db.dzgro_reports_data.db.aggregate(self.getPipeline(projections))
         await self.triggerLocal(data)
         
@@ -86,41 +102,5 @@ class DzgroReportProcessor:
         triggerObj = {"eventName": "ObjectCreated:Put", "s3": {"bucket": {"name": bucket, "arn": ""}, "object": {"key": key, "size": 0}}}
         from dzgroshared.functions.DzgroReportsS3Trigger.handler import DzgroReportS3TriggerProcessor
         await DzgroReportS3TriggerProcessor(self.client).execute(self.client.storage.getS3TriggerObject(triggerObj), data)
-
-    async def processReport(self):
-        try:
-            count: int=0
-            if await self.setMessageAsProcessing():
-                report = await self.client.db.dzgro_reports.getReport(self.message.index)
-                if report.paymentrecon: 
-                    from dzgroshared.functions.DzgroReports.ReportTypes.PaymentReconciliation import PaymentReconReportCreator
-                    count = await PaymentReconReportCreator(self.client, self.report.id, report.paymentrecon).execute()
-                elif report.reporttype==DzgroReportType.INVENTORY_PLANNING: 
-                    _queries = self.client.db.queries
-                    queries = await _queries.getQueries()
-                    query = next((q for q in queries if q.tag==CollateTypeTag.DAYS_30), None)
-                    if query:
-                        query_results = self.client.db.query_results
-                        from dzgroshared.functions.DzgroReports.pipelines import InventoryPlanning
-                        pipeline = InventoryPlanning.pipeline(query_results.db.pp, self.message.index, str(query.id))
-                        await query_results.db.aggregate(pipeline)
-                    else: await self.setError("No query found for Inventory Planning")
-                elif report.reporttype==DzgroReportType.OUT_OF_STOCK: 
-                    products = self.client.db.products
-                    from dzgroshared.functions.DzgroReports.pipelines import OutOfStock
-                    pipeline = OutOfStock.pipeline(products.db.pp, self.message.index)
-                    await products.db.aggregate(pipeline)
-                else: return
-                if count==0:
-                    await self.client.db.dzgro_reports.addError(report.id, "No data found")
-                else:
-                    pipeline = [{"$match": {"reportid": report.id}}]
-                    filename = f'{self.message.uid}/{str(self.message.marketplace)}/{report.reporttype.name}/{self.message.index}/data'
-                    await self.client.fedDb.createReport(filename, pipeline, S3Bucket.DZGRO_REPORTS)
-                    await self.client.db.dzgro_reports.addCount(report.id, count)
-        except Exception as e:
-            await self.setError(e.args[0] if e.args else str(e))
-
-
 
     

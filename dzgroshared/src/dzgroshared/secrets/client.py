@@ -18,3 +18,6 @@ class SecretManager:
         key = f'dzgro/prod' if env == ENVIRONMENT.PROD else f'dzgro/test'
         secrets = json.loads(client.get_secret_value(SecretId=key)['SecretString'])
         self.secrets = DzgroSecrets(**secrets)
+        MONGO_DB_FED_CONNECT_URI = self.secrets.MONGO_DB_FED_CONNECT_URI.replace('fed', f'fed-{env.value.lower()}')
+        self.secrets.MONGO_DB_FED_CONNECT_URI = MONGO_DB_FED_CONNECT_URI
+

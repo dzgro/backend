@@ -43,6 +43,8 @@ class S3LifeCycleRule(BaseModel):
 class S3Role(str, Enum):
     GetObject = "s3:GetObject"
     PutObject = "s3:PutObject"
+    ListBucket = "s3:ListBucket"
+    DeleteObject = "s3:DeleteObject"
 
     @staticmethod
     def all():
@@ -82,14 +84,14 @@ class QueueProperty(BaseModel):
     policy: dict|SkipJsonSchema[None]=None
     apiTrigger: list[APIGatewaySQSTrigger]|SkipJsonSchema[None]=None
 
-class S3TiggerEvent(BaseModel):
+class S3TriggerEvent(BaseModel):
     eventName: str
     filter: dict|SkipJsonSchema[None]=None
 
 class S3Property(BaseModel):
     name: S3Bucket
     roles: list[S3Role]
-    trigger: S3TiggerEvent|SkipJsonSchema[None]=None
+    trigger: S3TriggerEvent|SkipJsonSchema[None]=None
     lifeCycleConfiguration: S3LifeCycleRule|SkipJsonSchema[None]=None
 
 class LambdaRegion(BaseModel):
@@ -101,9 +103,14 @@ class LambdaRegion(BaseModel):
     s3: S3Property|SkipJsonSchema[None]=None
     api: ApiGatewayRoute|SkipJsonSchema[None]=None
 
+class LambdaRequirement(BaseModel):
+    name: str
+    version: str
+
 class LambdaProperty(BaseModel):
     name: LambdaName
     regions: list[LambdaRegion]
+    requirements: list[LambdaRequirement]|SkipJsonSchema[None]=None
 
 def createPolicy(region:Region, name:LambdaName, arns: list[str]):
     return {
@@ -178,13 +185,17 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.DzgroReportsS3Trigger,
+        requirements=[
+            LambdaRequirement(name="pandas", version="2.3.2"),
+            LambdaRequirement(name="openpyxl", version="3.1.5")
+        ],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
                 s3=S3Property(
                     name=S3Bucket.DZGRO_REPORTS, 
-                    roles=[S3Role.GetObject], 
-                    trigger=S3TiggerEvent(
+                    roles=S3Role.all(), 
+                    trigger=S3TriggerEvent(
                         eventName="s3:ObjectCreated:*",
                         filter={ "S3Key": { "Rules": [ { "Name": "suffix", "Value": ".csv" } ] } }
                     ),
@@ -203,6 +214,10 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.PaymentProcessor,
+        requirements=[
+            LambdaRequirement(name="num2words", version="0.5.14"),
+            LambdaRequirement(name="reportlab", version="4.4.3")
+        ],
         regions=[LambdaRegion(
             region=Region.DEFAULT,
             queue=QueueProperty(

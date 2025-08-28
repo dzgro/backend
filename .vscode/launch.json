@@ -20,6 +20,15 @@
       "justMyCode": true
     },
     {
+      "name": "Deploy",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/deploy/src/deploy/deploy.py",
+      "cwd": "${workspaceFolder}/deploy",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Debug Current Python File",
       "type": "debugpy",
       "request": "launch",
