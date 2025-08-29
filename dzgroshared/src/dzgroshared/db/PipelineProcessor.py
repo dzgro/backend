@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal, Any
 from bson import ObjectId
 from dzgroshared.models.model import PyObjectId, SATKey
@@ -38,6 +38,10 @@ class PipelineProcessor:
 
     def getDatesBetweenTwoDates(self, startDate: datetime, endDate: datetime) -> dict:
         return { '$let': { 'vars': { 'startDate': startDate, 'endDate': endDate }, 'in': { '$reduce': { 'input': { '$range': [ 0, { '$sum': [ { '$dateDiff': { 'startDate': '$$startDate', 'endDate': '$$endDate', 'unit': 'day' } }, 1 ] } ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$dateAdd': { 'startDate': '$$startDate', 'unit': 'day', 'amount': '$$this' } } ] ] } } } } }
+
+    def getNDatesBeforeADate(self, endDate: datetime, days: int) -> dict:
+        startDate = endDate - timedelta(days=days)
+        return self.getDatesBetweenTwoDates(startDate, endDate)
 
     def matchAllExpressions(self, expressions: list[LookUpPipelineMatchExpression]):
         expr: list[dict] = []
@@ -92,7 +96,7 @@ class PipelineProcessor:
         return { '$group': { '_id': { 'marketplace': '$marketplace', 'date': '$date', "asin": "$asin" }, key: { '$push': f'${key}' } } }
     
     def openId(self):
-        return { '$replaceWith': '$_id'}
+        return self.replaceRoot(self.mergeObjects([ { "$unsetField": { "input": "$$ROOT", "field": "_id" } }, "$_id" ]))
 
     def replaceRoot(self, data: dict|str):
         return { '$replaceRoot': { 'newRoot': data}}

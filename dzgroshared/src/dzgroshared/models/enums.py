@@ -531,8 +531,14 @@ class DzgroReportType(str, Enum):
     PROFITABILITY = "Profitability"
     INVENTORY_PLANNING = "Inventory Planning"
     OUT_OF_STOCK = "Stock Out Skus"
+    KEY_METRICS = "Key Metrics"
+    KEY_METRICS_WITH_GROWTH = "Key Metrics (With Growth)"
 
 class DzroReportPaymentReconSettlementRangeType(str, Enum):
     NO_END_DATE = 'NO_END_DATE'
     SAME_END_DATE = 'SAME_END_DATE'
     DIFFERENT_END_DATE = 'DIFFERENT_END_DATE'
+
+class DzgroInventoryPlanningRequestConfiguration(str, Enum):
+    DAYS = 'Days'
+    DATES = 'Dates'

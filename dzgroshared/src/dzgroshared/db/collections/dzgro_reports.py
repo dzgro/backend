@@ -4,7 +4,7 @@ from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.models.collections.queue_messages import DzgroReportQueueMessage
 from dzgroshared.models.enums import ENVIRONMENT, CollectionType, QueueName, S3Bucket
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.model import Paginator
+from dzgroshared.models.model import Paginator, Sort
 from dzgroshared.models.sqs import SQSEvent, SendMessageRequest
 
 
@@ -42,13 +42,8 @@ class DzgroReportHelper:
             raise e
 
     async def listReports(self, paginator: Paginator):
-        matchStage = self.db.pp.matchMarketplace({})
-        skip = self.db.pp.skip(paginator.skip)
-        limit = self.db.pp.limit(paginator.limit)
-        pipeline = [matchStage, skip, limit]
-        data = await self.db.aggregate(pipeline)
-        return data
-    
+        return await self.db.find({}, skip=paginator.skip, limit=paginator.limit, sort=Sort(field='_id', order=-1))
+        
     async def getReport(self, reportid: str|ObjectId):
         return DzgroReport(**await self.db.findOne({'_id': self.db.convertToObjectId(reportid)}))
     

@@ -13,6 +13,13 @@ async def createReport(request: Request, body: CreateDzgroReportRequest):
     report = await utility.createReport(body)
     return report
 
+@router.get("/report/{id}", response_model=DzgroReport, response_model_exclude_none=True, response_model_by_alias=False)
+async def getReport(request: Request, id: str):
+    client = RequestHelper(request).client
+    utility = client.db.dzgro_reports
+    report = await utility.getReport(id)
+    return report
+
 @router.put("/reportlink/{reportid}", response_model=Url, response_model_exclude_none=True)
 async def createReportLink(request: Request, reportid: str):
     client = RequestHelper(request).client

@@ -88,11 +88,15 @@ class S3TriggerEvent(BaseModel):
     eventName: str
     filter: dict|SkipJsonSchema[None]=None
 
+class S3CorsRule(BaseModel):
+    methods = list[Literal['GET', 'PUT', 'POST', 'DELETE', 'HEAD']]
+
 class S3Property(BaseModel):
     name: S3Bucket
     roles: list[S3Role]
     trigger: S3TriggerEvent|SkipJsonSchema[None]=None
     lifeCycleConfiguration: S3LifeCycleRule|SkipJsonSchema[None]=None
+    cors: S3CorsRule|SkipJsonSchema[None]=None
 
 class LambdaRegion(BaseModel):
     region: Region

@@ -365,6 +365,14 @@ class TemplateBuilder:
         }
         if s3.lifeCycleConfiguration:
             properties['LifecycleConfiguration'] = s3.lifeCycleConfiguration.model_dump(mode="json")
+        if s3.cors:
+            origins = ["https://localhost:4200"]
+            if self.env == ENVIRONMENT.PROD: origins = ["https://dzgro.com"]
+            properties['CorsConfiguration'] = {
+                "CORSRules": [
+                    { "AllowedOrigins": origins, "AllowedMethods": s3.cors.methods, "AllowedHeaders": [], "ExposeHeaders": [], "MaxAgeSeconds": 3000 }
+                ]
+            }
         self.resources[resource_name] = {
             'Type': 'AWS::S3::Bucket',
             'Properties': properties

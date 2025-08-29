@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.models.collections.dzgro_reports import DzgroReport, DzgroReportType
-from dzgroshared.models.enums import ENVIRONMENT, CollateTypeTag, S3Bucket
+from dzgroshared.models.enums import ENVIRONMENT, CollateType, CollateTypeTag, S3Bucket
 from dzgroshared.models.sqs import SQSEvent
 from dzgroshared.models.collections.queue_messages import DzgroReportQueueMessage
 from dzgroshared.client import DzgroSharedClient
@@ -68,17 +68,29 @@ class DzgroReportProcessor:
             from dzgroshared.functions.DzgroReports.ReportTypes.PaymentReconciliation import PaymentReconReportCreator
             await PaymentReconReportCreator(self.client, self.report, self.report.productPaymentRecon).execute()
         elif self.report.reporttype==DzgroReportType.INVENTORY_PLANNING: 
+            if not self.report.inventoryPlanning: raise ValueError("No options provided for Inventory Planning Report")
             from dzgroshared.functions.DzgroReports.ReportTypes.InventoryPlanning import InventoryPlannerReport
-            await InventoryPlannerReport(self.client, self.report.id).execute()
+            await InventoryPlannerReport(self.client, self.report.id, self.report.inventoryPlanning).execute()
         elif self.report.reporttype==DzgroReportType.OUT_OF_STOCK: 
             from dzgroshared.functions.DzgroReports.ReportTypes.OutOfStock import OutofStockReport
             await OutofStockReport(self.client, self.report.id).execute()
+        elif self.report.reporttype==DzgroReportType.KEY_METRICS: 
+            if not self.report.keyMetrics: raise ValueError("No options provided for Key Metrics Report")
+            from dzgroshared.functions.DzgroReports.ReportTypes.KeyMetrics import KeyMetricsReportCreator
+            await KeyMetricsReportCreator(self.client, self.report, self.report.keyMetrics).execute()
         count = await self.client.db.dzgro_reports_data.count(self.report.id)
         await self.client.db.dzgro_reports.addCount(self.report.id, count)
         return count
+    
+    async def getProjections(self):
+        projections = await self.client.db.dzgro_report_types.getProjection(self.report.reporttype)
+        if self.report.keyMetrics and self.report.keyMetrics.collatetype==CollateType.SKU:
+            keys_to_remove = [ "Sessions", "Browser Sessions", "Browser Sessions %", "Mobile App Sessions", "Mobile App Sessions &", "Unit Session %", "Page Views", "Browser Page Views", "Browser Page Views %", "Mobile App Page Views", "Mobile App Page Views %", "Buy Box %" ]
+            projections =  {k: v for k, v in projections.items() if k not in keys_to_remove}
+        return projections
 
     async def runFedQuery(self):
-        projections = await self.client.db.dzgro_report_types.getProjection(self.report.reporttype)
+        projections = await self.getProjections()
         pipeline = self.getPipeline(projections)
         await self.client.fedDb.createReport(self.filename, pipeline, S3Bucket.DZGRO_REPORTS)
         if self.client.env==ENVIRONMENT.LOCAL:
@@ -92,7 +104,7 @@ class DzgroReportProcessor:
         ]
 
     async def executeHere(self):
-        projections = await self.client.db.dzgro_report_types.getProjection(self.report.reporttype)
+        projections = await self.getProjections()
         data = await self.client.db.dzgro_reports_data.db.aggregate(self.getPipeline(projections))
         await self.triggerLocal(data)
         

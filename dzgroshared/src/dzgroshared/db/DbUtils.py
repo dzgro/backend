@@ -28,8 +28,9 @@ class DbManager:
         try:
             return await self.collection.aggregate(pipeline).to_list()
         except Exception as e:
-            print('Exception')
-            print(pipeline)
+            print(e)
+            from dzgroshared.utils import mongo_pipeline_print
+            pipelineString = mongo_pipeline_print.getPipelineString(pipeline)
             return []
 
     async def distinct(self, fieldname:str, filters: dict = {}):
