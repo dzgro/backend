@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
 from bson import ObjectId
-from dzgroshared.models.enums import AmazonDailyReportAggregationStep
+from dzgroshared.models.enums import AmazonDailyReportAggregationStep, CountryCode, QueueName
 from typing import Type
 from dzgroshared.models.collections.dzgro_reports import DzgroReportType
 
@@ -36,6 +36,12 @@ class PaymentMessage(MessageIndex):
     amount:float
     gst: int
     date: datetime
+
+class DailyReportMessage(BaseModel):
+    index: CountryCode
+    success: int|SkipJsonSchema[None]=None
+    failed: int|SkipJsonSchema[None]=None
+    total: int|SkipJsonSchema[None]=None
 
 class UserDetails(BaseModel):
     name: str

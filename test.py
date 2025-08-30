@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
 from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
-from dzgroshared.models.enums import ENVIRONMENT, CollectionType
+from dzgroshared.models.collections.queue_messages import DailyReportMessage
+from dzgroshared.models.enums import ENVIRONMENT, CollectionType, CountryCode, QueueName
+from dzgroshared.models.model import DataCollections, MockLambdaContext
+from dzgroshared.models.sqs import SQSEvent, SQSRecord
 
 
-client = DzgroSharedClient()
+client = DzgroSharedClient(ENVIRONMENT.LOCAL)
 uid = "41e34d1a-6031-70d2-9ff3-d1a704240921"
 marketplace = ObjectId("6895638c452dc4315750e826")
 client.setUid(uid)
@@ -31,52 +34,17 @@ async def buildStateDateAnalytics():
         date = await processor.executeDate(dates.pop(), collateTypes)
     print("Done")
 
+async def deleteData():
+    for collection in DataCollections:
+        await client.db.database.drop_collection(collection.value)
+        await client.db.database.create_collection(collection.value)
+
 async def buildReports():
-    from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage
-    from dzgroshared.models.enums import AmazonDailyReportAggregationStep
-    from dzgroshared.models.model import MockLambdaContext, DataCollections
-    from dzgroshared.models.sqs import SendMessageRequest, QueueName, ReceiveMessageRequest, DeleteMessageBatchEntry, DeleteMessageBatchRequest
-    QueueName = QueueName.AMAZON_REPORTS_TEST
-    startfresh = False
-    if startfresh:
-        while startfresh:
-            sqsevent = await client.sqs.getMessages(ReceiveMessageRequest(QueueUrl=QueueName, MaxNumberOfMessages=1))
-            startfresh = sqsevent.has_messages
-            for message in sqsevent.messages: await client.sqs.deleteMessage(queue=QueueName, receipt_handle=message.receiptHandle)
-        message = AmazonParentReportQueueMessage(
-            marketplace=client.marketplace,
-            uid=client.uid,
-            step=AmazonDailyReportAggregationStep.CREATE_REPORTS
-        )
-        index: ObjectId|None = None
-        if message.step == AmazonDailyReportAggregationStep.CREATE_REPORTS:
-            collections = DataCollections
-            for collection in collections:
-                if collection in [
-                    CollectionType.ADV_ASSETS, 
-                    CollectionType.QUEUE_MESSAGES,
-                    CollectionType.AMAZON_CHILD_REPORT,
-                    CollectionType.AMAZON_CHILD_REPORT_GROUP]:
-                    await client.db.database.get_collection(collection.value).delete_many({})
-        elif index is not None: message.index = index
-        else: raise ValueError("Index is required for this step")
-        await client.sqs.sendMessage(SendMessageRequest(QueueUrl=QueueName, DelaySeconds=0), message)
-    from dzgroshared.functions.AmazonDailyReport.handler import AmazonReportManager
-    manager = AmazonReportManager(client)
-    shouldContinue = True
-    while shouldContinue:
-        sqsevent = await client.sqs.getMessages(ReceiveMessageRequest(QueueUrl=QueueName, MaxNumberOfMessages=1))
-        shouldContinue = sqsevent.has_messages
-        if shouldContinue:
-            res = await manager.execute(sqsevent, MockLambdaContext())
-            if client.env==ENVIRONMENT.DEV: 
-                req = DeleteMessageBatchRequest(QueueUrl=QueueName, Entries=[
-                    DeleteMessageBatchEntry(Id=record.messageId, ReceiptHandle=record.receiptHandle)
-                    for record in sqsevent.Records
-                ])
-                await client.sqs.deleteMessageBatch(req)
-            shouldContinue = res is not None
-            if res and res>0: await asyncio.sleep(res+2)
+    # await deleteData()
+    event = {"country": CountryCode.INDIA.value, "queue": QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE.value}
+    context = MockLambdaContext()
+    await client.functions(event, context).send_daily_report_refresh_message_to_queue
+
 
 
 async def estimate_db_reclaimable_space():
@@ -97,6 +65,7 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:
-    asyncio.run(estimate_db_reclaimable_space())
+    # asyncio.run(deleteData())
+    asyncio.run(buildReports())
 except Exception as e:
     print(f"Error occurred: {e}")

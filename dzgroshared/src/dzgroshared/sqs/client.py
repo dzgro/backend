@@ -1,6 +1,6 @@
-from dzgroshared.models.enums import ENVIRONMENT, QueueName
+from dzgroshared.models.enums import ENVIRONMENT, QueueName, SQSMessageStatus
 from pydantic import BaseModel
-from dzgroshared.models.sqs import DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, DeleteMessageBatchEntry, BatchResultErrorEntry
+from dzgroshared.models.sqs import BatchMessageRequest, DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, SQSBatchFailedMessage, SQSBatchSendResponse, SQSBatchSuccessMessage, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, DeleteMessageBatchEntry, BatchResultErrorEntry
 import uuid, botocore.exceptions
 from mypy_boto3_sqs import SQSClient
 from dzgroshared.client import DzgroSharedClient
@@ -27,7 +27,7 @@ class SqsHelper:
         return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.env.value}Q"
 
     @catch_sqs_exceptions
-    async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> SQSSendMessageResponse:
+    async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> str:
         if self.client.env!=ENVIRONMENT.LOCAL:
             client = self.getClient()
             send_args = {
@@ -53,7 +53,46 @@ class SqsHelper:
             message_id=str(uuid.uuid4())
         )
 
-        await self.client.db.sqs_messages.addMessageToDb(res.message_id, MessageBody, extras)
+        await self.client.db.sqs_messages.addMessageToDb(res.message_id, payload.Queue, MessageBody, extras)
+        return res.message_id
+
+    @catch_sqs_exceptions
+    async def sendBatchMessage(self, queue: QueueName, req: list[BatchMessageRequest]) -> SQSBatchSendResponse:
+        if not req: raise ValueError("Request list cannot be empty")
+        dbBatch: list[dict] = []
+        res = SQSBatchSendResponse(Success=[], Failed=[])
+        if self.client.env!=ENVIRONMENT.LOCAL:
+            client = self.getClient()
+            send_args = {
+                "QueueUrl": self.getQueueUrl(queue),
+                "Entries": [
+                    {
+                        "Id": entry.Id,
+                        "MessageBody": entry.Body.model_dump_json(),
+                        "DelaySeconds": entry.DelaySeconds or 0,
+                        "MessageAttributes": {
+                            key: attr.model_dump(exclude_none=True)
+                            for key, attr in entry.MessageAttributes.items()
+                        } if entry.MessageAttributes else None
+                    }
+                    for entry in req
+                ]
+            }
+            response = client.send_message_batch(**send_args)
+            res.Failed = [SQSBatchFailedMessage(Id=item['Id'], Code=item['Code'], Message=item.get('Message')) for item in (response.get('Failed', []))]
+            res.Success = [SQSBatchSuccessMessage(Id=item['Id'], MessageID=item.get('MessageId')) for item in (response.get('Successful', []))]
+
+            for item in res.Success:
+                entry = next((e for e in req if e.Id == item.Id), None)
+                if entry:
+                    body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True), "_id": item.MessageID, "status": SQSMessageStatus.PENDING.value}
+                    dbBatch.append(body)
+        else:
+            for entry in req:
+                body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True), "_id": str(uuid.uuid4()), "status": SQSMessageStatus.PENDING.value}
+                dbBatch.append(body)
+
+        await self.client.db.sqs_messages.addBatchMessageToDb(dbBatch)
         return res
     
     def getSQSEventByMessage(self, message: SQSSendMessageResponse, body: BaseModel):

@@ -78,5 +78,9 @@ class DzgroReport(CreateDzgroReportRequest, ItemIdWithDate):
     def setErrorIfNoData(self):
         if self.count == 0: self.error = "No data found"
         return self
+    
+class ListDzgroReportsResponse(BaseModel):
+    reports: list[DzgroReport]
+    count: int
 
 

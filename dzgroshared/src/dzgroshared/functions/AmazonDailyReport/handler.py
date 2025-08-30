@@ -52,12 +52,10 @@ class AmazonReportManager:
         return None
     
     async def checkMessage(self):
-        dbMessageStatus = await self.client.db.sqs_messages.getMessageStatus(self.messageId)
-        if dbMessageStatus==SQSMessageStatus.PENDING: 
-            # await self.client.db.sqs_messages.setMessageAsProcessing(self.messageId)
-            await self.setUserMarketplace()
-            delay = await self.executeMessage()
-            return await self.exitAndContinue(delay)
+        await self.client.db.sqs_messages.setMessageAsProcessing(self.messageId)
+        await self.setUserMarketplace()
+        delay = await self.executeMessage()
+        return await self.exitAndContinue(delay)
     
     async def setUserMarketplace(self):
         self.userMarketplace = MarketplaceObjectForReport(**await self.client.db.marketplaces.getMarketplaceObjectForReport(ObjectId(self.message.marketplace)))
@@ -110,8 +108,8 @@ class AmazonReportManager:
     async def __sendMessage(self, step: AmazonDailyReportAggregationStep, delay: int=0):
         await self.client.db.sqs_messages.setMessageAsCompleted(self.messageId)
         self.message.step = step
-        queue = QueueName.AMAZON_REPORTS if self.client.env != ENVIRONMENT.DEV else QueueName.AMAZON_REPORTS_TEST
-        return await self.client.sqs.sendMessage(SendMessageRequest(QueueUrl=queue, DelaySeconds=delay), self.message, {'ram': self.context.memory_limit_in_mb, 'funcname': self.context.function_name})
+        queue = QueueName.AMAZON_REPORTS
+        return await self.client.sqs.sendMessage(SendMessageRequest(Queue=queue, DelaySeconds=delay), self.message)
 
     @property
     def spapi(self):
@@ -147,10 +145,10 @@ class AmazonReportManager:
         adExports = await (await self.getAdExportManager()).createExports()
         kioskReports = (await self.getDataKioskReportManager()).getDataKioskReportsConf(months)
         reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]] = {
-            # AmazonReportType.SPAPI: spapiReports,
-            # AmazonReportType.AD: adReports,
+            AmazonReportType.SPAPI: spapiReports,
+            AmazonReportType.AD: adReports,
             AmazonReportType.AD_EXPORT: adExports,
-            # AmazonReportType.KIOSK: kioskReports
+            AmazonReportType.KIOSK: kioskReports
         }
         self.message.index = str(await self.client.db.amazon_daily_reports.insertParentReport(startDate, endDate, reports))
         await self.client.db.sqs_messages.addIndex(self.messageId,self.message.index)
@@ -194,10 +192,12 @@ class AmazonReportManager:
     
     async def exitAndContinue(self, delay: int=0):
         if self.message.step==AmazonDailyReportAggregationStep.CREATE_REPORTS:
+            if self.client.env==ENVIRONMENT.LOCAL:
+                await self.client.db.amazon_daily_reports.markProductsComplete(ObjectId(self.message.index))
             await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
-            if self.client.env==ENVIRONMENT.DEV:self.userMarketplace.lastrefresh = date_util.getCurrentDateTime()
-            if not self.message.date: self.message.date = self.userMarketplace.lastrefresh
-            await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
+            # if self.client.env==ENVIRONMENT.DEV:self.userMarketplace.lastrefresh = date_util.getCurrentDateTime()
+            # if not self.message.date: self.message.date = self.userMarketplace.lastrefresh
+            # await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
         elif self.message.step==AmazonDailyReportAggregationStep.ADD_PRODUCTS:
             if self.message.date: await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
             else: return None

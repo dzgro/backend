@@ -194,11 +194,30 @@ class SendMessageRequest(BaseModel):
     DelaySeconds: int = Field( default=0, ge=0, le=900)
     MessageAttributes: Dict[str, SendMessageAttribute] | SkipJsonSchema[None] = None
 
+class BatchMessageRequest(BaseModel):
+    DelaySeconds: int = Field( default=0, ge=0, le=900)
+    MessageAttributes: Dict[str, SendMessageAttribute] | SkipJsonSchema[None] = None
+    Body: BaseModel
+    Id: str
+
 class SQSSendMessageResponse(BaseModel):
     success: bool = Field(..., description="Whether the message was sent successfully")
     message_id: str = ''
     sequence_number: str|SkipJsonSchema[None] = None
     error: Optional[str] = None
+
+class SQSBatchFailedMessage(BaseModel):
+    Id: str
+    Code: str
+    Message: str|SkipJsonSchema[None]=None
+
+class SQSBatchSuccessMessage(BaseModel):
+    Id: str
+    MessageID: str
+
+class SQSBatchSendResponse(BaseModel):
+    Success: List[SQSBatchSuccessMessage]
+    Failed: List[SQSBatchFailedMessage]
 
 class SendMessageBatchEntry(BaseModel):
     Id: str

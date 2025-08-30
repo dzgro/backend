@@ -82,12 +82,10 @@ class DzgroReportProcessor:
         await self.client.db.dzgro_reports.addCount(self.report.id, count)
         return count
     
-    async def getProjections(self):
-        projections = await self.client.db.dzgro_report_types.getProjection(self.report.reporttype)
-        if self.report.keyMetrics and self.report.keyMetrics.collatetype==CollateType.SKU:
-            keys_to_remove = [ "Sessions", "Browser Sessions", "Browser Sessions %", "Mobile App Sessions", "Mobile App Sessions &", "Unit Session %", "Page Views", "Browser Page Views", "Browser Page Views %", "Mobile App Page Views", "Mobile App Page Views %", "Buy Box %" ]
-            projections =  {k: v for k, v in projections.items() if k not in keys_to_remove}
-        return projections
+    async def getProjections(self, collatetype: CollateType|None=None):
+        if self.report.keyMetrics:
+            collatetype = self.report.keyMetrics.collatetype
+        return await self.client.db.dzgro_report_types.getProjection(self.report.reporttype, collatetype)
 
     async def runFedQuery(self):
         projections = await self.getProjections()

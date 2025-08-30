@@ -42,8 +42,13 @@ class DzgroReportHelper:
             raise e
 
     async def listReports(self, paginator: Paginator):
-        return await self.db.find({}, skip=paginator.skip, limit=paginator.limit, sort=Sort(field='_id', order=-1))
-        
+        reports = await self.db.find({}, skip=paginator.skip, limit=paginator.limit, sort=Sort(field='_id', order=-1))
+        count = await self.db.count({})
+        return { "reports": reports, "count": count }
+
+    async def countReports(self):
+        return await self.db.count({})
+
     async def getReport(self, reportid: str|ObjectId):
         return DzgroReport(**await self.db.findOne({'_id': self.db.convertToObjectId(reportid)}))
     

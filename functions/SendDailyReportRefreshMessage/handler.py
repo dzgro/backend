@@ -7,7 +7,7 @@ db = client.db
 
 def handler(event, context):
     print(event)
-    asyncio.run(client.functions(event, context).dzgro_reports_s3_trigger)
+    asyncio.run(client.functions(event, context).send_daily_report_refresh_message_to_queue)
     return {
         "statusCode": 200,
         "body": "Processed successfully"

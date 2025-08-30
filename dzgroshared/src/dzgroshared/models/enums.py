@@ -420,6 +420,7 @@ class CollectionType(str,Enum):
     DATA_KIOSK_REPORTS = 'data_kiosk_reports'
     ADV_PERFORMANCE_REPORTS = 'adv_performance_reports'
     ADV_EXPORT_REPORTS = 'adv_export_reports'
+    REPORT_FAILURES = 'report_failures'
 
     @staticmethod
     def values():
@@ -443,6 +444,7 @@ class QueueName(str, Enum):
     AMS_CHANGE = "AmsChange"
     AMS_PERFORMANCE = "AmsPerformance"
     PAYMENT_PROCESSOR = "PaymentProcessor"
+    DAILY_REPORT_REFRESH_BY_COUNTRY_CODE = "DailyReportRefreshByCountryCode"
 
 class S3Bucket(str, Enum):
     DZGRO_REPORTS = "dzgro-report-data"

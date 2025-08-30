@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     from dzgroshared.secrets.client import SecretManager
     app.state.secrets = SecretManager(app.state.env).secrets
     from motor.motor_asyncio import AsyncIOMotorClient
-    app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI)
+    app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI, appname="dzgro-api")
     import jwt
     jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{app.state.secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
     app.state.jwtClient = jwt.PyJWKClient(jwks_url)

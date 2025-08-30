@@ -44,6 +44,14 @@ class DbClient:
             return self.defaultsHelper
         self.defaultsHelper = DefaultsHelper(self.client)
         return self.defaultsHelper
+    
+    @property
+    def daily_report_failures(self):
+        from dzgroshared.db.collections.report_failures import DailyReportFailuresHelper
+        if self.dailyReportFailuresHelper:
+            return self.dailyReportFailuresHelper
+        self.dailyReportFailuresHelper = DailyReportFailuresHelper(self.client)
+        return self.dailyReportFailuresHelper
 
     @property
     def sqs_messages(self):
@@ -340,3 +348,4 @@ class DbClient:
             return self.advAdGroupMappingHelper
         self.advAdGroupMappingHelper = AdvAdGroupMappingHelper(self.client, self.uid, self.marketplace)
         return self.advAdGroupMappingHelper
+    

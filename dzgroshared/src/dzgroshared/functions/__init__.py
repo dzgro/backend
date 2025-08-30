@@ -45,5 +45,15 @@ class FunctionClient:
     async def amazon_daily_report(self):
         from dzgroshared.functions.AmazonDailyReport.handler import AmazonReportManager
         return await AmazonReportManager(self.client).execute(self.event, self.context)
+    
+    @property
+    async def daily_report_refresh(self):
+        from dzgroshared.functions.DailyReportRefreshByCountryCode.handler import DailyReportRefreshByCountryCodeProcessor
+        return await DailyReportRefreshByCountryCodeProcessor(self.client).execute(self.event)
+    
+    @property
+    async def send_daily_report_refresh_message_to_queue(self):
+        from dzgroshared.functions.SendDailyReportRefreshMessage import handler
+        return await handler.sendMessage(self.client, self.event, self.context)
 
     

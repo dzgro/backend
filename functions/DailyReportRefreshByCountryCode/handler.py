@@ -1,4 +1,4 @@
-import os, asyncio
+import os
 from dzgroshared.models.enums import ENVIRONMENT
 ENV = ENVIRONMENT(os.environ.get("ENV"))
 from dzgroshared.client import DzgroSharedClient
@@ -7,7 +7,8 @@ db = client.db
 
 def handler(event, context):
     print(event)
-    asyncio.run(client.functions(event, context).dzgro_reports_s3_trigger)
+    import asyncio
+    asyncio.run(client.functions(event, context).daily_report_refresh)
     return {
         "statusCode": 200,
         "body": "Processed successfully"

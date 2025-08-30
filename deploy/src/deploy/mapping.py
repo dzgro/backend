@@ -22,6 +22,7 @@ class LambdaName(str, Enum):
     RazorpayWebhookProcessor = "RazorpayWebhookProcessor"
     AmsChange = "AmsChange"
     AmsPerformance = "AmsPerformance"
+    DailyReportRefreshByCountryCode = "DailyReportRefreshByCountryCode"
 
 
 class QueueRole(str, Enum):
@@ -269,6 +270,18 @@ LAMBDAS = [
                     name=QueueName.AMS_PERFORMANCE,
                     roles=QueueRole.read(),
                     policy = getAMSPerformancePolicy(region)
+                ),
+            ) for region in Region.others()
+        ],
+    ),
+    LambdaProperty(
+        name=LambdaName.DailyReportRefreshByCountryCode,
+        regions=[
+            LambdaRegion(
+                region=region,
+                queue=QueueProperty(
+                    name=QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE,
+                    roles=QueueRole.read(),
                 ),
             ) for region in Region.others()
         ],
