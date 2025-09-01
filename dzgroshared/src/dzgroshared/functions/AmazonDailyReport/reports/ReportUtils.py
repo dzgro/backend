@@ -2,11 +2,13 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.client import DbClient
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
 from dzgroshared.models.model import PyObjectId
-from dzgroshared.models.enums import CollectionType
+from dzgroshared.models.enums import CollectionType, S3Bucket
 dateFormat = ["%d.%m.%Y %H:%M:%S %Z","%Y-%m-%dT%H:%M:%S%z","%d.%m.%Y"]
+bucket = S3Bucket.AMAZON_REPORTS
 
 class ReportUtil:
     client: DzgroSharedClient
+    
 
     def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
@@ -22,12 +24,15 @@ class ReportUtil:
                 return response.text
         raise ValueError("URL could not be resolved")
 
+    def getFilePath(self, key:str):
+        return f'reports/{self.client.uid}/{str(self.client.marketplace)}/{key}'
+
     async def insertToS3(self, key: str, url: str, compressionAlgorithm: bool = False) -> tuple[str, str]:
-        path = f'reports/{self.client.uid}/{str(self.client.marketplace)}/{key}'
+        path = self.getFilePath(key)
         from dzgroshared.models.s3 import S3PutObjectModel
         data = await self.fetchData(url, compressionAlgorithm)
         self.client.storage.put_object(
-            S3PutObjectModel(Key=path, Body=data, ContentType='application/json')
+            S3PutObjectModel(Key=path, Bucket=bucket, ContentType='application/json'), Body=data
         )
         return data, path
     

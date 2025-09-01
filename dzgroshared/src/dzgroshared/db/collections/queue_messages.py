@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import cast
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.sqs import BatchMessageRequest
 from pydantic import BaseModel
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.models.enums import CollectionType, QueueName, SQSMessageStatus
-from dzgroshared.models.collections.queue_messages import MODEL_REGISTRY
+from dzgroshared.models.collections.queue_messages import MODEL_REGISTRY, AmazonParentReportQueueMessage, QueueMessageModel
 
 class QueueMessagesHelper:
     dbManager: DbManager
@@ -22,8 +23,8 @@ class QueueMessagesHelper:
 
     async def setMessageAsProcessing(self, messageid: str):
         count, id = await self.dbManager.updateOne({"_id": messageid, "status": SQSMessageStatus.PENDING.value},setDict={"status": SQSMessageStatus.PROCESSING.value})
-        if count != 0: raise ValueError(f"Message {messageid} is not in PENDING status")
-        return id
+        if count == 0: raise ValueError(f"Message {messageid} is not in PENDING status")
+        return True
 
     async def setMessageAsCompleted(self, messageid: str, extras: dict ={}):
         setDict = {"status": SQSMessageStatus.COMPLETED.value}
@@ -43,8 +44,12 @@ class QueueMessagesHelper:
 
     async def addIndex(self, messageid:str, index):
         return await self.dbManager.updateOne({"_id": messageid},setDict={"body.index": index})
+
+    async def getMessagesByIndex(self, index:str):
+        result = await self.dbManager.find({"body.index": index})
+        return [self.__deserialize_message(doc) for doc in result]
     
-    def __deserialize_message(self, doc: dict) -> BaseModel:
+    def __deserialize_message(self, doc: dict) -> QueueMessageModel:
         model_name = doc.get("model")
         body = doc.get("body")
         if model_name not in MODEL_REGISTRY:
@@ -52,12 +57,14 @@ class QueueMessagesHelper:
         model_cls = MODEL_REGISTRY[model_name]
         return model_cls.model_validate(body)
 
-    async def getMessagesByIndex(self, index:str):
-        result = await self.dbManager.find({"body.index": index})
-        return [self.__deserialize_message(doc) for doc in result]
-    
-    async def getMessage(self, messageid:str, status: SQSMessageStatus|None = None) -> BaseModel:
+    async def getMessage(self, messageid:str, status: SQSMessageStatus|None = None) -> QueueMessageModel:
         filterdict = {"_id": messageid}
         if status: filterdict["status"] = status.value
         message = await self.dbManager.findOne(filterdict)
         return self.__deserialize_message(message)
+
+    async def getAmazonParentReportQueueMessage(self, messageid: str, status: SQSMessageStatus | None = None) -> AmazonParentReportQueueMessage:
+        message = await self.getMessage(messageid, status)
+        if not isinstance(message, AmazonParentReportQueueMessage):
+            raise ValueError(f"Message {messageid} is not of type AmazonParentReportQueueMessage")
+        return message

@@ -26,11 +26,13 @@ class AdsExportConvertor:
                 "_id": f'{marketplace}_{item['campaignId']}',
                 "assettype":AdAssetType.CAMPAIGN.value,
                 "id": item['campaignId'],
-                "parent": item.get('portfolioId',None),
                 "name": item['name'],
                 "state": item['state'],
                 "adproduct": item['adProduct']
             }
+            portfolio = item.get('portfolioId',None)
+            if portfolio: asset['parent'] = portfolio
+
             budget = item.get('budgetCaps', {"budgetValue": None}).get("budgetValue", {"monetaryBudget": None}).get("monetaryBudget", {"amount", None}).get("amount", None)
             if budget: asset['budget'] = budget
             finaldata.append(asset)

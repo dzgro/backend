@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field,model_validator
-from dzgroshared.models.model import ItemId, ItemIdWithDate
+from dzgroshared.models.model import ItemId, ItemIdWithDate, StartEndDate
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.enums import AmazonAccountType, MarketplaceId, CountryCode, MarketplaceStatus
 from datetime import datetime
@@ -83,5 +83,4 @@ class Marketplace(ItemIdWithDate):
     profileid: int
     status: MarketplaceStatus
     storename: str|SkipJsonSchema[None]=None
-    startdate: datetime|SkipJsonSchema[None]=None
-    enddate: datetime|SkipJsonSchema[None]=None
+    dates: StartEndDate|SkipJsonSchema[None]=None

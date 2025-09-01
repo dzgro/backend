@@ -12,6 +12,7 @@ uid = "41e34d1a-6031-70d2-9ff3-d1a704240921"
 marketplace = ObjectId("6895638c452dc4315750e826")
 client.setUid(uid)
 client.setMarketplace(marketplace)
+context = MockLambdaContext()
 enddate = datetime(2025, 8, 8)
 startdate= datetime(2025, 6, 10)
 dates = [startdate + timedelta(days=i) for i in range((enddate - startdate).days + 1)]
@@ -40,12 +41,22 @@ async def deleteData():
         await client.db.database.create_collection(collection.value)
 
 async def buildReports():
-    # await deleteData()
+    await deleteData()
     event = {"country": CountryCode.INDIA.value, "queue": QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE.value}
-    context = MockLambdaContext()
+    
     await client.functions(event, context).send_daily_report_refresh_message_to_queue
 
+async def runReport():
+    messageId = "c1087f49-2ca5-4fe7-81f4-9cb77d7a32ce"
+    event = client.sqs.mockSQSEvent(messageId, '')
+    await client.functions(event, context).amazon_daily_report
 
+def dates():
+    from dzgroshared.utils import date_util
+    dates = date_util.getAdReportDates('Asia/Kolkata',31, True)
+    print(dates)
+    dates = date_util.getSPAPIReportDates('Asia/Kolkata',31, True)
+    print(dates)
 
 async def estimate_db_reclaimable_space():
     stats = await client.db.database.command("dbStats", 1, scale=1)
@@ -62,10 +73,8 @@ async def estimate_db_reclaimable_space():
     print(f"Free/Fragmented Space: {to_mb(free)} MB")
     print(f"Potential Reclaim if Compact/Repair: {to_mb(free)} MB")
 
-
 import asyncio
-try:
-    # asyncio.run(deleteData())
-    asyncio.run(buildReports())
+try:    
+    asyncio.run(runReport())
 except Exception as e:
     print(f"Error occurred: {e}")

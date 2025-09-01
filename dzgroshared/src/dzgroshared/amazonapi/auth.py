@@ -4,58 +4,66 @@ import httpx
 import backoff
 
 from dzgroshared.models.amazonapi.model import AmazonApiObject
+import time
+from typing import Optional
+import httpx
+import backoff
+
 
 class CommonLWAClient:
-    """Login with Amazon (LWA) authentication client for both SP-API and Advertising API."""
-    def __init__(self, config: AmazonApiObject):
+    """
+    Login with Amazon (LWA) authentication client for both SP-API and Advertising API.
+    Handles token caching, refresh, and retries on transient errors.
+    """
+
+    TOKEN_URL = "https://api.amazon.com/auth/o2/token"
+
+    def __init__(self, config: "AmazonApiObject"):
         self.config = config
-        self.expires_at: Optional[float] = None
-        self.accessToken: Optional[str] = None
+        self._expires_at: float = 0.0
+        self._access_token: Optional[str] = None
+
     @property
-    async def access_token(self) -> Optional[str]:
-        if not self.accessToken or not self.expires_at or time.time() >= self.expires_at:
+    async def access_token(self) -> str:
+        if not self._access_token or time.time() >= self._expires_at:
             await self._refresh_token()
-        return self.accessToken
+        assert self._access_token is not None  # helps type checker
+        return self._access_token
 
     @backoff.on_exception(
         backoff.expo,
-        httpx.RequestError,
-        max_tries=3
+        (httpx.RequestError, httpx.HTTPStatusError),
+        max_tries=3,
+        jitter=None,  # deterministic backoff (can enable full_jitter=True if needed)
     )
     async def _refresh_token(self) -> None:
-        data = {
-            "client_id": self.config.client_id,
-            "client_secret": self.config.client_secret,
-        }
+        """Refresh the LWA access token."""
         if self.config.refreshtoken:
-            data.update({
+            payload = {
                 "grant_type": "refresh_token",
-                "refresh_token": self.config.refreshtoken
-            })
+                "refresh_token": self.config.refreshtoken,
+                "client_id": self.config.client_id,
+                "client_secret": self.config.client_secret,
+            }
         elif self.config.scope:
-            data.update({
+            payload = {
                 "grant_type": "client_credentials",
-                "scope": self.config.scope
-            })
+                "scope": self.config.scope,
+                "client_id": self.config.client_id,
+                "client_secret": self.config.client_secret,
+            }
         else:
-            raise Exception("Either refresh_token or scope must be provided")
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    "https://api.amazon.com/auth/o2/token",
-                    data=data
-                )
-            response.raise_for_status()
-            token_data = response.json()
-            self.expires_at = time.time() + token_data.get("expires_in", 3600) - 30
-            self.accessToken = token_data.get("access_token",None)
-        except httpx.HTTPStatusError as e:
-            error_msg = f"Token refresh failed: {e.response.status_code} - {e.response.text}"
-            raise Exception(error_msg) from e
-        except httpx.RequestError as e:
-            error_msg = f"Token refresh failed: {str(e)}"
-            raise Exception(error_msg) from e 
-        
+            raise ValueError("Either refresh_token or scope must be provided")
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(self.TOKEN_URL, data=payload)
+            resp.raise_for_status()
+
+        token_data = resp.json()
+        self._access_token = token_data["access_token"]
+        # refresh 30s before actual expiry to be safe
+        self._expires_at = time.time() + token_data.get("expires_in", 3600) - 30
+
 class Onboard:
 
     def __init__(self, client_id: str, client_secret: str, redirect_uri: str) -> None:

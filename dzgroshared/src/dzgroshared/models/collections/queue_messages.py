@@ -4,7 +4,7 @@ from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
 from bson import ObjectId
 from dzgroshared.models.enums import AmazonDailyReportAggregationStep, CountryCode, QueueName
-from typing import Type
+from typing import Type, Union
 from dzgroshared.models.collections.dzgro_reports import DzgroReportType
 
 class MessageIndexOptional(BaseModel):
@@ -53,8 +53,9 @@ class NewUserQueueMessage(BaseModel):
     uid: str
     details: UserDetails
 
+QueueMessageModel = Union[AmazonParentReportQueueMessage, NewUserQueueMessage, DzgroReportQueueMessage, PaymentMessage]
 
-MODEL_REGISTRY: dict[str, Type[BaseModel]] = {
+MODEL_REGISTRY: dict[str, Type[QueueMessageModel]] = {
     "AmazonParentReportQueueMessage": AmazonParentReportQueueMessage,
     "NewUserQueueMessage": NewUserQueueMessage,
     "DzgroReportQueueMessage": DzgroReportQueueMessage,

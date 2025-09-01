@@ -16,20 +16,22 @@ class ReportsClient(BaseClient):
         self, report_types: Optional[List[str]] = None, processing_statuses: Optional[List[str]] = None, marketplace_ids: Optional[List[str]] = None, page_size: Optional[int] = None, created_since: Optional[datetime] = None, created_until: Optional[datetime] = None, next_token: Optional[str] = None
     ) -> SPAPIGetReportsResponse:
         params = {}
-        if report_types:
-            params["reportTypes"] = ",".join(report_types)
-        if processing_statuses:
-            params["processingStatuses"] = ",".join(processing_statuses)
-        if marketplace_ids:
-            params["marketplaceIds"] = ",".join(marketplace_ids)
-        if page_size:
-            params["pageSize"] = page_size
-        if created_since:
-            params["createdSince"] = created_since.isoformat()
-        if created_until:
-            params["createdUntil"] = created_until.isoformat()
         if next_token:
             params["nextToken"] = next_token
+        else:
+            if report_types:
+                params["reportTypes"] = ",".join(report_types)
+            if processing_statuses:
+                params["processingStatuses"] = ",".join(processing_statuses)
+            if marketplace_ids:
+                params["marketplaceIds"] = ",".join(marketplace_ids)
+            if page_size:
+                params["pageSize"] = page_size
+            if created_since:
+                params["createdSince"] = created_since.isoformat()
+            if created_until:
+                params["createdUntil"] = created_until.isoformat()
+
         return await self._request(
             method="GET",
             path="/reports/2021-06-30/reports",

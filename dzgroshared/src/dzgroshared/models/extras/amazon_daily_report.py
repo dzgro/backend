@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Literal
 from dzgroshared.models.amazonapi.model import AmazonApiObject
-from dzgroshared.models.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemIdWithDate, PyObjectId
+from dzgroshared.models.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemIdWithDate, PyObjectId, StartEndDate
 from dzgroshared.models.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, CollateTypeTag, MarketplaceId, MarketplaceStatus, PlanType
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -101,22 +101,17 @@ class AmazonDailyReportMessages(BaseModel):
     params: dict|SkipJsonSchema[None]=None
     status: AmazonParentReportTaskStatus = AmazonParentReportTaskStatus.PENDING
 
-class AmazonParentReport(ItemIdWithDate):
-    startdate: datetime
-    enddate: datetime
+class AmazonParentReport(ItemId):
+    createdat: datetime
+    completedat: datetime|SkipJsonSchema[None]=None
+    dates: StartEndDate
     spapi: list[AmazonSpapiReportDB] = []
     ad: list[AmazonAdReportDB] = []
     adexport: list[AmazonAdExportDB] = []
     kiosk: list[AmazonDataKioskReportDB] = []
     messages: list[AmazonDailyReportMessages] = []
-    dates: list[datetime] = []
     progress: float
     productsComplete: bool = False
-
-    @model_validator(mode="after")
-    def setStatus(self):
-        if self.startdate and self.enddate: self.dates = [self.startdate+timedelta(days=i-1,milliseconds=1) for i in range((self.enddate-self.startdate).days+1)]
-        return self
 
 
 class MarketplaceObjectForReport(ItemId):
@@ -125,10 +120,7 @@ class MarketplaceObjectForReport(ItemId):
     marketplaceid: MarketplaceId
     spapi: AmazonApiObject
     ad: AmazonApiObject
-    startdate: datetime|SkipJsonSchema[None]=None
-    enddate: datetime|SkipJsonSchema[None]=None
-    lastrefresh: datetime|SkipJsonSchema[None]=None
+    dates: StartEndDate|SkipJsonSchema[None]=None
+    lastRefresh: StartEndDate|SkipJsonSchema[None]=None
     details: CountryDetails
-    profileid: int
-    sellerid:str
     plantype: PlanType

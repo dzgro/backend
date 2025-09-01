@@ -2,7 +2,7 @@ from datetime import datetime
 from bson import ObjectId
 from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.enums import CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus
-from dzgroshared.models.model import Paginator, SuccessResponse, AddMarketplace
+from dzgroshared.models.model import Paginator, StartEndDate, SuccessResponse, AddMarketplace
 from dzgroshared.db import Exceptions
 from dzgroshared.models.collections.marketplaces import Marketplace, UserAccountsCount, MarketplaceNameId, Account, AdAccount, RenameAccountRequest
 from dzgroshared.db.collections.pipelines import GetAdAccounts, GetMarketplaces
@@ -36,8 +36,8 @@ class MarketplaceHelper:
         return data[0]
         
     
-    async def completeReportProcessing(self, id:str|ObjectId, startdate: datetime, enddate: datetime, lastrefresh: datetime, lastreport: ObjectId):
-        await self.marketplaceDB.updateOne({"_id": self.marketplaceDB.convertToObjectId(id)}, setDict={"startdate":startdate, "enddate": enddate, "lastrefresh": lastrefresh, "lastreport": lastreport, "status": MarketplaceStatus.ACTIVE.value})
+    async def completeReportProcessing(self, id:str|ObjectId, dates: StartEndDate, lastrefresh: datetime, lastreport: ObjectId):
+        await self.marketplaceDB.updateOne({"_id": self.marketplaceDB.convertToObjectId(id)}, setDict={"dates":dates.model_dump(), "lastrefresh": lastrefresh, "lastreport": lastreport, "status": MarketplaceStatus.ACTIVE.value})
 
     async def addMarketplace(self, body: AddMarketplace):
         data = body.model_dump(mode="json")

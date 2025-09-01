@@ -1,6 +1,6 @@
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.collections.pricing import PlanDetails
-from dzgroshared.models.model import ItemId, ItemIdWithDate, ObjectIdStr
+from dzgroshared.models.model import ItemId, ItemIdWithDate, ObjectIdStr, StartEndDate
 from datetime import datetime
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import List
@@ -46,8 +46,8 @@ class UserMarketplace(ItemIdWithDate):
     seller: MarketplaceSeller
     status: MarketplaceStatus
     storename: str|SkipJsonSchema[None]=None
-    startdate: datetime|SkipJsonSchema[None]=None
-    enddate: datetime|SkipJsonSchema[None]=None
+    dates: StartEndDate|SkipJsonSchema[None]=None
+    lastUpdated: datetime|SkipJsonSchema[None]=None
 
 class AdAccountEntity(ItemId):
     accountname: str

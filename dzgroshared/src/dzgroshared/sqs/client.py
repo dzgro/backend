@@ -25,6 +25,12 @@ class SqsHelper:
     
     def getQueueUrl(self, queue: QueueName) -> str:
         return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.env.value}Q"
+    
+    def mockSQSEvent(self, messageId: str, body: dict|str):
+        import json
+        if isinstance(body, dict): body = json.dumps(body)
+        return {"Records": [{"body": body, "messageId": messageId, "receiptHandle": messageId}]}
+
 
     @catch_sqs_exceptions
     async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> str:
@@ -61,7 +67,8 @@ class SqsHelper:
         if not req: raise ValueError("Request list cannot be empty")
         dbBatch: list[dict] = []
         res = SQSBatchSendResponse(Success=[], Failed=[])
-        if self.client.env!=ENVIRONMENT.LOCAL:
+        if self.client.env==ENVIRONMENT.LOCAL: res.Success = [SQSBatchSuccessMessage(Id=item.Id, MessageID=str(uuid.uuid4())) for item in req]
+        else:
             client = self.getClient()
             send_args = {
                 "QueueUrl": self.getQueueUrl(queue),
@@ -81,17 +88,12 @@ class SqsHelper:
             response = client.send_message_batch(**send_args)
             res.Failed = [SQSBatchFailedMessage(Id=item['Id'], Code=item['Code'], Message=item.get('Message')) for item in (response.get('Failed', []))]
             res.Success = [SQSBatchSuccessMessage(Id=item['Id'], MessageID=item.get('MessageId')) for item in (response.get('Successful', []))]
-
-            for item in res.Success:
-                entry = next((e for e in req if e.Id == item.Id), None)
-                if entry:
-                    body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True), "_id": item.MessageID, "status": SQSMessageStatus.PENDING.value}
-                    dbBatch.append(body)
-        else:
-            for entry in req:
-                body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True), "_id": str(uuid.uuid4()), "status": SQSMessageStatus.PENDING.value}
+            
+        for item in res.Success:
+            entry = next((e for e in req if e.Id == item.Id), None)
+            if entry:
+                body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True), "_id": item.MessageID, "status": SQSMessageStatus.PENDING.value}
                 dbBatch.append(body)
-
         await self.client.db.sqs_messages.addBatchMessageToDb(dbBatch)
         return res
     

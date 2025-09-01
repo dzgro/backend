@@ -1,5 +1,5 @@
 from datetime import datetime
-from dzgroshared.models.model import ErrorDetail
+from dzgroshared.models.model import ErrorDetail, StartEndDate
 from dzgroshared.models.extras.amazon_daily_report import AmazonParentReport, AmazonSpapiReport, AmazonAdReport, AmazonExportReport, AmazonDataKioskReport, AmazonSpapiReportDB
 from pymongo.collection import ObjectId
 from dzgroshared.db.DbUtils import DbManager
@@ -18,9 +18,10 @@ class AmazonDailyReportHelper:
         self.childDB = DbManager(client.db.database.get_collection(CollectionType.AMAZON_CHILD_REPORT.value), uid=self.uid, marketplace=self.marketplace)
         self.groupDB = DbManager(client.db.database.get_collection(CollectionType.AMAZON_CHILD_REPORT_GROUP.value), uid=self.uid, marketplace=self.marketplace)
 
-    async def insertParentReport(self, startdate: datetime, enddate: datetime, reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]]):
+    async def insertParentReport(self, reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]], startdate: datetime, enddate: datetime):
         childReports: list[dict] = []
-        id = await self.groupDB.insertOne({'status':AmazonParentReportTaskStatus.PROCESSING.value, 'startdate': startdate, 'enddate': enddate}, withUidMarketplace=True, timestampkey='createdat')
+        dates = StartEndDate(startdate=startdate, enddate=enddate).model_dump()
+        id = await self.groupDB.insertOne({'status':AmazonParentReportTaskStatus.PROCESSING.value, 'dates': dates}, withUidMarketplace=True)
         for k,v in reports.items(): childReports.extend([{'parent': id, 'reporttype': k.value, "report": x.model_dump(mode="json", exclude_none=True, exclude_defaults=True, by_alias=True)} for x in v])
         await self.childDB.insertMany(childReports)
         return id
@@ -45,7 +46,7 @@ class AmazonDailyReportHelper:
         await self.groupDB.updateOne({"_id": ObjectId(id)}, setDict={'error': error})
 
     async def markParentAsCompleted(self, id: str):
-        await self.groupDB.updateOne({"_id": ObjectId(id)}, setDict={'status':AmazonParentReportTaskStatus.COMPLETED.value})
+        await self.groupDB.updateOne({"_id": ObjectId(id)}, setDict={'status':AmazonParentReportTaskStatus.COMPLETED.value}, markCompletion=True)
 
 
     async def deleteChildReports(self, id: str):
@@ -55,7 +56,7 @@ class AmazonDailyReportHelper:
         await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={f'report.{k}': v for k,v in data.items()})
 
     async def addfilepathToChildReport(self, id:str, filepath: str):
-        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'filepath': filepath})
+        await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'filepath': filepath}, markCompletion=True)
 
     async def addErrorToChildReport(self, id:str, error: dict):
         await self.childDB.updateOne({"_id": ObjectId(id)}, setDict={'error': error})

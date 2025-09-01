@@ -278,11 +278,12 @@ class QueryBuilderValue(ItemId):
     tag: CollateTypeTag
 
 DataCollections: list[CollectionType] = [
-            CollectionType.ORDERS,
-            CollectionType.ORDER_ITEMS,
-            CollectionType.SETTLEMENTS,
+            # CollectionType.ORDERS,
+            # CollectionType.ORDER_ITEMS,
+            # CollectionType.SETTLEMENTS,
             CollectionType.ADV,
-            CollectionType.ADV_ASSETS,
+            # CollectionType.PRODUCTS,
+            # CollectionType.ADV_ASSETS,
             CollectionType.ADV_ADS,
             CollectionType.ADV_RULE_RUNS,
             CollectionType.ADV_RULE_RUN_RESULTS,
@@ -292,8 +293,12 @@ DataCollections: list[CollectionType] = [
             CollectionType.DZGRO_REPORT_DATA,
             CollectionType.DZGRO_REPORTS,
             CollectionType.HEALTH,
-            CollectionType.TRAFFIC,
+            # CollectionType.TRAFFIC,
             CollectionType.QUEUE_MESSAGES,
             CollectionType.AMAZON_CHILD_REPORT,
             CollectionType.AMAZON_CHILD_REPORT_GROUP,
         ]
+
+class StartEndDate(BaseModel):
+    startdate: datetime
+    enddate: datetime

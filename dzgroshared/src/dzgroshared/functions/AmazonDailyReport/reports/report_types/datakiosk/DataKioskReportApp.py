@@ -9,6 +9,7 @@ from dzgroshared.models.extras.amazon_daily_report import AmazonDataKioskReport,
 from dzgroshared.functions.AmazonDailyReport.reports import Utility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
+from dzgroshared.utils import date_util
 
 class AmazonDataKioskReportManager:
     client: DzgroSharedClient
@@ -28,19 +29,19 @@ class AmazonDataKioskReportManager:
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
 
-    def getDataKioskReportsConf(self,months:int)->list[AmazonDataKioskReport]:
+    def getDataKioskReportsConf(self)->list[AmazonDataKioskReport]:
         reports: list[AmazonDataKioskReport] = []
-        reports.extend(self.__getAsinTrafficReportsConf(months))
+        reports.extend(self.__getAsinTrafficReportsConf())
         # reports.extend(self.getSkuEconomicsConf(months, endDate))
         return reports 
 
-    def __getAsinTrafficReportsConf(self, months: int)->list[AmazonDataKioskReport]:
-        dates = Utility.getConfDatesByMonths(months, self.timezone, 'kiosk', 1)
+    def __getAsinTrafficReportsConf(self)->list[AmazonDataKioskReport]:
+        isNew = self.marketplace.dates is None
+        dates = date_util.getKioskReportDates(self.marketplace.details.timezone, isNew)
         reports: list[AmazonDataKioskReport] = []
-        dateFormat =  "%Y-%m-%d"
         for date in dates:
             startDate, endDate = date
-            query = 'query MyQuery{analytics_salesAndTraffic_2024_04_24{salesAndTrafficByAsin(aggregateBy:PARENT endDate:"'+endDate.strftime(dateFormat)+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+startDate.strftime(dateFormat)+'"){childAsin endDate marketplaceId parentAsin sales{orderedProductSales{amount currencyCode}orderedProductSalesB2B{amount currencyCode}totalOrderItems totalOrderItemsB2B unitsOrdered unitsOrderedB2B}sku startDate traffic{browserPageViews browserPageViewsB2B browserPageViewsPercentage browserPageViewsPercentageB2B browserSessionPercentage browserSessions browserSessionPercentageB2B browserSessionsB2B buyBoxPercentage buyBoxPercentageB2B mobileAppPageViews mobileAppPageViewsPercentage mobileAppPageViewsB2B mobileAppPageViewsPercentageB2B mobileAppSessionPercentageB2B mobileAppSessionPercentage mobileAppSessions mobileAppSessionsB2B pageViews pageViewsB2B pageViewsPercentage pageViewsPercentageB2B sessionPercentage sessionPercentageB2B sessions sessionsB2B unitSessionPercentage unitSessionPercentageB2B}}}}'
+            query = 'query MyQuery{analytics_salesAndTraffic_2024_04_24{salesAndTrafficByAsin(aggregateBy:PARENT endDate:"'+endDate+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+startDate+'"){childAsin endDate marketplaceId parentAsin sales{orderedProductSales{amount currencyCode}orderedProductSalesB2B{amount currencyCode}totalOrderItems totalOrderItemsB2B unitsOrdered unitsOrderedB2B}sku startDate traffic{browserPageViews browserPageViewsB2B browserPageViewsPercentage browserPageViewsPercentageB2B browserSessionPercentage browserSessions browserSessionPercentageB2B browserSessionsB2B buyBoxPercentage buyBoxPercentageB2B mobileAppPageViews mobileAppPageViewsPercentage mobileAppPageViewsB2B mobileAppPageViewsPercentageB2B mobileAppSessionPercentageB2B mobileAppSessionPercentage mobileAppSessions mobileAppSessionsB2B pageViews pageViewsB2B pageViewsPercentage pageViewsPercentageB2B sessionPercentage sessionPercentageB2B sessions sessionsB2B unitSessionPercentage unitSessionPercentageB2B}}}}'
             reports.append(AmazonDataKioskReport(req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
         return reports
 
@@ -93,23 +94,31 @@ class AmazonDataKioskReportManager:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
             raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
 
-    async def processDataKioskReports(self, reports: list[AmazonDataKioskReportDB], reportUtil: ReportUtil, reportId: PyObjectId):
+    async def processDataKioskReports(self, reports: list[AmazonDataKioskReportDB], reportUtil: ReportUtil, reportId: PyObjectId)->bool:
         self.reportUtil = reportUtil
         self.reportId = reportId
         shouldContinue = True
-        for index, report in enumerate(reports):
+        hasError = False
+        for report in reports:
             processedReport = report.__deepcopy__()
             if shouldContinue and not report.filepath:
                 try:
                     processedReport, shouldContinue = await self.__processDataKioskReport(processedReport)
-                    if processedReport.document and processedReport.req: 
-                        key = f'kiosk/{id}'
-                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.documentUrl, False)
-                        await self.__convertTrafficReport(dataStr)
+                    if processedReport.res:
+                        if processedReport.res.processingStatus==ProcessingStatus.CANCELLED: processedReport.filepath = 'No Data Available'
+                        elif processedReport.res.processingStatus==ProcessingStatus.FATAL: processedReport.error = ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {processedReport.res.queryId} is in {processedReport.res.processingStatus.value} status")])
+                        elif processedReport.document and processedReport.req:
+                            key = f'kiosk/{id}'
+                            dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.documentUrl, False)
+                            await self.__convertTrafficReport(dataStr)
                 except DzgroError as e:
                     processedReport.error = e.error_list
+                    shouldContinue = False
+                    hasError = True
                 if report.model_dump() != processedReport.model_dump():
+                    shouldContinue = processedReport.error is None
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+        return not hasError
 
     def __convertDataKioskFileToList(self, dataStr: str)->list[dict]:
         data: list[dict] = []

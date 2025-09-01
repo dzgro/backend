@@ -1,21 +1,25 @@
 
+import asyncio
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage, DailyReportMessage
 from dzgroshared.models.collections.report_failures import DailyReportFailure
 from dzgroshared.models.enums import ENVIRONMENT, AmazonDailyReportAggregationStep, CollectionType, CountryCode, MarketplaceStatus, QueueName
-from dzgroshared.models.model import MockLambdaContext
-from dzgroshared.models.sqs import BatchMessageRequest, SQSEvent, SQSRecord
+from dzgroshared.models.model import LambdaContext, MockLambdaContext
+from dzgroshared.models.sqs import BatchMessageRequest, SQSEvent, SQSRecord, SendMessageRequest
+from dzgroshared.utils import date_util
 
 
 class DailyReportRefreshByCountryCodeProcessor:
     client: DzgroSharedClient
+    context: LambdaContext
     messageid: str
 
     def __init__(self, client: DzgroSharedClient):
         self.client = client
 
-    async def execute(self, event: dict):
+    async def execute(self, event: dict, context: LambdaContext):
+        self.context = context
         try:
             parsed = SQSEvent.model_validate(event)
             for record in parsed.Records:
@@ -32,17 +36,15 @@ class DailyReportRefreshByCountryCodeProcessor:
 
     async def buildMessages(self, countryCode: CountryCode):
         marketplaces = self.client.db.database.get_collection(CollectionType.MARKETPLACES)
-        pipeline = [{"$match": {"countrycode": countryCode, "status": MarketplaceStatus.ACTIVE}}]
+        pipeline = [{"$match": {"countrycode": countryCode.value, "status": MarketplaceStatus.ACTIVE.value}}]
         data = await marketplaces.aggregate(pipeline).to_list(length=None)
         batchRequests: list[BatchMessageRequest] = []
         for item in data:
             uid=item.get("uid")
             marketplace=item.get("_id")
-            index=str(item.get("countrycode", ''))
             message = AmazonParentReportQueueMessage(
                 uid=uid,
                 marketplace=marketplace,
-                index=index,
                 step=AmazonDailyReportAggregationStep.CREATE_REPORTS,
             )
             req = BatchMessageRequest(
@@ -65,8 +67,8 @@ class DailyReportRefreshByCountryCodeProcessor:
         await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid, extras)
         if(self.client.env==ENVIRONMENT.LOCAL):
             for success in res.Success:
-                body = next((doc for doc in batchRequests if doc.Id == success.Id), None)
+                body = next((doc.Body for doc in batchRequests if doc.Id == success.Id), None)
                 if body:
-                    event = SQSEvent( Records=[ SQSRecord( messageId=success.MessageID, body=body.model_dump_json(), receiptHandle='', ) ] )
-                    context = MockLambdaContext()
-                await self.client.functions(event.model_dump(mode="json"), context).amazon_daily_report
+                    sqsEvent = self.client.sqs.mockSQSEvent(success.MessageID, body.model_dump_json(exclude_none=True))
+                    await self.client.functions(sqsEvent, self.context).amazon_daily_report
+                    

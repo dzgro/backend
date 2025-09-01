@@ -9,6 +9,7 @@ from dzgroshared.models.extras.amazon_daily_report import AmazonSpapiReport, Ama
 from dzgroshared.models.enums import AmazonReportType, CollectionType, SPAPIReportType
 from dzgroshared.functions.AmazonDailyReport.reports import Utility
 from dzgroshared.models.model import ErrorDetail, ErrorList
+from dzgroshared.utils import date_util
 
 class AmazonSpapiReportManager:
     client: DzgroSharedClient
@@ -30,21 +31,32 @@ class AmazonSpapiReportManager:
     def __getattr__(self, item):
         return None
 
-    async def getSPAPIReportsConf(self, startdate: datetime, months: int)->list[AmazonSpapiReport]:
+    async def getSPAPIReportsConf(self)->list[AmazonSpapiReport]:
         reports: list[AmazonSpapiReport] = []
-        # reports: list[AmazonSpapiReport] = await self.__getSettlementReports(startdate)
-        dates = Utility.getConfDatesByMonths(months, self.timezone, 'spapi', 30)
-        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
-        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
+        isNew = self.marketplace.dates is None
+        dates = date_util.getSPAPIReportDates(self.marketplace.details.timezone, 31, isNew)
+        startdate, enddate = date_util.getMarketplaceRefreshDates(isNew, self.marketplace.details.timezone)
+        lastRefreshStarted = self.marketplace.lastRefresh.startdate if self.marketplace.lastRefresh else None
+        reports: list[AmazonSpapiReport] = await self.__getSettlementReports(lastRefreshStarted or startdate)
+        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
+        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
         for date in dates:
-            reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_LAST_UPDATE_GENERAL, startDate=date[0], endDate=date[1]))
+            reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL, startDate=date[0], endDate=date[1]))
+            reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FBA_STORAGE_FEE_CHARGES_DATA, startDate=date[0], endDate=date[1]))
         return reports
     
     async def __getSettlementReports(self, startdate:datetime):
-        reports =  (await self.spapi.reports.get_reports(
+        res =  (await self.spapi.reports.get_reports(
             report_types=['GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2'],
             created_since=startdate
-        )).reports
+        ))
+        reports = res.reports
+        while res.next_token:
+            res = (await self.spapi.reports.get_reports(
+                report_types=['GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2'],
+                next_token=res.next_token
+            ))
+            reports.extend(res.reports)
         dummy = self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2)
         return [AmazonSpapiReport(req=dummy.req, res=report) for report in reports]
 
@@ -92,27 +104,31 @@ class AmazonSpapiReportManager:
                 return None
             raise e
 
-    async def processSpapiReports(self, reports: list[AmazonSpapiReportDB], reportUtil: ReportUtil, reportId: PyObjectId) -> bool:
+    async def processSpapiReports(self, reports: list[AmazonSpapiReportDB], reportUtil: ReportUtil, reportId: PyObjectId)->bool:
         self.reportUtil = reportUtil
         self.reportId = reportId
         shouldContinue = True
-        isListingFileProcessed = False
+        hasError = False
         for report in reports:
             processedReport = report.__deepcopy__()
             if shouldContinue and not processedReport.filepath:
                 try:
                     processedReport, shouldContinue = await self.__processSpapiReport(processedReport)
-                    if processedReport.document and processedReport.req and processedReport.res: 
-                        key = f'spapi/{processedReport.req.report_type.value}/{processedReport.res.report_id}'
-                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.url, processedReport.document.compression_algorithm is not None)
-                        await self.__addSPAPIReport(dataStr, processedReport.req.report_type)
+                    if processedReport.res:
+                        if processedReport.res.processing_status==ProcessingStatus.CANCELLED: processedReport.filepath = 'No Data Available'
+                        elif processedReport.res.processing_status==ProcessingStatus.FATAL: processedReport.error = ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {processedReport.res.report_id} is in {processedReport.res.processing_status.value} status")])
+                        elif processedReport.document and processedReport.req:
+                            key = f'spapi/{processedReport.req.report_type.value}/{processedReport.res.report_id}'
+                            dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.url, processedReport.document.compression_algorithm is not None)
+                            await self.__addSPAPIReport(dataStr, processedReport.req.report_type)
                 except DzgroError as e:
                     processedReport.error = e.error_list
+                    shouldContinue = False
+                    hasError = True
                 if report.model_dump() != processedReport.model_dump():
+                    shouldContinue = processedReport.error is None
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
-                    if not isListingFileProcessed and report.req and report.req.report_type == SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA and report.document:
-                        isListingFileProcessed = True
-        return isListingFileProcessed
+        return not hasError
 
     def __convertSPAPIFileToList(self, dataStr: str)->list[dict]:
         lines = [line.split('\t') for line in dataStr.splitlines()]
@@ -127,12 +143,18 @@ class AmazonSpapiReportManager:
             data = self.__convertSPAPIFileToList(dataStr)
             if reportType==SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA: await self.__executeListings(data)
             elif reportType==SPAPIReportType.GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2: await self.__executeSettlementReports(data)
-            elif reportType==SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_LAST_UPDATE_GENERAL: await self.__executeOrderReports(data)
+            elif reportType==SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL: await self.__executeOrderReports(data)
+            elif reportType==SPAPIReportType.GET_FBA_STORAGE_FEE_CHARGES_DATA: await self.__fbaStorageFees(data)
 
     async def __executeHealthReport(self, data: str):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.HealthReportConvertor import HealthReportConvertor
         report = HealthReportConvertor(self.marketplace).convertToReport(json.loads(data))
         await self.reportUtil.update(CollectionType.HEALTH, [{'health': report.model_dump(exclude_none=True), '_id': self.marketplace.id}], self.reportId)
+
+    async def __fbaStorageFees(self, data: list[dict]):
+        from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.FBAStorageReportConvertor import FBAStorageReportConvertor
+        report = FBAStorageReportConvertor(self.marketplace).convert(data)
+        await self.reportUtil.update(CollectionType.FBA_STORAGE_FEES, [item.model_dump(exclude_none=True) for item in report], None)
 
     async def __executeOrderReports(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.OrderReportConvertor import OrderReportConvertor

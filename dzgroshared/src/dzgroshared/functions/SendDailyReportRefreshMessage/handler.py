@@ -14,14 +14,14 @@ async def sendMessage(client: DzgroSharedClient, event: dict, context: LambdaCon
             queueName = QueueName(queue)
             message = DailyReportMessage(index=countryCode)
             messageid = await client.sqs.sendMessage(
-                SendMessageRequest(Queue=queue),
+                SendMessageRequest(Queue=queueName),
                 MessageBody=message
             )
 
             if client.env==ENVIRONMENT.LOCAL:
                 from dzgroshared.models.model import MockLambdaContext
-                sqsEvent = SQSEvent(Records=[SQSRecord(body=message.model_dump_json(), messageId=messageid, receiptHandle='')])
-                await client.functions(sqsEvent.model_dump(), context).daily_report_refresh
+                sqsEvent = client.sqs.mockSQSEvent(messageid, message.model_dump_json())
+                await client.functions(sqsEvent, context).daily_report_refresh
     except Exception as e:
         print(f"Error occurred: {e}")
 

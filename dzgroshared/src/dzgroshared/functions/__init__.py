@@ -49,7 +49,7 @@ class FunctionClient:
     @property
     async def daily_report_refresh(self):
         from dzgroshared.functions.DailyReportRefreshByCountryCode.handler import DailyReportRefreshByCountryCodeProcessor
-        return await DailyReportRefreshByCountryCodeProcessor(self.client).execute(self.event)
+        return await DailyReportRefreshByCountryCodeProcessor(self.client).execute(self.event, self.context)
     
     @property
     async def send_daily_report_refresh_message_to_queue(self):

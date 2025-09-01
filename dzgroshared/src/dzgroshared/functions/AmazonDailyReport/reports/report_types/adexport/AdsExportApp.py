@@ -2,7 +2,7 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
 import json
-from dzgroshared.models.amazonapi.adapi.common.exports import ExportRequest, ExportResponse
+from dzgroshared.models.amazonapi.adapi.common.exports import ExportRequest, ExportResponse, ExportStatus
 from dzgroshared.models.model import DzgroError
 from dzgroshared.models.extras.amazon_daily_report import AmazonExportReport, AmazonAdExportDB, MarketplaceObjectForReport
 from dzgroshared.models.enums import AdExportType, AdProduct, AdReportType, AdState, CollectionType
@@ -83,23 +83,30 @@ class AmazonAdsExportManager:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
             raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
 
-    async def processExportReports(self, reports: list[AmazonAdExportDB], reportUtil: ReportUtil, reportId: PyObjectId):
+    async def processExportReports(self, reports: list[AmazonAdExportDB], reportUtil: ReportUtil, reportId: PyObjectId)->bool:
         self.reportUtil = reportUtil
         self.reportId = reportId
         shouldContinue = True
+        hasError = False
         for report in reports:
             processedReport = report.__deepcopy__()
             if shouldContinue and not report.filepath:
                 try:
                     processedReport, shouldContinue = await self.__processAdExport(processedReport)
-                    if processedReport.res and processedReport.res.url: 
-                        key = f'adexport/{report.exportType.value}/{processedReport.res.exportId}'
-                        dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.res.url, True)
-                        await self.__convertExportReport(report.exportType, dataStr)
+                    if processedReport.res:
+                        if processedReport.res.status==ExportStatus.FAILED: processedReport.error = ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {processedReport.res.exportId} is in {processedReport.res.status.value} status")])
+                        elif processedReport.res.url and processedReport.req:
+                            key = f'adexport/{report.exportType.value}/{processedReport.res.exportId}'
+                            dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.res.url, True)
+                            await self.__convertExportReport(report.exportType, dataStr)
                 except DzgroError as e:
                     processedReport.error = e.error_list
+                    shouldContinue = False
+                    hasError = True
                 if report.model_dump() != processedReport.model_dump():
+                    shouldContinue = processedReport.error is None
                     await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+        return not hasError
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:
         data: list[dict] = []

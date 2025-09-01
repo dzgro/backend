@@ -69,16 +69,16 @@ def convertToUtc( date: datetime)->datetime:
 def getTimestamp()->int:
     return int(datetime.now().timestamp())
 
-def __modify( add:bool,  date:datetime, months:float=0, days:float=0, hours: float=0, minutes: float=0, seconds: float=0, milliseconds: float=0)->datetime:
+def __modify( add:bool,  date:datetime, months:float, days:float, hours: float, minutes: float, seconds: float, milliseconds: float, microseconds:float)->datetime:
     if months: days=months*30
-    modify_time = timedelta(days=days,hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds)
+    modify_time = timedelta(days=days,hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds, microseconds=microseconds)
     return date+modify_time if add else date-modify_time
 
-def add( date: datetime, months: float=0, days: float=0, hours: float=0, minutes: float=0, seconds: float=0, milliseconds: float=0)->datetime:
-    return __modify(True, date, months=months, days=days, hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds)
+def add( date: datetime, months: float=0, days: float=0, hours: float=0, minutes: float=0, seconds: float=0, milliseconds: float=0, microseconds: float=0)->datetime:
+    return __modify(True, date, months=months, days=days, hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds, microseconds=microseconds)
 
-def subtract( date: datetime, months: float=0, days: float=0, hours: float=0, minutes: float=0, seconds: float=0, milliseconds: float=0)->datetime:
-    return __modify(False, date, months=months, days=days, hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds)
+def subtract( date: datetime, months: float=0, days: float=0, hours: float=0, minutes: float=0, seconds: float=0, milliseconds: float=0, microseconds: float=0)->datetime:
+    return __modify(False, date, months=months, days=days, hours=hours, minutes=minutes, seconds=seconds, milliseconds=milliseconds, microseconds=microseconds)
 
 def getAllDatesBetweenTwoDates( startDate: datetime, endDate: datetime)->list[datetime]:
     allDates = []
@@ -89,15 +89,70 @@ def getAllDatesBetweenTwoDates( startDate: datetime, endDate: datetime)->list[da
         duration = (endDate-startDate).days
     return allDates
 
-def normalize_date_to_midnight(date: str, timezone: str) -> datetime:
+def normalize_date_to_midnight(date: str|datetime, timezone: str) -> datetime:
     """
     Given an ISO datetime string and a timezone (e.g. "Asia/Kolkata"),
     return the UTC datetime corresponding to midnight of that local date.
     """
     # Parse input datetime
-    dt = datetime.fromisoformat(date)
+    dt = datetime.fromisoformat(date) if isinstance(date, str) else date
     tz = PytzTimezone(timezone)
     # Convert to target timezone
     local_dt = dt.astimezone(tz)
     return datetime(local_dt.year, local_dt.month, local_dt.day, 0, 0, 0, tzinfo=utc)
 
+def getMarketplaceRefreshDates(isNew: bool, timezone: str)->tuple[datetime, datetime]:
+    diff = 59 if isNew else 30
+    enddate = (datetime.now() - timedelta(days=1))
+    tz = PytzTimezone(timezone)
+    enddate = enddate.astimezone(tz)
+    enddate = normalize_date_to_midnight(enddate.isoformat(), "UTC")
+    startdate = normalize_date_to_midnight((enddate-timedelta(days=diff)).isoformat(), "UTC")
+    return startdate, enddate
+
+def getKioskReportDates(timezone: str, isNew: bool = True):
+    startdate, enddate = getMarketplaceRefreshDates(isNew, timezone)
+    return [(date.strftime("%Y-%m-%d"), date.strftime("%Y-%m-%d")) for date in getAllDatesBetweenTwoDates(startdate, enddate)]
+
+def getAdReportDates(timezone: str, allowedDuration: int, isNew: bool = True):
+    startdate, enddate = getMarketplaceRefreshDates(isNew, timezone)
+    dates = [(date.strftime("%Y-%m-%d"), date.strftime("%Y-%m-%d")) for date in getAllDatesBetweenTwoDates(startdate, enddate)]
+    import math
+    allDates: list[tuple[str,str]] = []
+    iterations = math.ceil(len(dates)/allowedDuration)
+    for i in range(iterations):
+        first = min(i*allowedDuration, len(dates)-1)
+        last = min((i+1)*allowedDuration-1, len(dates)-1)
+        allDates.append((dates[first][0], dates[last][0]))
+    return allDates
+
+def getSPAPIReportDates(timezone: str, allowedDuration: int, isNew: bool = True):
+    tz = PytzTimezone(timezone)
+    def get_midnight(date_str: str) -> datetime:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        midnight_naive = datetime.combine(date_obj, datetime.min.time())
+        midnight_local = tz.localize(midnight_naive)
+        return midnight_local
+    
+    startdate, enddate = getMarketplaceRefreshDates(isNew, timezone)
+    enddate = enddate + timedelta(days=1)  # Include the entire end date
+    dates = [(date.strftime("%Y-%m-%d"), date.strftime("%Y-%m-%d")) for date in getAllDatesBetweenTwoDates(startdate, enddate)]
+    import math
+    strDates: list[tuple[str,str]] = []
+    iterations = math.ceil(len(dates)/allowedDuration)
+    for i in range(iterations):
+        first = min(i*allowedDuration, len(dates)-1)
+        last = min((i+1)*allowedDuration-1, len(dates)-1)
+        strDates.append((dates[first][0], dates[last][0]))
+    spapiDates: list[tuple[datetime,datetime]] = []
+    for i, date in enumerate(strDates):
+        start, end = date
+        startdate = get_midnight(start)
+        enddate = get_midnight(end)
+        if i>0: startdate = startdate - timedelta(days=1)
+        enddate = enddate - timedelta(microseconds=1)
+        spapiDate = (startdate.astimezone(utc), enddate.astimezone(utc))
+        print(spapiDate[0].isoformat(), spapiDate[1].isoformat())
+        spapiDates.append(spapiDate)
+
+    return spapiDates
