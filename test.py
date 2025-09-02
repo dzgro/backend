@@ -19,9 +19,7 @@ date_range = StartEndDate(startdate=startdate, enddate=enddate)
 async def buildStateDateAnalytics():
     from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
     processor = AnalyticsProcessor(client, date_range)
-    date = await processor.executeDate()
-    while date:
-        date = await processor.executeDate(date)
+    await processor.executeDate(context)
     print("Done")
 
 async def deleteData():

@@ -3,8 +3,8 @@ from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.DataTransformer import Datatransformer
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
-from dzgroshared.models.enums import CollateType, CollectionType
-from dzgroshared.models.model import StartEndDate
+from dzgroshared.models.enums import ENVIRONMENT, CollateType, CollectionType
+from dzgroshared.models.model import LambdaContext, StartEndDate
 from dzgroshared.utils import date_util, mongo_pipeline_print
 
 class AnalyticsProcessor:
@@ -269,15 +269,25 @@ class AnalyticsProcessor:
             elif collateType==CollateType.PARENT: await self.executeParent(date)
             elif collateType==CollateType.MARKETPLACE: await self.executeMarketplace(date)
 
-
-    async def executeDate(self, date: datetime|None=None):
+    async def getDate(self, date: datetime|None):
         if not date: 
             await self.client.db.state_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
             await self.client.db.date_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
-            date = self.dates.enddate
-        print(f'-----------------------{date.strftime("%Y-%m-%d")}--------------------------------')
-        await self.execute(date)
+            return self.dates.enddate
         dates = date_util.getAllDatesBetweenTwoDates(self.dates.startdate, self.dates.enddate)
         index = dates.index(date)
-        nextDate = dates[index-1] if index>0 else None
-        return nextDate
+        return dates[index-1] if index>0 else None
+
+
+    async def executeDate(self, context: LambdaContext, date: datetime|None=None):
+        exitBefore = 1000*120
+        date = await self.getDate(date)
+        shouldContinue = True
+        while date is not None and shouldContinue:
+            print(f'-----------------------{date.strftime("%Y-%m-%d")}--------------------------------')
+            await self.execute(date)
+            date = await self.getDate(date)
+            shouldContinue = self.client.env!=ENVIRONMENT.LOCAL or context.get_remaining_time_in_millis()>exitBefore
+        return date
+
+        
