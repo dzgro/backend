@@ -11,15 +11,6 @@
       "jinja": true
     },
     {
-      "name": "Debug Amazon Daily Report",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/functions/amazon_daily_report/src/amazon_daily_report/handler.py",
-      "cwd": "${workspaceFolder}/functions/amazon_daily_report",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
       "name": "Deploy",
       "type": "debugpy",
       "request": "launch",
@@ -33,6 +24,14 @@
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/git-push-all.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Run Test",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/test.py",
       "console": "integratedTerminal",
       "justMyCode": true
     },

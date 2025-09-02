@@ -37,7 +37,7 @@ class AnalyticsProcessor:
         return { '$unwind': { 'path': '$orderitem', 'preserveNullAndEmptyArrays': False } }
     
     def getSkuValues(self):
-        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { '$reduce': { 'input': { '$filter': { 'input': '$settlement', 'as': 's', 'cond': { '$and': [ { '$in': [ '$$s.amounttype', [ 'ItemPrice', 'ItemTax' ] ] }, { '$eq': [ '$$s.sku', '$orderitem.sku' ] } ] } } }, 'initialValue': { 'skuValue': 0, 'skuTax': 0, 'skuReturnValue': 0, 'skuReturnTax': 0 }, 'in': { '$mergeObjects': [ '$$value', { '$cond': { 'if': { '$eq': [ '$$this.transactiontype', 'Refund' ] }, 'then': { '$cond': { 'if': { '$eq': [ '$$this.amounttype', 'ItemPrice' ] }, 'then': { 'skuReturnValue': { '$sum': [ '$$value.skuReturnValue', '$$this.amount' ] } }, 'else': { 'skuReturnTax': { '$sum': [ '$$value.skuReturnTax', '$$this.amount' ] } } } }, 'else': { '$cond': { 'if': { '$eq': [ '$$this.amounttype', 'ItemPrice' ] }, 'then': { 'skuValue': { '$sum': [ '$$value.skuValue', '$$this.amount' ] } }, 'else': { 'skuTax': { '$sum': [ '$$value.skuTax', '$$this.amount' ] } } } } } } ] } } } ] } } }
+        return { '$replaceRoot': { "newRoot": { "$mergeObjects": [ "$$ROOT", { "$reduce": { "input": { "$filter": { "input": "$settlement", "as": "s", "cond": { "$and": [ { "$in": [ "$$s.amounttype", ["ItemPrice", "ItemTax"] ] }, { "$eq": [ "$$s.sku", "$orderitem.sku" ] }, { "$eq": [ "$$s.transactiontype", "Refund" ] } ] } } }, "initialValue": { "skuValue": "$orderitem.revenue", "skuTax": "$orderitem.tax", "skuReturnValue": 0, "skuReturnTax": 0 }, "in": { "$mergeObjects": [ "$$value", { "$cond": { "if": { "$eq": [ "$$this.amounttype", "ItemPrice" ] }, "then": { "skuReturnValue": { "$sum": [ "$$value.skuReturnValue", "$$this.amount" ] } }, "else": { "skuReturnTax": { "$sum": [ "$$value.skuReturnTax", "$$this.amount" ] } } } } ] } } } ] } } }
     
     def setSkuRatio(self):
         return { '$set': { 'skuRatio': { '$cond': { 'if': { '$eq': [ '$orderValue', 0 ] }, 'then': 0, 'else': { '$divide': [ '$orderitem.revenue', '$orderValue' ] } } } } }
@@ -55,7 +55,7 @@ class AnalyticsProcessor:
         return { '$set': { 'netproceeds': { '$cond': { 'if': { '$eq': [ { '$size': '$settlement' }, 0 ] }, 'then': 0, 'else': { '$add': [ '$skuValue', '$skuReturnValue', '$expenses' ] } } } } }
     
     def createData(self):
-        return { '$set': { 'data': { 'netproceeds': '$netproceeds', 'ordervalue': '$skuValue', 'returnvalue': '$skuReturnValue', 'quantity': '$quantity', 'returnQuantity': '$returnQuantity', 'fees': '$skufees', 'otherexpenses': '$nonskufees', 'expenses': '$expenses' } } }
+        return { '$set': { 'data': { 'netproceeds': '$netproceeds', 'ordervalue': '$skuValue','ordertax': "$skuTax", 'returnvalue': '$skuReturnValue', 'quantity': '$quantity', 'returnQuantity': '$returnQuantity', 'fees': '$skufees', 'otherexpenses': '$nonskufees', 'expenses': '$expenses' } } }
     
     def projectData(self):
         return { '$project': { 'uid': '$uid', 'marketplace': '$marketplace', 'sku': '$orderitem.sku', 'parent': '$orderitem.asin', 'state': '$state', 'date': '$date', 'data': '$data', '_id': 0 } }
@@ -70,11 +70,13 @@ class AnalyticsProcessor:
         return { '$match': { '$expr': { '$gt': [ { '$sum': { '$map': { 'input': { '$objectToArray': '$data' }, 'as': 'kv', 'in': { '$abs': '$$kv.v' } } } }, 0 ] } } }
     
     def createIdForState(self, collatetype: CollateType):
-        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': collatetype.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', '$_id.value', '_', { '$dateToString': { 'date': '$_id.date' } }, '_', '$_id.state' ] } } ] } } }
-    
+        value = '$_id.value' if collatetype!=CollateType.MARKETPLACE else collatetype.value
+        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': collatetype.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', value, '_', { '$dateToString': { 'date': '$_id.date', 'format': '%Y-%m-%d' } }, '_', '$_id.state' ] } } ] } } }
+
     def createIdForDate(self, collatetype: CollateType):
-        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': collatetype.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', '$_id.value', '_', { '$dateToString': { 'date': '$_id.date' } } ] } } ] } } }
-    
+        value = '$_id.value' if collatetype!=CollateType.MARKETPLACE else collatetype.value
+        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': collatetype.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', value, '_', { '$dateToString': { 'date': '$_id.date' , 'format': '%Y-%m-%d' } } ] } } ] } } }
+
     def mergeToStateAnalytics(self):
         return self.pp.merge(CollectionType.STATE_ANALYTICS)
     
@@ -82,13 +84,13 @@ class AnalyticsProcessor:
         return self.pp.merge(CollectionType.DATE_ANALYTICS)
 
     def groupStateAnalyticsByDate(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$value', 'parent': '$parent', 'date': '$date' }, 'data': { '$push': '$data' } } }
+        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$value', 'parent': '$parent', 'date': '$date', 'collatetype': "$collatetype" }, 'data': { '$push': '$data' } } }
 
     def groupStateAnalyticsByParent(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'parent': '$parent', 'date': '$date' }, 'data': { '$push': '$data' } } }
+        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$parent', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } }
 
     def groupDateAnalyticsByValue(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$value', 'date': '$date' }, 'data': { '$push': '$data' } } }
+        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$parent', 'date': '$date' }, 'data': { '$push': '$data' } } }
     
     def lookupAds(self):
         return { '$lookup': { 'from': 'adv', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'assettype': 'Ad', 'date': '$date', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
@@ -97,16 +99,16 @@ class AnalyticsProcessor:
         return { '$lookup': { 'from': 'traffic', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'asin': '$value', 'date': '$date' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$asin', '$$asin' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$traffic' } } ], 'as': 'traffic' } }
     
     def mergeDataWithAdTraffic(self):
-        return { '$set': { 'data': { '$mergeObjects': [ '$data', '$ad' ] } } }
+        return { '$set': { 'data': { '$mergeObjects': [ '$data', '$ad', '$traffic' ] } } }
     
     def hideAdTraffic(self):
-        return { '$project': { 'ad': 0 } }
+        return { '$project': { 'ad': 0, 'traffic': 0 } }
     
     def addParentSku(self):
-        return { "$lookup": { "from": "products", "let": { "uid": "$uid", "marketplace": "$marketplace", "asin": "$value" }, "pipeline": [ { "$match": { "$expr": { "$and": [ { "$eq": ["$uid", "$$uid"] }, { "$eq": [ "$marketplace", "$$marketplace" ] }, { "$eq": ["$asin", "$$asin"] } ] } } }, { "$project": { "parent": "$parentsku", "_id": 0 } } ], "as": "parent" } }
-    
+        return { "$lookup": { "from": "products", "let": { "uid": "$uid", "marketplace": "$marketplace", "asin": "$value" }, "pipeline": [ { "$match": { "$expr": { "$and": [ { "$eq": ["$uid", "$$uid"] }, { "$eq": [ "$marketplace", "$$marketplace" ] }, { "$eq": ["$asin", "$$asin"] } ] } } }, { "$project": { "parent": "$parentsku", "category": "$producttype", "_id": 0 } } ], "as": "parent" } }
+
     def setParentSku(self):
-        return { "$set": { "parent": { "$first": "$parent.parent" } } }
+        return { "$set": { "parent": { "$first": "$parent.parent" }, "category": { "$first": "$parent.category" } } }
     
     def addProductType(self):
         return { "$lookup": { "from": "products", "let": { "uid": "$uid", "marketplace": "$marketplace", "asin": "$value" }, "pipeline": [ { "$match": { "$expr": { "$and": [ { "$eq": ["$uid", "$$uid"] }, { "$eq": [ "$marketplace", "$$marketplace" ] }, { "$eq": ["$asin", "$$asin"] } ] } } }, { "$project": { "parent": "$parentsku", "_id": 0 } } ], "as": "parent" } }
@@ -174,18 +176,20 @@ class AnalyticsProcessor:
 
     async def executeAsinDate(self, date: datetime):
         pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.ASIN),
-            self.groupStateAnalyticsByDate(),
+            self.matchCollateTypeAndDate(date, CollateType.SKU),
+            self.groupDateAnalyticsByValue(),
             self.collateData(),
             self.createIdForDate(CollateType.ASIN),
             self.lookupTraffic(),
             self.collateData('traffic'),
             self.mergeDataWithAdTraffic(),
             self.hideAdTraffic(),
+            self.addParentSku(),
+            self.setParentSku(),
             self.mergeToDateAnalytics(),
         ]
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.state_analytics.db.aggregate(pipeline)
+        await self.client.db.date_analytics.db.aggregate(pipeline)
 
     async def executeAsin(self, date: datetime):
         await self.executeAsinState(date)
@@ -204,18 +208,44 @@ class AnalyticsProcessor:
 
     async def executeParentDate(self, date: datetime):
         pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.PARENT),
-            self.groupStateAnalyticsByDate(),
+            self.matchCollateTypeAndDate(date, CollateType.ASIN),
+            self.groupDateAnalyticsByValue(),
             self.collateData(),
             self.createIdForDate(CollateType.PARENT),
             self.mergeToDateAnalytics(),
         ]
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.state_analytics.db.aggregate(pipeline)
+        await self.client.db.date_analytics.db.aggregate(pipeline)
 
     async def executeParent(self, date: datetime):
         await self.executeParentState(date)
         await self.executeParentDate(date)
+
+    async def executeMarketplaceState(self, date: datetime):
+        pipeline = [
+            self.matchCollateTypeAndDate(date, CollateType.PARENT),
+            self.groupStateAnalyticsByParent(),
+            self.collateData(),
+            self.createIdForState(CollateType.MARKETPLACE),
+            self.mergeToStateAnalytics()
+        ]
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        await self.client.db.state_analytics.db.aggregate(pipeline)
+
+    async def executeMarketplaceDate(self, date: datetime):
+        pipeline = [
+            self.matchCollateTypeAndDate(date, CollateType.PARENT),
+            self.groupDateAnalyticsByValue(),
+            self.collateData(),
+            self.createIdForDate(CollateType.MARKETPLACE),
+            self.mergeToDateAnalytics(),
+        ]
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        await self.client.db.date_analytics.db.aggregate(pipeline)
+
+    async def executeMarketplace(self, date: datetime):
+        await self.executeMarketplaceState(date)
+        await self.executeMarketplaceDate(date)
 
     async def categoryDate(self, date: datetime):
         pipeline = [
@@ -237,7 +267,7 @@ class AnalyticsProcessor:
             if collateType==CollateType.SKU: await self.executeSku(date)
             elif collateType==CollateType.ASIN: await self.executeAsin(date)
             elif collateType==CollateType.PARENT: await self.executeParent(date)
-            # elif collateType==CollateType.CATEGORY: await self.categoryDate(date)
+            elif collateType==CollateType.MARKETPLACE: await self.executeMarketplace(date)
 
 
     async def executeDate(self, date: datetime|None=None):
