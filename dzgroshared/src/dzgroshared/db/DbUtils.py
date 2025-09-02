@@ -30,7 +30,7 @@ class DbManager:
         except Exception as e:
             print(e)
             from dzgroshared.utils import mongo_pipeline_print
-            pipelineString = mongo_pipeline_print.getPipelineString(pipeline)
+            mongo_pipeline_print.copy_pipeline(pipeline)
             return []
 
     async def distinct(self, fieldname:str, filters: dict = {}):

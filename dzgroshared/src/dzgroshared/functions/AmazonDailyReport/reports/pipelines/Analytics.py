@@ -139,7 +139,7 @@ class AnalyticsProcessor:
             self.createIdForState(CollateType.SKU),
             self.mergeToStateAnalytics()
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.orders.db.aggregate(pipeline)
 
     async def executeSkuDate(self, date: datetime):
@@ -154,7 +154,7 @@ class AnalyticsProcessor:
             self.hideAdTraffic(),
             self.mergeToDateAnalytics()
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.state_analytics.db.aggregate(pipeline)
 
     async def executeSku(self, date: datetime):
@@ -171,7 +171,7 @@ class AnalyticsProcessor:
             self.setParentSku(),
             self.mergeToStateAnalytics()
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.state_analytics.db.aggregate(pipeline)
 
     async def executeAsinDate(self, date: datetime):
@@ -188,7 +188,7 @@ class AnalyticsProcessor:
             self.setParentSku(),
             self.mergeToDateAnalytics(),
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.date_analytics.db.aggregate(pipeline)
 
     async def executeAsin(self, date: datetime):
@@ -199,22 +199,24 @@ class AnalyticsProcessor:
         pipeline = [
             self.matchCollateTypeAndDate(date, CollateType.ASIN),
             self.groupStateAnalyticsByParent(),
+            {"$match": {"_id.value": {"$ne": None}}},
             self.collateData(),
             self.createIdForState(CollateType.PARENT),
             self.mergeToStateAnalytics()
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.state_analytics.db.aggregate(pipeline)
 
     async def executeParentDate(self, date: datetime):
         pipeline = [
             self.matchCollateTypeAndDate(date, CollateType.ASIN),
             self.groupDateAnalyticsByValue(),
+            {"$match": {"_id.value": {"$ne": None}}},
             self.collateData(),
             self.createIdForDate(CollateType.PARENT),
             self.mergeToDateAnalytics(),
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.date_analytics.db.aggregate(pipeline)
 
     async def executeParent(self, date: datetime):
@@ -224,23 +226,23 @@ class AnalyticsProcessor:
     async def executeMarketplaceState(self, date: datetime):
         pipeline = [
             self.matchCollateTypeAndDate(date, CollateType.PARENT),
-            self.groupStateAnalyticsByParent(),
+            { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } },
             self.collateData(),
             self.createIdForState(CollateType.MARKETPLACE),
             self.mergeToStateAnalytics()
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.state_analytics.db.aggregate(pipeline)
 
     async def executeMarketplaceDate(self, date: datetime):
         pipeline = [
             self.matchCollateTypeAndDate(date, CollateType.PARENT),
-            self.groupDateAnalyticsByValue(),
+            { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } },
             self.collateData(),
             self.createIdForDate(CollateType.MARKETPLACE),
             self.mergeToDateAnalytics(),
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.date_analytics.db.aggregate(pipeline)
 
     async def executeMarketplace(self, date: datetime):
@@ -259,11 +261,12 @@ class AnalyticsProcessor:
             {"$project": {"value": 0}},
             self.mergeToDateAnalytics(),
         ]
-        mongo_pipeline_print.copy_pipeline(pipeline)
+        
         await self.client.db.date_analytics.db.aggregate(pipeline)
 
     async def execute(self, date: datetime):
         for collateType in CollateType.values():
+            print(f'------------------{collateType.value}-----{date.strftime("%Y-%m-%d")}-----------------------')
             if collateType==CollateType.SKU: await self.executeSku(date)
             elif collateType==CollateType.ASIN: await self.executeAsin(date)
             elif collateType==CollateType.PARENT: await self.executeParent(date)
@@ -284,7 +287,6 @@ class AnalyticsProcessor:
         date = await self.getDate(date)
         shouldContinue = True
         while date is not None and shouldContinue:
-            print(f'-----------------------{date.strftime("%Y-%m-%d")}--------------------------------')
             await self.execute(date)
             date = await self.getDate(date)
             shouldContinue = self.client.env!=ENVIRONMENT.LOCAL or context.get_remaining_time_in_millis()>exitBefore

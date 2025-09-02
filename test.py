@@ -12,7 +12,7 @@ client.setUid(uid)
 client.setMarketplace(marketplace)
 context = MockLambdaContext()
 enddate = datetime(2025, 8, 31)
-startdate= datetime(2025, 3, 7)
+startdate= datetime(2025, 7, 3)
 date_range = StartEndDate(startdate=startdate, enddate=enddate)
 
 
