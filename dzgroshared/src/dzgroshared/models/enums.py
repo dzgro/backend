@@ -191,6 +191,7 @@ class SPAPIReportType(str, Enum):
     GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL = "GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL"
     GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2 = "GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2"
     GET_FBA_STORAGE_FEE_CHARGES_DATA = "GET_FBA_STORAGE_FEE_CHARGES_DATA"
+    GET_FBA_MYI_ALL_INVENTORY_DATA = "GET_FBA_MYI_ALL_INVENTORY_DATA"
 
 
 class ProcessingStatus(str, Enum):
@@ -204,6 +205,7 @@ class ProcessingStatus(str, Enum):
 
 class DataKioskType(str, Enum):
     SALES_TRAFFIC_ASIN = "SALES_TRAFFIC_ASIN"
+    ECONOMICS = "ECONOMICS"
 
 
 class AdState(str, Enum):
@@ -399,6 +401,7 @@ class CollectionType(str,Enum):
     SETTLEMENTS = 'settlements'
     HEALTH = 'health'
     FBA_STORAGE_FEES = 'fba_storage_fees'
+    FBA_FNSKU_MAPPING = 'fnsku_sku_mapping'
     REPORT_DATA = 'report_data'
     TRAFFIC = 'traffic'
     DZGRO_REPORT_TYPES = 'dzgro_report_types'

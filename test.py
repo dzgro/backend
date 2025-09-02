@@ -37,26 +37,30 @@ async def buildStateDateAnalytics():
 
 async def deleteData():
     for collection in DataCollections:
-        await client.db.database.drop_collection(collection.value)
-        await client.db.database.create_collection(collection.value)
+        await client.db.database.get_collection(collection.value).delete_many({})
 
 async def buildReports():
-    await deleteData()
+    # await deleteData()
     event = {"country": CountryCode.INDIA.value, "queue": QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE.value}
     
     await client.functions(event, context).send_daily_report_refresh_message_to_queue
 
 async def runReport():
-    messageId = "c1087f49-2ca5-4fe7-81f4-9cb77d7a32ce"
+    messageId = "4caf10ff-cd26-4fc5-920c-33ac80ad6915"
+
     event = client.sqs.mockSQSEvent(messageId, '')
     await client.functions(event, context).amazon_daily_report
 
+
 def dates():
     from dzgroshared.utils import date_util
+    dates = date_util.getEconomicsKioskReportDates('Asia/Kolkata', True)
+    print(dates)
     dates = date_util.getAdReportDates('Asia/Kolkata',31, True)
     print(dates)
     dates = date_util.getSPAPIReportDates('Asia/Kolkata',31, True)
     print(dates)
+
 
 async def estimate_db_reclaimable_space():
     stats = await client.db.database.command("dbStats", 1, scale=1)
@@ -75,6 +79,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(runReport())
+    asyncio.run(buildReports())
 except Exception as e:
     print(f"Error occurred: {e}")

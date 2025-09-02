@@ -29,6 +29,14 @@
       "justMyCode": true
     },
     {
+      "name": "Git Push",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/git-push-all.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Debug Current Python File",
       "type": "debugpy",
       "request": "launch",

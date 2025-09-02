@@ -38,15 +38,5 @@ def getPipelineString(pipeline):
         print(f"/* Failed to print pipeline: {e} */")
 
 def copy_pipeline(pipeline):
-    try:
-        import os
-        from dotenv import load_dotenv
-        load_dotenv()
-        from dzgroshared.models.enums import ENVIRONMENT
-        env = ENVIRONMENT(os.getenv("ENV", None))
-        if env==ENVIRONMENT.LOCAL:
-            import subprocess
-            subprocess.run("clip", text=True, input=getPipelineString(pipeline))
-        print(f"/* Pipeline Copies to Clipboard */")
-    except Exception as e:
-        print(f"/* Failed to copy pipeline: {e} */")
+    from dzgroshared.utils.copy_clipboard import copy
+    copy(getPipelineString(pipeline))

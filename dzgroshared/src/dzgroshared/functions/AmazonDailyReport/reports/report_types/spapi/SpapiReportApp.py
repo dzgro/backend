@@ -37,11 +37,16 @@ class AmazonSpapiReportManager:
         dates = date_util.getSPAPIReportDates(self.marketplace.details.timezone, 31, isNew)
         startdate, enddate = date_util.getMarketplaceRefreshDates(isNew, self.marketplace.details.timezone)
         lastRefreshStarted = self.marketplace.lastRefresh.startdate if self.marketplace.lastRefresh else None
-        reports: list[AmazonSpapiReport] = await self.__getSettlementReports(lastRefreshStarted or startdate)
-        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
-        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
+        # reports= await self.__getSettlementReports(lastRefreshStarted or startdate)
+        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
+        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
+        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FBA_MYI_ALL_INVENTORY_DATA))
+        # for date in dates:
+        #     reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL, startDate=date[0], endDate=date[1]))
         for date in dates:
-            reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL, startDate=date[0], endDate=date[1]))
+            # date = ("2025-05-01","2025-05-31")
+            # startdate = datetime.strptime(date[0], "%Y-%m-%d")
+            # enddate = datetime.strptime(date[1], "%Y-%m-%d")
             reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FBA_STORAGE_FEE_CHARGES_DATA, startDate=date[0], endDate=date[1]))
         return reports
     
@@ -145,6 +150,7 @@ class AmazonSpapiReportManager:
             elif reportType==SPAPIReportType.GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2: await self.__executeSettlementReports(data)
             elif reportType==SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL: await self.__executeOrderReports(data)
             elif reportType==SPAPIReportType.GET_FBA_STORAGE_FEE_CHARGES_DATA: await self.__fbaStorageFees(data)
+            elif reportType==SPAPIReportType.GET_FBA_MYI_ALL_INVENTORY_DATA: await self.__fbaStorageFees(data)
 
     async def __executeHealthReport(self, data: str):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.HealthReportConvertor import HealthReportConvertor
@@ -155,6 +161,11 @@ class AmazonSpapiReportManager:
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.FBAStorageReportConvertor import FBAStorageReportConvertor
         report = FBAStorageReportConvertor(self.marketplace).convert(data)
         await self.reportUtil.update(CollectionType.FBA_STORAGE_FEES, [item.model_dump(exclude_none=True) for item in report], None)
+
+    async def __fbaFnSkuMapping(self, data: list[dict]):
+        from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.FBAInventoryConvertor import FBAInventoryConvertor
+        report = FBAInventoryConvertor(self.marketplace).convert(data)
+        await self.reportUtil.update(CollectionType.FBA_FNSKU_MAPPING, report, None)
 
     async def __executeOrderReports(self, data: list[dict]):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.OrderReportConvertor import OrderReportConvertor

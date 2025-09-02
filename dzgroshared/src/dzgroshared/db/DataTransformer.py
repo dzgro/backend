@@ -11,8 +11,8 @@ class Datatransformer:
 
     
     def collateData(self):
-        return self.pp.collateListOfObjectsAsObject(self.datakey)
-    
+        return self.pp.set({ f'{self.datakey}': { '$reduce': { 'input': f'${self.datakey}', 'initialValue': {}, 'in': { '$arrayToObject': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } } } } } })
+
     def addPercentKeys(self):
         return self.pp.set({ 'percentkeys': { '$reduce': { 'input': '$keys', 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$cond': [ { '$eq': [ { '$ifNull': [ '$$this.ispercent', False ] }, True ] }, [ '$$this.value' ], [] ] } ] } } } })
 

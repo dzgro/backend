@@ -6,9 +6,9 @@ from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.db.collections.products import ProductHelper
 from dzgroshared.models.amazonapi.spapi.listings import Item
 from dzgroshared.db.DbUtils import PyObjectId
-from dzgroshared.models.enums import CollectionType
+from dzgroshared.models.enums import ENVIRONMENT, CollectionType
 from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
-from dzgroshared.models.model import LambdaContext
+from dzgroshared.models.model import LambdaContext, MockLambdaContext
 from dzgroshared.models.model import DzgroError
 
 class ListingsBuilder:
@@ -35,15 +35,20 @@ class ListingsBuilder:
         token:str|None = None
         items: list[dict] = []
         hasMore = False
-        while self.context.get_remaining_time_in_millis()>exitBefore and (token is not None or len(items)>0):
+        shouldContinue = True
+        while shouldContinue:
             try:
                 res = await self.getProducts(date, token)
                 for item in res.items:
-                    product = self.convertItemToDict(item)
-                    if product: items.append(product)
-                print(f'Items : {len(items)}, Remaining: {res.number_of_results-len(items)}')
+                    product = {"uid": self.client.uid, "marketplace": self.marketplace.id}
+                    product.update(self.convertItemToDict(item))
+                    items.append(product)
                 token = res.pagination.next_token if res.pagination and res.pagination.next_token else None
                 hasMore = res.number_of_results>len(items)
+                print(f'Items : {len(items)}, Remaining: {res.number_of_results-len(items)}, Has More: {hasMore}, Token: {len(token or "")}')
+                shouldContinue = token is not None and len(items)>0
+                if self.client.env!=ENVIRONMENT.LOCAL:
+                    shouldContinue = shouldContinue and self.context.get_remaining_time_in_millis()>exitBefore
             except DzgroError as e:
                 if e.status_code==429:
                     await asyncio.sleep(1)
@@ -63,7 +68,7 @@ class ListingsBuilder:
     async def getProducts(self, date: datetime|None, token: str|None=None):
         try:
             return (await self.spapi.listings.search_listings_items(
-                seller_id=self.marketplace.sellerid,
+                seller_id=self.marketplace.spapi.sellerid,
                 included_data=[
                     'summaries', 'attributes', 'relationships', 'productTypes', 'fulfillmentAvailability', 'offers'
                 ],
@@ -93,9 +98,9 @@ class ListingsBuilder:
         pipeline = [matchStage, replaceRoot, merge]
         await self.client.db.products.db.aggregate(pipeline)
     
-    def convertItemToDict(self, item: Item)->dict|None:
+    def convertItemToDict(self, item: Item)->dict:
         marketplaceId = self.marketplace.marketplaceid.value
-        product: dict|None=None
+        product: dict = {}
         if not item.summaries or not item.attributes: raise ValueError("Product Summary not available")
         summary = next((summary for summary in item.summaries if summary.marketplace_id==marketplaceId), None)
         if not summary: raise ValueError("Product Summary not available for marketplace")

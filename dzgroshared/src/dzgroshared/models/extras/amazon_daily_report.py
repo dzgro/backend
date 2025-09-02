@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemIdWithDate, PyObjectId, StartEndDate
-from dzgroshared.models.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, CollateTypeTag, MarketplaceId, MarketplaceStatus, PlanType
+from dzgroshared.models.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, CollateTypeTag, DataKioskType, MarketplaceId, MarketplaceStatus, PlanType
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.amazonapi.adapi.common.reports import AdReportRequest, AdReport
@@ -80,6 +80,7 @@ class AmazonSpapiReport(BaseModel):
     document: SPAPIReportDocument|SkipJsonSchema[None]=None
     
 class AmazonDataKioskReport(BaseModel):
+    reporttype: DataKioskType
     req: DataKioskCreateQueryRequest|SkipJsonSchema[None]=None
     res: DataKioskQueryResponse|SkipJsonSchema[None]=None
     document: DataKioskDocumentResponse|SkipJsonSchema[None]=None

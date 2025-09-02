@@ -4,7 +4,7 @@ from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.amazonapi.spapi.datakiosk import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse, DataKioskCreateQuerySpecification
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus
-from dzgroshared.models.enums import CollectionType
+from dzgroshared.models.enums import CollectionType, DataKioskType
 from dzgroshared.models.extras.amazon_daily_report import AmazonDataKioskReport, AmazonDataKioskReportDB, MarketplaceObjectForReport
 from dzgroshared.functions.AmazonDailyReport.reports import Utility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
@@ -31,18 +31,32 @@ class AmazonDataKioskReportManager:
 
     def getDataKioskReportsConf(self)->list[AmazonDataKioskReport]:
         reports: list[AmazonDataKioskReport] = []
-        reports.extend(self.__getAsinTrafficReportsConf())
-        # reports.extend(self.getSkuEconomicsConf(months, endDate))
+        # reports.extend(self.__getAsinTrafficReportsConf())
+        reports.extend(self.__getSkuEconomicsConf())
         return reports 
 
     def __getAsinTrafficReportsConf(self)->list[AmazonDataKioskReport]:
         isNew = self.marketplace.dates is None
-        dates = date_util.getKioskReportDates(self.marketplace.details.timezone, isNew)
+        dates = date_util.getTrafficKioskReportDates(self.marketplace.details.timezone, isNew)
         reports: list[AmazonDataKioskReport] = []
         for date in dates:
             startDate, endDate = date
             query = 'query MyQuery{analytics_salesAndTraffic_2024_04_24{salesAndTrafficByAsin(aggregateBy:PARENT endDate:"'+endDate+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+startDate+'"){childAsin endDate marketplaceId parentAsin sales{orderedProductSales{amount currencyCode}orderedProductSalesB2B{amount currencyCode}totalOrderItems totalOrderItemsB2B unitsOrdered unitsOrderedB2B}sku startDate traffic{browserPageViews browserPageViewsB2B browserPageViewsPercentage browserPageViewsPercentageB2B browserSessionPercentage browserSessions browserSessionPercentageB2B browserSessionsB2B buyBoxPercentage buyBoxPercentageB2B mobileAppPageViews mobileAppPageViewsPercentage mobileAppPageViewsB2B mobileAppPageViewsPercentageB2B mobileAppSessionPercentageB2B mobileAppSessionPercentage mobileAppSessions mobileAppSessionsB2B pageViews pageViewsB2B pageViewsPercentage pageViewsPercentageB2B sessionPercentage sessionPercentageB2B sessions sessionsB2B unitSessionPercentage unitSessionPercentageB2B}}}}'
-            reports.append(AmazonDataKioskReport(req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
+            reports.append(AmazonDataKioskReport(reporttype=DataKioskType.SALES_TRAFFIC_ASIN, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
+        return reports
+
+    def __getSkuEconomicsConf(self)->list[AmazonDataKioskReport]:
+        isNew = self.marketplace.dates is None
+        dates = date_util.getEconomicsKioskReportDates(self.marketplace.details.timezone, isNew)
+        reports: list[AmazonDataKioskReport] = []
+        # for date in dates:
+        #     startDate, endDate = date
+        #     query = 'query MyQuery{analytics_economics_2024_03_15{economics(endDate:"'+endDate+'" marketplaceIds:"" startDate:"'+startDate+'" includeComponentsForFeeTypes:[FBA_STORAGE_FEE]aggregateBy:{date:MONTH}){fees{charge{aggregatedDetail{totalAmount{amount}}properties{propertyName propertyValue}}charges{components{properties{propertyName propertyValue}aggregatedDetail{amount{amount}amountPerUnit{amount}amountPerUnitDelta{amount}promotionAmount{amount}totalAmount{amount}taxAmount{amount}}name}aggregatedDetail{amount{amount}amountPerUnit{amount}amountPerUnitDelta{amount}promotionAmount{amount}taxAmount{amount}totalAmount{amount}quantity}}}fnsku msku parentAsin childAsin cost{mfnCost{storageCost{amount currencyCode}}miscellaneousCost{amount currencyCode}}}}}'
+        #     reports.append(AmazonDataKioskReport(reporttype=DataKioskType.ECONOMICS, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
+        # return reports
+        endDate, startDate = "2024-05-31","2024-05-01"
+        query = 'query MyQuery{analytics_economics_2024_03_15{economics(endDate:"'+endDate+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+startDate+'" includeComponentsForFeeTypes:[FBA_STORAGE_FEE,FBA_FULFILLMENT_FEE]aggregateBy:{date:MONTH,productId:FNSKU}){fees{charge{aggregatedDetail{totalAmount{amount currencyCode}amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}quantity taxAmount{amount currencyCode}}properties{propertyName propertyValue}components{aggregatedDetail{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}quantity taxAmount{amount currencyCode}totalAmount{amount currencyCode}}name properties{propertyName propertyValue}}endDate identifier startDate}charges{components{properties{propertyName propertyValue}aggregatedDetail{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}totalAmount{amount currencyCode}taxAmount{amount currencyCode}quantity}name}aggregatedDetail{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}taxAmount{amount currencyCode}totalAmount{amount currencyCode}quantity}endDate identifier properties{propertyName propertyValue}startDate}feeTypeName}fnsku msku parentAsin childAsin cost{mfnCost{storageCost{amount currencyCode}fulfillmentCost{amount currencyCode}}miscellaneousCost{amount currencyCode}costOfGoodsSold{amount currencyCode}}ads{charge{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}quantity promotionAmount{amount currencyCode}taxAmount{amount currencyCode}totalAmount{amount currencyCode}}}endDate marketplaceId netProceeds{perUnit{amount currencyCode}total{amount currencyCode}}sales{averageSellingPrice{amount currencyCode}netProductSales{amount currencyCode}netUnitsSold orderedProductSales{amount currencyCode}refundedProductSales{amount currencyCode}unitsOrdered unitsRefunded}startDate}}}'
+        reports.append(AmazonDataKioskReport(reporttype=DataKioskType.ECONOMICS, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
         return reports
 
     async def __createReport(self, req: DataKioskCreateQueryRequest)-> str|None:
@@ -81,12 +95,15 @@ class AmazonDataKioskReportManager:
             if not query_id and report.req and not self.createThrottle: 
                 query_id = (await self.__createReport(report.req))
                 if query_id: report.res = await self.__getReport(query_id)
+            if report.res and report.res.processingStatus == ProcessingStatus.FATAL and report.res.errorDocumentId:
+                    doc = await self.__getDocument(report.res.errorDocumentId)
+                    if doc: error = await self.reportUtil.fetchData(doc.documentUrl, False)
+                    else: error = "Report processing failed"
+                    raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=error)]))
             if query_id and (not report.res or data_document_id is None) and not self.getThrottle: report.res = await self.__getReport(query_id)
             elif report.res:
                 if report.res.processingStatus==ProcessingStatus.DONE:
                     if report.res.dataDocumentId: report.document = await self.__getDocument(report.res.dataDocumentId)
-                elif report.res.processingStatus == ProcessingStatus.FATAL or report.res.errorDocumentId is not None:
-                    raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {query_id} is in Fatal status")]))
             return report, True
         except DzgroError as e:
             raise e
@@ -110,7 +127,7 @@ class AmazonDataKioskReportManager:
                         elif processedReport.document and processedReport.req:
                             key = f'kiosk/{id}'
                             dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.documentUrl, False)
-                            await self.__convertTrafficReport(dataStr)
+                            await self.__saveData(dataStr, processedReport.reporttype)
                 except DzgroError as e:
                     processedReport.error = e.error_list
                     shouldContinue = False
@@ -127,7 +144,20 @@ class AmazonDataKioskReportManager:
             data.append(lineAsDict)
         return data
 
+    async def __saveData(self, datastr:str, reporttype: DataKioskType):
+        if reporttype==DataKioskType.SALES_TRAFFIC_ASIN:
+            return await self.__convertTrafficReport(datastr)
+        else: 
+            return await self.__convertEconomicsReport(datastr)
+
     async def __convertTrafficReport(self, dataStr: str):
+        from dzgroshared.functions.AmazonDailyReport.reports.report_types.datakiosk.TrafficReportConvertor import TrafficReportConvertor
+        data = self.__convertDataKioskFileToList(dataStr)
+        trafficConvertor = TrafficReportConvertor(self.marketplace)
+        trafficSkus = trafficConvertor.convertTrafficData(data)
+        await self.reportUtil.update(CollectionType.TRAFFIC, trafficSkus, self.reportId)
+
+    async def __convertEconomicsReport(self, dataStr: str):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.datakiosk.TrafficReportConvertor import TrafficReportConvertor
         data = self.__convertDataKioskFileToList(dataStr)
         trafficConvertor = TrafficReportConvertor(self.marketplace)

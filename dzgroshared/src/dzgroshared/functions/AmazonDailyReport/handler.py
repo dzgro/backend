@@ -156,8 +156,8 @@ class AmazonReportManager:
         adExports = await (await self.getAdExportManager()).createExports()
         kioskReports = (await self.getDataKioskReportManager()).getDataKioskReportsConf()
         reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]] = {
-            # AmazonReportType.SPAPI: spapiReports,
-            AmazonReportType.AD: adReports,
+            AmazonReportType.SPAPI: spapiReports,
+            # AmazonReportType.AD: adReports,
             # AmazonReportType.AD_EXPORT: adExports,
             # AmazonReportType.KIOSK: kioskReports
         }

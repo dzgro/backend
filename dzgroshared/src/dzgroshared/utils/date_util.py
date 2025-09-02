@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone, time
-import re
+import re, calendar
 from zoneinfo import ZoneInfo
 from pytz import timezone as PytzTimezone, utc
 from typing import Literal
@@ -110,9 +110,35 @@ def getMarketplaceRefreshDates(isNew: bool, timezone: str)->tuple[datetime, date
     startdate = normalize_date_to_midnight((enddate-timedelta(days=diff)).isoformat(), "UTC")
     return startdate, enddate
 
-def getKioskReportDates(timezone: str, isNew: bool = True):
+def getTrafficKioskReportDates(timezone: str, isNew: bool = True):
     startdate, enddate = getMarketplaceRefreshDates(isNew, timezone)
     return [(date.strftime("%Y-%m-%d"), date.strftime("%Y-%m-%d")) for date in getAllDatesBetweenTwoDates(startdate, enddate)]
+
+def getEconomicsKioskReportDates(timezone: str, isNew: bool = True):
+    import datetime as dt
+    startdate, enddate = getMarketplaceRefreshDates(isNew, timezone)
+    ranges: list[tuple[str,str]] = []
+    current = dt.date(startdate.year, startdate.month, 1)
+
+    # Normalize to last day of end month
+    end_month_last_day = calendar.monthrange(enddate.year, enddate.month)[1]
+    end_month = dt.date(enddate.year, enddate.month, end_month_last_day)
+
+    while current <= end_month:
+        last_day = calendar.monthrange(current.year, current.month)[1]
+        month_start = dt.date(current.year, current.month, 1)
+        month_end = dt.date(current.year, current.month, last_day)
+
+        ranges.append((month_start.strftime("%Y-%m-%d"),
+                       month_end.strftime("%Y-%m-%d")))
+
+        # move to next month
+        if current.month == 12:
+            current = dt.date(current.year + 1, 1, 1)
+        else:
+            current = dt.date(current.year, current.month + 1, 1)
+
+    return ranges
 
 def getAdReportDates(timezone: str, allowedDuration: int, isNew: bool = True):
     startdate, enddate = getMarketplaceRefreshDates(isNew, timezone)

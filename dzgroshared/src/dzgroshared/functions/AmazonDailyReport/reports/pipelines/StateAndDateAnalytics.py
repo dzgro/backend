@@ -20,15 +20,6 @@ class AnalyticsProcessor:
         self.client = client
         self.dates = dates
         self.pp = self.client.db.state_analytics.db.pp
-        
-    # async def addDateToOrderItems(self):
-    #     pipeline = [self.pp.matchMarketplace()]
-    #     pipeline.append(self.pp.lookup(CollectionType.ORDERS, 'date', localField='order', foreignField="_id", pipeline=[{ '$project': { 'date': '$orderdate', '_id': 0 } }]))
-    #     pipeline.append(self.pp.replaceRoot(self.pp.mergeObjects(["$$ROOT", self.pp.first("date")])))
-    #     pipeline.append(self.pp.set({ 'date': { '$let': { 'vars': { 'parts': { '$dateToParts': { 'date': '$date', 'timezone': 'Asia/Kolkata' } } }, 'in': { '$dateFromParts': { 'year': '$$parts.year', 'month': '$$parts.month', 'day': '$$parts.day', 'timezone': 'UTC' } } } }}))
-    #     pipeline.append(self.pp.merge(CollectionType.ORDER_ITEMS))
-    #     await self.client.db.order_items.db.aggregate(pipeline)
-    #     return self.dates.pop()
 
 
     async def executeDate(self, date: datetime|None, collateTypes: list[CollateType] = list(CollateType)):
