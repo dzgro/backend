@@ -1,10 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
-from dzgroshared.models.collections.queue_messages import DailyReportMessage
-from dzgroshared.models.enums import ENVIRONMENT, CollectionType, CountryCode, QueueName
-from dzgroshared.models.model import DataCollections, MockLambdaContext
-from dzgroshared.models.sqs import SQSEvent, SQSRecord
+from dzgroshared.models.enums import ENVIRONMENT, CountryCode, QueueName
+from dzgroshared.models.model import DataCollections, MockLambdaContext, StartEndDate
 
 
 client = DzgroSharedClient(ENVIRONMENT.LOCAL)
@@ -13,26 +11,17 @@ marketplace = ObjectId("6895638c452dc4315750e826")
 client.setUid(uid)
 client.setMarketplace(marketplace)
 context = MockLambdaContext()
-enddate = datetime(2025, 8, 8)
-startdate= datetime(2025, 6, 10)
-dates = [startdate + timedelta(days=i) for i in range((enddate - startdate).days + 1)]
+enddate = datetime(2025, 8, 31)
+startdate= datetime(2025, 3, 7)
+date_range = StartEndDate(startdate=startdate, enddate=enddate)
 
-async def buildQueries():
-    from dzgroshared.functions.AmazonDailyReport.reports.pipelines.ProductQueryBuilder import QueryBuilder
-    builder = QueryBuilder(client.db, startdate, enddate)
-    query = await builder.getNextQuery(None)
-    while query is not None:
-        query = await builder.execute(query)
-    print("Done")
 
 async def buildStateDateAnalytics():
-    from dzgroshared.functions.AmazonDailyReport.reports.pipelines.StateAndDateAnalytics import AnalyticsProcessor
-    processor = AnalyticsProcessor(client.db, dates)
-    from dzgroshared.models.enums import CollateType
-    collateTypes: list[CollateType] = [CollateType.SKU]
-    date = await processor.executeDate(dates.pop(), collateTypes)
+    from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
+    processor = AnalyticsProcessor(client, date_range)
+    date = await processor.executeDate()
     while date:
-        date = await processor.executeDate(dates.pop(), collateTypes)
+        date = await processor.executeDate(date)
     print("Done")
 
 async def deleteData():
@@ -79,6 +68,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildReports())
+    asyncio.run(buildStateDateAnalytics())
 except Exception as e:
     print(f"Error occurred: {e}")
