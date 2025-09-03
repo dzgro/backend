@@ -23,9 +23,6 @@ async def buildStateDateAnalytics():
     print("Done")
 
 async def buildQueries():
-    # from dzgroshared.db.collections.pipelines.queries.QueryBuilder import QueryBuilder
-    # processor = QueryBuilder(client, date_range)
-    # await processor.test()
     from dzgroshared.db.collections.queries import QueryHelper
     await QueryHelper(client, uid, marketplace).buildQueries(date_range)
     print("Done")

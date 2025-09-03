@@ -1,4 +1,3 @@
-from dzgroshared.models.enums import QueryMetricName
 
 ad_fields = [
     {"label": "Impressions", "key": "impressions", "desc": "Total number of times ads were shown"},

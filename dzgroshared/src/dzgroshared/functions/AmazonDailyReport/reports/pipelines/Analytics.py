@@ -89,9 +89,15 @@ class AnalyticsProcessor:
     def groupStateAnalyticsByParent(self):
         return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$parent', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } }
 
+    def groupStateAnalyticsByCategory(self):
+        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$category', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } }
+
     def groupDateAnalyticsByValue(self):
         return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$parent', 'date': '$date' }, 'data': { '$push': '$data' } } }
-    
+
+    def groupDateAnalyticsByCategory(self):
+        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$category', 'date': '$date' }, 'data': { '$push': '$data' } } }
+
     def lookupAds(self):
         return { '$lookup': { 'from': 'adv', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'assettype': 'Ad', 'date': '$date', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
     
@@ -221,6 +227,34 @@ class AnalyticsProcessor:
     async def executeParent(self, date: datetime):
         await self.executeParentState(date)
         await self.executeParentDate(date)
+
+    async def executeCategoryState(self, date: datetime):
+        pipeline = [
+            self.matchCollateTypeAndDate(date, CollateType.ASIN),
+            self.groupStateAnalyticsByCategory(),
+            {"$match": {"_id.value": {"$ne": None}}},
+            self.collateData(),
+            self.createIdForState(CollateType.CATEGORY),
+            self.mergeToStateAnalytics()
+        ]
+        
+        await self.client.db.state_analytics.db.aggregate(pipeline)
+
+    async def executeCategoryDate(self, date: datetime):
+        pipeline = [
+            self.matchCollateTypeAndDate(date, CollateType.ASIN),
+            self.groupDateAnalyticsByCategory(),
+            {"$match": {"_id.value": {"$ne": None}}},
+            self.collateData(),
+            self.createIdForDate(CollateType.CATEGORY),
+            self.mergeToDateAnalytics(),
+        ]
+        
+        await self.client.db.date_analytics.db.aggregate(pipeline)
+
+    async def executeCategory(self, date: datetime):
+        await self.executeCategoryState(date)
+        await self.executeCategoryDate(date)
 
     async def executeMarketplaceState(self, date: datetime):
         pipeline = [
