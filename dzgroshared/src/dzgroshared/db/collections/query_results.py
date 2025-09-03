@@ -17,8 +17,9 @@ class QueryResultsHelper:
         self.marketplace = marketplace
         self.db = DbManager(client.db.database.get_collection(CollectionType.QUERY_RESULTS), uid, marketplace)
 
-    async def deleteQueryResults(self, queryid: ObjectId):
-        await self.db.deleteMany({"queryid": queryid})
+    async def deleteQueryResults(self, queryid: ObjectId|None=None):
+        filterDict = {"queryid": queryid} if queryid else {}
+        await self.db.deleteMany(filterDict)
 
     async def deleteExtraFields(self, id: ObjectId|None=None):
         filterDict = {"queryid": id} if id else {}

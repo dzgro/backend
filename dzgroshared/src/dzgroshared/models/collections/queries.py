@@ -1,18 +1,21 @@
 from pydantic import BaseModel,model_validator
-from dzgroshared.models.model import ItemId
+from pydantic.json_schema import SkipJsonSchema
+from dzgroshared.models.model import ItemId, StartEndDate
 from dzgroshared.models.enums import CollateTypeTag
-from datetime import datetime
+from typing import List, Union, Optional
 
-class QueryPeriod(BaseModel):
-    start: datetime
-    end: datetime
+
+class Query(ItemId):
+    tag: CollateTypeTag
+    curr: StartEndDate
+    pre: StartEndDate
+    disabled: bool
     label: str = ''
 
     @model_validator(mode="after")
-    def setLabel(self):
-        self.label = f'{self.start.strftime("%b %d, %Y")} - {self.end.strftime("%b %d, %Y")}'
+    def addLabel(self):
+        self.label = f"{self.curr.label} vs {self.pre.label}"
         return self
-class Query(ItemId):
-    tag: CollateTypeTag
-    curr: QueryPeriod
-    pre: QueryPeriod
+
+class QueryList(BaseModel):
+    queries: List[Query]

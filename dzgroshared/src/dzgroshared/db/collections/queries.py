@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 from bson import ObjectId
-from dzgroshared.models.collections.queries import Query
-from dzgroshared.models.enums import CollectionType, CollateTypeTag
+from dzgroshared.db.collections.pipelines.queries import GetQueries
+from dzgroshared.models.collections.queries import QueryList, Query
+from dzgroshared.models.enums import CollectionType
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.models.model import StartEndDate
 
 class QueryHelper:
     client: DzgroSharedClient
@@ -17,46 +19,26 @@ class QueryHelper:
         self.marketplace = marketplace
         self.db = DbManager(client.db.database.get_collection(CollectionType.QUERIES))
 
-    def __get_month_datetimes_till(self, date_input: datetime) -> list[datetime]:
-        first_day = date_input.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        delta = date_input.date() - first_day.date()
-        return [first_day + timedelta(days=i) for i in range(delta.days + 1)]
-    
-    def __get_prev_month_datetimes_till_same_day(self, date_input: datetime) -> list[datetime]:
-        last_day_prev_month = date_input.replace(day=1) - timedelta(days=1)
-        day_limit = min(date_input.day, last_day_prev_month.day)
-        start_day = last_day_prev_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        return [start_day + timedelta(days=i) for i in range(day_limit)]
-    
-    def __get_all_dates_of_prev_month(self, date_input: datetime) -> list[datetime]:
-        last_day_prev_month = date_input.replace(day=1) - timedelta(days=1)
-        first_day_prev_month = last_day_prev_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        days_in_month = last_day_prev_month.day
-        return [first_day_prev_month + timedelta(days=i) for i in range(days_in_month)]
-    
-    async def getQueries(self):
-        marketplace = await self.client.db.marketplaces.getMarketplace(self.marketplace)
-        if not marketplace.enddate: raise ValueError("Marketplace is not active")
-        endDate = marketplace.enddate
-        data = await self.db.aggregate([{ '$match': { '$expr': { '$or': [ { '$eq': [ { '$ifNull': [ '$marketplace', None ] }, None ] }, { '$eq': [ '$marketplace', self.marketplace ] } ] } } }])
-        queries: list[Query] = []
-        for item in data:
-            if item['tag']==CollateTypeTag.DAYS_7.value:
-                queries.append(Query(**{**item, "curr": {"start": endDate-timedelta(days=6), "end": endDate},
-                                     "pre": {"start": endDate-timedelta(days=13), "end": endDate-timedelta(days=7)}}))
-            elif item['tag']==CollateTypeTag.DAYS_30:
-                queries.append(Query(**{**item, "curr": {"start": endDate-timedelta(days=29), "end": endDate},
-                                     "pre": {"start": endDate-timedelta(days=39), "end": endDate-timedelta(days=30)}}))
-            elif item['tag']==CollateTypeTag.MONTH_ON_NONTH.value:
-                currdates = self.__get_month_datetimes_till(endDate)
-                preDates = self.__get_prev_month_datetimes_till_same_day(endDate)
-                queries.append(Query(**{**item, "curr": {"start": currdates[0], "end": currdates[-1]},
-                                     "pre": {"start": preDates[0], "end": preDates[-1]}}))
-            elif item['tag']==CollateTypeTag.MONTH_OVER_MONTH.value:
-                currdates = self.__get_month_datetimes_till(endDate)
-                preDates = self.__get_all_dates_of_prev_month(endDate)
-                queries.append(Query(**{**item, "curr": {"start": currdates[0], "end": currdates[-1]},
-                                     "pre": {"start": preDates[0], "end": preDates[-1]}}))
-            else: queries.append(Query(**item))
-        return queries
+    async def getQueries(self) -> QueryList:
+        pipeline = GetQueries.pipeline(self.uid, self.marketplace)
+        data = await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        return QueryList(queries=[Query(**item) for item in data])
 
+    async def buildQueries(self, dates: StartEndDate):
+        pipeline = GetQueries.pipeline(self.uid, self.marketplace, dates)
+        pipeline.extend([{"$project": {"tag": 0, "dates": 0}}, {"$match": {"disabled": False}}])
+        pipeline.append({ "$addFields": { "currdates": { "$map": { "input": { "$range": [ 0, { "$add": [ { "$dateDiff": { "startDate": "$curr.startdate", "endDate": "$curr.enddate", "unit": "day" } }, 1 ] } ] }, "as": "i", "in": { "$dateAdd": { "startDate": "$curr.startdate", "unit": "day", "amount": "$$i" } } } }, "predates": { "$map": { "input": { "$range": [ 0, { "$add": [ { "$dateDiff": { "startDate": "$pre.startdate", "endDate": "$pre.enddate", "unit": "day" } }, 1 ] } ] }, "as": "i", "in": { "$dateAdd": { "startDate": "$pre.startdate", "unit": "day", "amount": "$$i" } } } } } } )
+        pipeline.append({ '$lookup': { 'from': 'date_analytics', 'let': { 'currdates': '$currdates', 'dates': {"$setUnion": {"$concatArrays": ["$currdates","$predates"]}} }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$in': [ '$date', '$$dates' ] } ] } } }, { '$group': { '_id': { 'collatetype': '$collatetype', 'value': '$value', 'parent': '$parent' }, 'data': { '$push': '$$ROOT' } } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { '$reduce': { 'input': '$data', 'initialValue': { 'curr': [], 'pre': [] }, 'in': { '$mergeObjects': [ '$$value', { '$cond': { 'if': { '$in': [ '$$this.date', "$$currdates" ] }, 'then': { 'curr': { '$concatArrays': [ '$$value.curr', [ '$$this.data' ] ] } }, 'else': { 'pre': { '$concatArrays': [ '$$value.pre', [ '$$this.data' ] ] } } } } ] } } } ] } } }, { '$set': { 'curr': { '$reduce': { 'input': '$curr', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } }, 'pre': { '$reduce': { 'input': '$pre', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } } } } ], 'as': 'data' } })
+        pipeline.extend([{ '$unwind': { 'path': '$data', 'preserveNullAndEmptyArrays': False } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$data', { 'queryid': '$_id' } ] } } }])
+        from dzgroshared.db.collections.pipelines.queries import QueryBuilder
+        pipeline.append(QueryBuilder.addMissingFields('curr'))
+        pipeline.extend(QueryBuilder.addDerivedMetrics('curr'))
+        pipeline.extend(QueryBuilder.build_transformation_pipeline(True, 'curr'))
+        pipeline.append(QueryBuilder.addMissingFields('pre'))
+        pipeline.extend(QueryBuilder.addDerivedMetrics('pre'))
+        pipeline.extend(QueryBuilder.build_transformation_pipeline(True, 'pre'))
+        pipeline.append(QueryBuilder.addGrowth())
+        pipeline.append(QueryBuilder.create_comparison_data())
+        pipeline.extend([{"$project": {"curr": 0, "pre": 0,'growth':0}}, {"$merge": {"into":CollectionType.QUERY_RESULTS.value, "whenMatched": "merge", "whenNotMatched": "insert"}}])
+        await self.client.db.query_results.deleteQueryResults()
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)

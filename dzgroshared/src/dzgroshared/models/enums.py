@@ -549,3 +549,42 @@ class DzroReportPaymentReconSettlementRangeType(str, Enum):
 class DzgroInventoryPlanningRequestConfiguration(str, Enum):
     DAYS = 'Days'
     DATES = 'Dates'
+
+from enum import Enum
+
+class QueryMetricName(Enum):
+    # ---- Ad Metrics ----
+    ctr = "CTR %"
+    cpc = "CPC"
+    CVR = "CVR %"
+    ACOS = "ACOS %"
+    ROAS = "ROAS"
+    AD_SPEND_PER_UNIT = "Ad Spend/Unit"
+
+    # ---- Sales Metrics ----
+    ORDERS = "Orders"
+    QUANTITY = "Quantity"
+    RETURN_QUANTITY = "Return Qty"
+    NET_QUANTITY = "Net Qty"
+    ORDER_VALUE = "Order Value"
+    RETURN_VALUE = "Return Value"
+    SALES = "Ad Sales"
+    NET_PROCEEDS = "Net Payout"
+    FEES = "Fees"
+    ORDER_TAX = "Order Tax"
+    OTHER_EXPENSES = "Other Expenses"
+
+    # ---- Traffic Metrics ----
+    UNIT_SESSION_PERCENT = "Unit Session %"
+    SESSIONS = "Sessions"
+    UNIT_SESSIONS = "Unit Sessions"
+    BROWSER_SESSIONS = "Browser Sessions"
+    MOBILE_APP_SESSIONS = "Mobile App Sessions"
+    PAGE_VIEWS = "Page Views"
+    BROWSER_PAGE_VIEWS = "Browser Page Views"
+    MOBILE_APP_PAGE_VIEWS = "Mobile App Page Views"
+    BUYBOX_VIEWS = "Buy Box Views"
+
+    # ---- Cross-functional ----
+    TACOS = "TACoS"
+    ORGANIC_SALES_PERCENT = "Organic Sales %"

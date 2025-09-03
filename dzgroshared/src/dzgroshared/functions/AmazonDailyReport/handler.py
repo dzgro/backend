@@ -95,7 +95,7 @@ class AmazonReportManager:
                 if not self.message.date: await self.client.db.amazon_daily_reports.markProductsComplete(reportid)
             elif self.message.step==AmazonDailyReportAggregationStep.PROCESS_REPORTS: 
                 if self.report.progress!=100: await self.processReports()
-                return 10 if self.report.progress!=100 else 0
+                return 60 if self.report.progress!=100 else 0
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_PORTFOLIOS:
                 from dzgroshared.functions.AmazonDailyReport.reports.pipelines.AddPortfolios import PortfolioProcessor
                 portfolios = await PortfolioProcessor(self.userMarketplace, self.adapi).getPortfolios()
@@ -103,13 +103,10 @@ class AmazonReportManager:
             elif self.message.step==AmazonDailyReportAggregationStep.CREATE_ADS:
                 await self.client.db.adv_ads.refreshAll()
             elif self.message.step==AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS:
-                from dzgroshared.functions.AmazonDailyReport.reports.pipelines.StateAndDateAnalytics import AnalyticsProcessor
-                self.message.date = await AnalyticsProcessor(self.client,self.report.dates).executeDate(self.message.date)
+                from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
+                self.message.date = await AnalyticsProcessor(self.client,self.report.dates).executeDate(self.context, self.message.date)
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_QUERIES:
-                from dzgroshared.functions.AmazonDailyReport.reports.pipelines.ProductQueryBuilder import QueryBuilder
-                builder = QueryBuilder(self.client, self.report.dates)
-                if not self.message.query: self.message.query = await builder.getNextQuery(None)
-                else: self.message.query = await builder.execute(self.message.query)
+                await self.client.db.queries.buildQueries(self.report.dates)
             elif self.message.step==AmazonDailyReportAggregationStep.MARK_COMPLETION:
                 await self.client.db.amazon_daily_reports.deleteChildReports(self.message.index)
                 await self.client.db.amazon_daily_reports.markParentAsCompleted(self.message.index)

@@ -273,10 +273,6 @@ class DzgroSecrets(BaseModel):
     MONGO_DB_CONNECT_URI: str
     MONGO_DB_FED_CONNECT_URI: str
 
-
-class QueryBuilderValue(ItemId):
-    tag: CollateTypeTag
-
 DataCollections: list[CollectionType] = [
             # CollectionType.ORDERS,
             # CollectionType.ORDER_ITEMS,
@@ -302,3 +298,11 @@ DataCollections: list[CollectionType] = [
 class StartEndDate(BaseModel):
     startdate: datetime
     enddate: datetime
+    label: str = ''
+
+    @model_validator(mode="after")
+    def setLabel(self):
+        if self.startdate > self.enddate:
+            raise ValueError("Date range is invalid")
+        self.label = f'{self.startdate.strftime("%b %d, %Y")} - {self.enddate.strftime("%b %d, %Y")}'
+        return self

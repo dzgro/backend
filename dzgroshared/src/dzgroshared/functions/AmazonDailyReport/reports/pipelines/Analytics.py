@@ -49,13 +49,13 @@ class AnalyticsProcessor:
         return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { '$reduce': { 'input': '$settlement', 'initialValue': { 'skufees': 0, 'nonskufees': 0 }, 'in': { '$mergeObjects': [ '$$value', { '$cond': { 'if': { '$ifNull': [ '$$this.sku', False ] }, 'then': { 'nonskufees': { '$sum': [ '$$value.nonskufees', '$$this.amount' ] } }, 'else': { 'skufees': { '$sum': [ '$$value.skufees', '$$this.amount' ] } } } } ] } } } ] } } }
     
     def addNonSkuFees(self):
-        return { '$set': { 'nonskufees': { '$round': [ { '$multiply': [ '$nonskufees', '$skuRatio' ] }, 2 ] }, 'skuReturnValue': { '$sum': [ '$skuReturnValue', '$skuReturnTax' ] }, 'expenses': { '$sum': [ '$skufees', '$nonskufees' ] }, 'quantity': '$orderitem.quantity', 'returnQuantity': { '$cond': { 'if': { '$eq': [ '$skuValue', 0 ] }, 'then': 0, 'else': { '$round': [ { '$multiply': [ '$orderitem.quantity', { '$divide': [ { '$abs': '$skuReturnValue' }, '$skuValue' ] } ] } ] } } } } }
+        return { '$set': { 'nonskufees': { '$round': [ { '$multiply': [ '$nonskufees', '$skuRatio' ] }, 2 ] }, 'skuReturnValue': { '$sum': [ '$skuReturnValue', '$skuReturnTax' ] }, 'quantity': '$orderitem.quantity', 'returnQuantity': { '$cond': { 'if': { '$eq': [ '$skuValue', 0 ] }, 'then': 0, 'else': { '$round': [ { '$multiply': [ '$orderitem.quantity', { '$divide': [ { '$abs': '$skuReturnValue' }, '$skuValue' ] } ] } ] } } } } }
     
     def addNetProceeds(self):
-        return { '$set': { 'netproceeds': { '$cond': { 'if': { '$eq': [ { '$size': '$settlement' }, 0 ] }, 'then': 0, 'else': { '$add': [ '$skuValue', '$skuReturnValue', '$expenses' ] } } } } }
+        return { '$set': { 'netproceeds': { '$cond': { 'if': { '$eq': [ { '$size': '$settlement' }, 0 ] }, 'then': 0, 'else': { '$add': [ '$skuValue', '$skuReturnValue', '$skufees', '$nonskufees' ] } } } } }
     
     def createData(self):
-        return { '$set': { 'data': { 'netproceeds': '$netproceeds', 'ordervalue': '$skuValue','ordertax': "$skuTax", 'returnvalue': '$skuReturnValue', 'quantity': '$quantity', 'returnQuantity': '$returnQuantity', 'fees': '$skufees', 'otherexpenses': '$nonskufees', 'expenses': '$expenses' } } }
+        return { '$set': { 'data': { 'netproceeds': '$netproceeds', 'ordervalue': '$skuValue','ordertax': "$skuTax", 'returnvalue': '$skuReturnValue', 'quantity': '$quantity', 'returnQuantity': '$returnQuantity', 'fees': '$skufees', 'otherexpenses': '$nonskufees'} } }
     
     def projectData(self):
         return { '$project': { 'uid': '$uid', 'marketplace': '$marketplace', 'sku': '$orderitem.sku', 'parent': '$orderitem.asin', 'state': '$state', 'date': '$date', 'data': '$data', '_id': 0 } }

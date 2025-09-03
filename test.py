@@ -22,6 +22,14 @@ async def buildStateDateAnalytics():
     await processor.executeDate(context)
     print("Done")
 
+async def buildQueries():
+    # from dzgroshared.db.collections.pipelines.queries.QueryBuilder import QueryBuilder
+    # processor = QueryBuilder(client, date_range)
+    # await processor.test()
+    from dzgroshared.db.collections.queries import QueryHelper
+    await QueryHelper(client, uid, marketplace).buildQueries(date_range)
+    print("Done")
+
 async def deleteData():
     for collection in DataCollections:
         await client.db.database.get_collection(collection.value).delete_many({})
@@ -66,6 +74,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildStateDateAnalytics())
+    asyncio.run(buildQueries())
 except Exception as e:
     print(f"Error occurred: {e}")
