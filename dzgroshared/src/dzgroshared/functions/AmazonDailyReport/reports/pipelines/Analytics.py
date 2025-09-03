@@ -154,7 +154,6 @@ class AnalyticsProcessor:
             self.hideAdTraffic(),
             self.mergeToDateAnalytics()
         ]
-        
         await self.client.db.state_analytics.db.aggregate(pipeline)
 
     async def executeSku(self, date: datetime):

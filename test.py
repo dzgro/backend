@@ -74,6 +74,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildQueries())
+    asyncio.run(buildStateDateAnalytics())
 except Exception as e:
     print(f"Error occurred: {e}")
