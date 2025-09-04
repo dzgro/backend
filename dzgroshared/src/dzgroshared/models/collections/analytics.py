@@ -8,6 +8,12 @@ from typing import Literal
 class CollateTypeAndValue(BaseModel):
     collatetype: CollateType
     value: str|SkipJsonSchema[None]=None
+
+    @model_validator(mode="after")
+    def checkValue(self):
+        if self.collatetype!=CollateType.MARKETPLACE and (self.value is None or self.value.strip()==""):
+            raise ValueError("Value must be provided when collate type is not marketplace")
+        return self
     
 class Label(BaseModel):
     label: str

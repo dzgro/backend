@@ -67,6 +67,10 @@ class CollateType(str, Enum):
     @staticmethod
     def values():
         return list(CollateType)
+
+    @staticmethod
+    def list():
+        return [x.value for x in list(CollateType)]
     
 class OperatorSign(str, Enum):
     EQ = "=="

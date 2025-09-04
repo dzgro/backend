@@ -4,7 +4,7 @@ from dzgroshared.models.extras.ad_structure import StructureScoreResponse
 from dzgroshared.models.collections.health import AmazonHealthReportConverted
 from dzgroshared.models.collections.analytics import CollateTypeAndValue, MonthData, MonthWithDates, MonthlyCarousel, StateData
 from dzgroshared.models.model import AnalyticKeyGroup, AnalyticsPeriodData, ChartData, Count 
-from dzgroshared.models.collections.queries import Query
+from dzgroshared.models.collections.queries import Query, QueryList
 from dzgroshared.models.collections.query_results import QueryRequest, QueryResult, QueryResultGroup, QueryTableResult
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -49,7 +49,7 @@ async def getStateDataByMonth(request: Request, month:str, req: CollateTypeAndVa
 async def getAnalyticKeyGroups(request: Request):
     return await RequestHelper(request).client.db.calculation_keys.getGroups()
 
-@router.get("/queries", response_model=list[Query], response_model_exclude_none=True, response_model_by_alias=False)
+@router.get("/queries", response_model=QueryList, response_model_exclude_none=True, response_model_by_alias=False)
 async def listQueries(request: Request):
     return await RequestHelper(request).client.db.queries.getQueries()
 

@@ -15,12 +15,15 @@ class LookUpPipelineMatchExpression(LookUpLetExpression):
     isValueVariable:bool = False
 
 class PipelineProcessor:
-    marketplace: ObjectId|None = None
-    uid: str|None = None
+    marketplace: ObjectId
+    uid: str
 
     def __init__(self, uid: str|None, marketplace: ObjectId|str|PyObjectId|None = None):
         if(marketplace): self.marketplace = marketplace if isinstance(marketplace, ObjectId) else ObjectId(str(marketplace))
         if(uid): self.uid = uid
+
+    def __getattr__(self, item):
+        return None
 
     def getLetDict(self, others: dict = {}):
         if "_id" in others: return others

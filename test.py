@@ -19,7 +19,7 @@ date_range = StartEndDate(startdate=startdate, enddate=enddate)
 async def buildStateDateAnalytics():
     from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
     processor = AnalyticsProcessor(client, date_range)
-    await processor.executeDate(context)
+    await processor.execute()
     print("Done")
 
 async def buildQueries():
@@ -71,6 +71,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildStateDateAnalytics())
+    asyncio.run(buildQueries())
 except Exception as e:
     print(f"Error occurred: {e}")

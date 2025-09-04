@@ -1,30 +1,441 @@
 
+from dzgroshared.models.collections.analytics import CollateTypeAndValue
 from dzgroshared.models.enums import CollateType,CollectionType
 from dzgroshared.db.PipelineProcessor import PipelineProcessor, LookUpPipelineMatchExpression, LookUpLetExpression
 from dzgroshared.db.DataTransformer import Datatransformer
 
 
-def pipeline(pp: PipelineProcessor, collateType: CollateType, value: str|None):
-    matchStage = {"$match": {"_id": pp.marketplace}}
-    setDates = pp.set({ 'dates': { '$let': { 'vars': { 'tm': { '$month': '$enddate' }, 'date': { '$dayOfMonth': '$enddate' }, 'ty': { '$year': '$enddate' } }, 'in': { '$let': { 'vars': { 'lm': { '$cond': [ { '$eq': [ '$$tm', 12 ] }, 1, { '$subtract': [ '$$tm', 1 ] } ] }, 'ly': { '$cond': [ { '$eq': [ '$$tm', 1 ] }, { '$subtract': [ '$$ty', 1 ] }, '$$ty' ] } }, 'in': { '$let': { 'vars': { 'dates': { '$reduce': { 'input': { '$range': [ 0, 63, 1 ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$let': { 'vars': { 'date': { '$dateSubtract': { 'startDate': '$enddate', 'amount': '$$this', 'unit': 'day' } } }, 'in': { '$let': { 'vars': { 'dm': { '$month': '$$date' }, 'dy': { '$year': '$$date' } }, 'in': { '$cond': [ { '$or': [ { '$and': [ { '$eq': [ '$$dm', '$$tm' ] }, { '$eq': [ '$$dy', '$$ty' ] } ] }, { '$and': [ { '$eq': [ '$$dm', '$$lm' ] }, { '$eq': [ '$$dy', '$$ly' ] } ] } ] }, [ '$$date' ], [] ] } } } } } ] } } } }, 'in': { '$reduce': { 'input': '$$dates', 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { 'date': '$$this', 'durations': { '$concatArrays': [ [], { '$cond': [ { '$eq': [ { '$month': '$$this' }, '$$tm' ] }, [ { 'index': 1, 'label': 'This Month' } ], [] ] }, { '$cond': [ { '$eq': [ { '$month': '$$this' }, '$$lm' ] }, [ { 'index': 3, 'label': 'Last Month (Complete)' } ], [] ] }, { '$cond': [ { '$and': [ { '$eq': [ { '$month': '$$this' }, '$$lm' ] }, { '$lte': [ { '$dayOfMonth': '$$this' }, '$$date' ] } ] }, [ { 'index': 2, 'label': 'Last Month (Till Date)' } ], [] ] }, { '$cond': [ { '$lt': [ { '$dateDiff': { 'startDate': '$$this', 'endDate': '$enddate', 'unit': 'day' } }, 30 ] }, [ { 'index': 4, 'label': 'Past 30 Days' } ], [] ] } ] } } ] ] } } } } } } } } } })
-    unwindDates = pp.unwind("dates")
-    replaceRoot= pp.replaceRoot(pp.mergeObjects([{ 'uid': '$uid', 'marketplace': '$_id' }, "$dates"]))
-    expr = [LookUpPipelineMatchExpression(key='collatetype', value=collateType.value), LookUpPipelineMatchExpression(key='date'),LookUpPipelineMatchExpression(key=collateType.value, value=value)]
-    letkeys=['date',collateType.value, 'value']
-    if collateType==CollateType.MARKETPLACE: 
-        expr.pop(-1)
-        letkeys.pop(-1)
-    pipeline:list[dict] = [pp.matchAllExpressions(expr)]
-    pipeline.append(pp.project(['sales','ad','traffic'],['_id']))
-    pipeline.append(pp.replaceRoot({ '$arrayToObject': { '$reduce': { 'input': { '$objectToArray': '$$ROOT' }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$objectToArray': { '$ifNull': [ '$$this.v', {} ] } } ] } } } }))
-    lookUpAnalytics = pp.lookup(CollectionType.DATE_ANALYTICS,'data', pipeline, letkeys=letkeys)
-    setData = pp.set({"data": pp.first("data")})
-    unwindDuration = pp.unwind("durations")
-    groupByDuration = pp.group([LookUpLetExpression(key="durations")], groupings={'data': { '$push': '$data' }, 'dates': { '$push': '$date' }})
-    setDatesAsDurations = pp.set({"date": { 'dates': { '$let': { 'vars': { 'dates': { '$sortArray': { 'input': '$dates', 'sortBy': 1 } } }, 'in': { '$concat': [ { '$dateToString': { 'date': { '$first': '$$dates' }, 'format': '%b %d' } }, ' - ', { '$dateToString': { 'date': { '$last': '$$dates' }, 'format': '%b %d' } } ] } } } }})
-    pipeline = [matchStage, setDates, unwindDates, replaceRoot, lookUpAnalytics, setData, unwindDuration, groupByDuration, setDatesAsDurations]
-    pipeline.extend(Datatransformer(pp).groupDataAsKeysGroup())
-    sort = pp.sort({"_id.durations.index": 1})
-    replaceRoot = pp.replaceRoot({ "data": "$data", "period": "$_id.durations.label", "dates": "$date.dates" })
-    pipeline.extend([sort, replaceRoot])
+def pipeline(pp: PipelineProcessor, req: CollateTypeAndValue):
+    pipeline = [
+    {
+        '$match': {
+            '_id': pp.marketplace,
+            'uid': pp.uid
+
+        }
+    }, {
+        '$lookup': {
+            'from': 'date_analytics', 
+            'let': {
+                'uid': '$uid', 
+                'marketplace': '$_id', 
+                'collatetype': req.collatetype.value,
+                'value': req.value,
+                'startdate': '$dates.startdate', 
+                'enddate': '$dates.enddate'
+            }, 
+            'pipeline': [
+                {
+                    '$match': {
+                        '$expr': {
+                            '$and': [
+                                {
+                                    '$eq': [
+                                        '$uid', '$$uid'
+                                    ]
+                                }, {
+                                    '$eq': [
+                                        '$marketplace', '$$marketplace'
+                                    ]
+                                }, {
+                                    '$eq': [
+                                        '$collatetype', '$$collatetype'
+                                    ]
+                                }, {
+                                    '$gte': [
+                                        '$date', '$$startdate'
+                                    ]
+                                }, {
+                                    '$eq': [
+                                        '$value', '$$value'
+                                    ]
+                                }, {
+                                    '$lte': [
+                                        '$date', '$$enddate'
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }, {
+                    '$set': {
+                        'dataArray': {
+                            '$objectToArray': '$data'
+                        }
+                    }
+                }, {
+                    '$addFields': {
+                        'thirtyDaysAgo': {
+                            '$dateSubtract': {
+                                'startDate': '$$enddate', 
+                                'unit': 'day', 
+                                'amount': 30
+                            }
+                        }, 
+                        'firstOfThisMonth': {
+                            '$dateTrunc': {
+                                'date': '$$enddate', 
+                                'unit': 'month'
+                            }
+                        }, 
+                        'firstOfLastMonth': {
+                            '$dateTrunc': {
+                                'date': {
+                                    '$dateSubtract': {
+                                        'startDate': '$$enddate', 
+                                        'unit': 'month', 
+                                        'amount': 1
+                                    }
+                                }, 
+                                'unit': 'month'
+                            }
+                        }, 
+                        'sameDayLastMonth': {
+                            '$dateSubtract': {
+                                'startDate': '$$enddate', 
+                                'unit': 'month', 
+                                'amount': 1
+                            }
+                        }, 
+                        'endOfLastMonth': {
+                            '$dateSubtract': {
+                                'startDate': {
+                                    '$dateTrunc': {
+                                        'date': '$$enddate', 
+                                        'unit': 'month'
+                                    }
+                                }, 
+                                'unit': 'day', 
+                                'amount': 1
+                            }
+                        }
+                    }
+                }, {
+                    '$facet': {
+                        'last30Days': [
+                            {
+                                '$match': {
+                                    '$expr': {
+                                        '$and': [
+                                            {
+                                                '$gte': [
+                                                    '$date', '$thirtyDaysAgo'
+                                                ]
+                                            }, {
+                                                '$lte': [
+                                                    '$date', '$$enddate'
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }, {
+                                '$unwind': '$dataArray'
+                            }, {
+                                '$group': {
+                                    '_id': '$dataArray.k', 
+                                    'value': {
+                                        '$sum': '$dataArray.v'
+                                    }, 
+                                    'start': {
+                                        '$min': '$date'
+                                    }, 
+                                    'end': {
+                                        '$max': '$date'
+                                    }
+                                }
+                            }, {
+                                '$group': {
+                                    '_id': None, 
+                                    'kv': {
+                                        '$push': {
+                                            'k': '$_id', 
+                                            'v': '$value'
+                                        }
+                                    }, 
+                                    'start': {
+                                        '$min': '$start'
+                                    }, 
+                                    'end': {
+                                        '$max': '$end'
+                                    }
+                                }
+                            }, {
+                                '$project': {
+                                    '_id': 0, 
+                                    'data': {
+                                        '$arrayToObject': '$kv'
+                                    }, 
+                                    'label': 'Last 30 Days', 
+                                    'dateSpan': {
+                                        '$concat': [
+                                            {
+                                                '$dateToString': {
+                                                    'date': '$start', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }, ' → ', {
+                                                '$dateToString': {
+                                                    'date': '$end', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ], 
+                        'thisMonth': [
+                            {
+                                '$match': {
+                                    '$expr': {
+                                        '$and': [
+                                            {
+                                                '$gte': [
+                                                    '$date', '$firstOfThisMonth'
+                                                ]
+                                            }, {
+                                                '$lte': [
+                                                    '$date', '$$enddate'
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }, {
+                                '$unwind': '$dataArray'
+                            }, {
+                                '$group': {
+                                    '_id': '$dataArray.k', 
+                                    'value': {
+                                        '$sum': '$dataArray.v'
+                                    }, 
+                                    'start': {
+                                        '$min': '$date'
+                                    }, 
+                                    'end': {
+                                        '$max': '$date'
+                                    }
+                                }
+                            }, {
+                                '$group': {
+                                    '_id': None, 
+                                    'kv': {
+                                        '$push': {
+                                            'k': '$_id', 
+                                            'v': '$value'
+                                        }
+                                    }, 
+                                    'start': {
+                                        '$min': '$start'
+                                    }, 
+                                    'end': {
+                                        '$max': '$end'
+                                    }
+                                }
+                            }, {
+                                '$project': {
+                                    '_id': 0, 
+                                    'data': {
+                                        '$arrayToObject': '$kv'
+                                    }, 
+                                    'label': 'This Month', 
+                                    'dateSpan': {
+                                        '$concat': [
+                                            {
+                                                '$dateToString': {
+                                                    'date': '$start', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }, ' → ', {
+                                                '$dateToString': {
+                                                    'date': '$end', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ], 
+                        'lastMonthTillDate': [
+                            {
+                                '$match': {
+                                    '$expr': {
+                                        '$and': [
+                                            {
+                                                '$gte': [
+                                                    '$date', '$firstOfLastMonth'
+                                                ]
+                                            }, {
+                                                '$lte': [
+                                                    '$date', '$sameDayLastMonth'
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }, {
+                                '$unwind': '$dataArray'
+                            }, {
+                                '$group': {
+                                    '_id': '$dataArray.k', 
+                                    'value': {
+                                        '$sum': '$dataArray.v'
+                                    }, 
+                                    'start': {
+                                        '$min': '$date'
+                                    }, 
+                                    'end': {
+                                        '$max': '$date'
+                                    }
+                                }
+                            }, {
+                                '$group': {
+                                    '_id': None, 
+                                    'kv': {
+                                        '$push': {
+                                            'k': '$_id', 
+                                            'v': '$value'
+                                        }
+                                    }, 
+                                    'start': {
+                                        '$min': '$start'
+                                    }, 
+                                    'end': {
+                                        '$max': '$end'
+                                    }
+                                }
+                            }, {
+                                '$project': {
+                                    '_id': 0, 
+                                    'data': {
+                                        '$arrayToObject': '$kv'
+                                    }, 
+                                    'label': 'Last Month Till Date', 
+                                    'dateSpan': {
+                                        '$concat': [
+                                            {
+                                                '$dateToString': {
+                                                    'date': '$start', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }, ' → ', {
+                                                '$dateToString': {
+                                                    'date': '$end', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ], 
+                        'lastMonthComplete': [
+                            {
+                                '$match': {
+                                    '$expr': {
+                                        '$and': [
+                                            {
+                                                '$gte': [
+                                                    '$date', '$firstOfLastMonth'
+                                                ]
+                                            }, {
+                                                '$lte': [
+                                                    '$date', '$endOfLastMonth'
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                }
+                            }, {
+                                '$unwind': '$dataArray'
+                            }, {
+                                '$group': {
+                                    '_id': '$dataArray.k', 
+                                    'value': {
+                                        '$sum': '$dataArray.v'
+                                    }, 
+                                    'start': {
+                                        '$min': '$date'
+                                    }, 
+                                    'end': {
+                                        '$max': '$date'
+                                    }
+                                }
+                            }, {
+                                '$group': {
+                                    '_id': None, 
+                                    'kv': {
+                                        '$push': {
+                                            'k': '$_id', 
+                                            'v': '$value'
+                                        }
+                                    }, 
+                                    'start': {
+                                        '$min': '$start'
+                                    }, 
+                                    'end': {
+                                        '$max': '$end'
+                                    }
+                                }
+                            }, {
+                                '$project': {
+                                    '_id': 0, 
+                                    'data': {
+                                        '$arrayToObject': '$kv'
+                                    }, 
+                                    'label': 'Last Month (Complete)', 
+                                    'dateSpan': {
+                                        '$concat': [
+                                            {
+                                                '$dateToString': {
+                                                    'date': '$start', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }, ' → ', {
+                                                '$dateToString': {
+                                                    'date': '$end', 
+                                                    'format': '%Y-%m-%d'
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }, {
+                    '$project': {
+                        'results': {
+                            '$concatArrays': [
+                                '$last30Days', '$thisMonth', '$lastMonthTillDate', '$lastMonthComplete'
+                            ]
+                        }
+                    }
+                }, {
+                    '$unwind': '$results'
+                }, {
+                    '$replaceRoot': {
+                        'newRoot': '$results'
+                    }
+                }
+            ], 
+            'as': 'analytics'
+        }
+    }, {
+        '$unwind': '$analytics'
+    }, {
+        '$replaceRoot': {
+            'newRoot': '$analytics'
+        }
+    }
+]
+    from dzgroshared.db.collections.pipelines.queries import QueryBuilder
+    missingkeys = QueryBuilder.addMissingFields("data")
+    derivedmetrics = QueryBuilder.addDerivedMetrics("data")
+    pipeline.append(missingkeys)
+    pipeline.extend(derivedmetrics)
+    from dzgroshared.utils import mongo_pipeline_print
+    mongo_pipeline_print.copy_pipeline(pipeline)
     return pipeline

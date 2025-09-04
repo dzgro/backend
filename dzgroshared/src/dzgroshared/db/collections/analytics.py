@@ -35,7 +35,7 @@ class DashboardHelper:
         return result[0]
 
     async def getPeriodData(self, req: CollateTypeAndValue):
-        pipeline = GetPeriodData.pipeline(self.db.pp, req.collatetype, req.value)
+        pipeline = GetPeriodData.pipeline(self.db.pp, req)
         data = await self.db.aggregate(pipeline)
         if req.collatetype!=CollateType.MARKETPLACE: data.pop()
         return data

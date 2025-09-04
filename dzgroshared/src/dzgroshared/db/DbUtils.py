@@ -4,6 +4,7 @@ from dzgroshared.models.model import PyObjectId, Sort
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorCollection
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
+import time
 
 class DbManager:
     collection: AsyncIOMotorCollection
@@ -25,8 +26,12 @@ class DbManager:
         return ObjectId(id) if isinstance(id, str) else id
 
     async def aggregate(self, pipeline: list[dict])->list[dict]:
+        start_time = time.perf_counter()
         try:
-            return await self.collection.aggregate(pipeline).to_list()
+            result = await self.collection.aggregate(pipeline).to_list()
+            process_time_seconds = (time.perf_counter() - start_time)  # ms
+            print(f"Aggregation took {process_time_seconds:.4f} seconds")
+            return result
         except Exception as e:
             print(e)
             from dzgroshared.utils import mongo_pipeline_print

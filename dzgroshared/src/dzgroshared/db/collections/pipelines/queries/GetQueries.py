@@ -63,6 +63,7 @@ def pipeline(uid:str, marketplace:ObjectId, dates: StartEndDate|None=None):
         '$unwind': '$queries'
     }, {
         '$project': {
+            "_id": "$queries._id",
             'tag': '$queries.tag', 
             'dates': '$dates', 
             'curr': {
@@ -291,6 +292,11 @@ def pipeline(uid:str, marketplace:ObjectId, dates: StartEndDate|None=None):
                     ]
                 }
             }
+        }
+    },
+    {
+        "$project": {
+            "dates": 0
         }
     }
 ]

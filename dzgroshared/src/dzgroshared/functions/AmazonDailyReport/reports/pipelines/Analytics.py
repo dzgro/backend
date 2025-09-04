@@ -1,5 +1,5 @@
 from datetime import datetime
-from bson import ObjectId
+import time
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.DataTransformer import Datatransformer
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
@@ -12,24 +12,36 @@ class AnalyticsProcessor:
     client: DzgroSharedClient
     pp: PipelineProcessor
     dates: StartEndDate
+    allDates: list[datetime]
 
     def __init__(self, client: DzgroSharedClient, dates: StartEndDate):
         self.client = client
         self.dates = dates
         self.pp = PipelineProcessor(self.client.uid, self.client.marketplace)
+        self.allDates = date_util.getAllDatesBetweenTwoDates(self.dates.startdate, self.dates.enddate)
+
+    def matchmarketplace(self):
+        return { '$match': { '_id': self.client.marketplace, 'uid': self.client.uid } }
+    
+    def setDates(self):
+        datesObj = self.dates.model_dump()
+        return { '$set': { 'dates': datesObj } }
+
+    def openDates(self):
+        return {"$set": { "date": { "$map": { "input": { "$range": [ 0, { "$sum": [ { "$dateDiff": { "startDate": "$dates.startdate", "endDate": "$dates.enddate", "unit": "day" } }, 1 ] }, 1 ] }, "as": "day", "in": { "$dateAdd": { "startDate": "$dates.startdate", "unit": "day", "amount": "$$day" } } } } }}
+    
+    def openDate(self):
+        return {"$unwind": "$date"}
 
     def match(self, date: datetime):
         return { '$match': { 'uid': self.client.uid, 'marketplace': self.client.marketplace, 'date': date } }
     
-    def matchCollateTypeAndDate(self, date: datetime, collatetype:CollateType):
-        return { '$match': { 'uid': self.client.uid, 'marketplace': self.client.marketplace, 'date': date, 'collatetype': collatetype.value } }
-
     def lookupSettlements(self):
         return { '$lookup': { 'from': 'settlements', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'orderid': '$orderid' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$orderid', '$$orderid' ] } ] } } } ], 'as': 'settlement' } }
     
     def lookupOrderItems(self):
         return { '$lookup': { 'from': 'order_items', 'localField': '_id', 'foreignField': 'order', 'as': 'orderitem' } }
-    
+
     def addOrderValueTax(self):
         return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { '$reduce': { 'input': '$orderitem', 'initialValue': { 'orderValue': 0, 'orderTax': 0 }, 'in': { '$mergeObjects': [ '$$value', { 'orderValue': { '$sum': [ '$$value.orderValue', '$$this.revenue' ] }, 'orderTax': { '$sum': [ '$$value.orderTax', '$$this.tax' ] } } ] } } } ] } } }
     
@@ -66,38 +78,51 @@ class AnalyticsProcessor:
     def collateData(self, key:str='data'):
         return Datatransformer(self.pp, key).collateData()
     
+    def setData(self, isState: bool, collatetype:CollateType):
+        curr = { "uid": "$$current.uid", "marketplace": "$$current.marketplace", "date": "$$current.date", "data": ["$$current.data"] }
+        cond = [ { "$eq": ["$$g.uid", "$$this.uid"] }, { "$eq": ["$$g.marketplace", "$$this.marketplace"] },{ "$eq": ["$$g.date", "$$this.date"] } ]
+        if collatetype==CollateType.SKU: curr.update({'value': '$$current.value','parent': '$$current.parent', "parentsku": "$$current.parentsku", "category": "$$current.category"})
+        elif collatetype==CollateType.ASIN: curr.update({'value': '$$current.parent','parent': '$$current.parentsku', "category": "$$current.category"})
+        elif collatetype==CollateType.PARENT: curr.update({'value': '$$current.parent'})
+        elif collatetype==CollateType.CATEGORY: curr.update({'value': '$$current.category'})
+        if isState:
+            curr.update({'state': '$$current.state'})
+            cond.append( { "$eq": ["$$g.state", "$$this.state"] } )
+        return {"$set": { "data": { "$reduce": { "input": "$data", "initialValue": [], "in": { "$let": { "vars": { "current": "$$this", "existing": { "$filter": { "input": "$$value", "as": "g", "cond": { "$and": cond } } } }, "in": { "$cond": [ { "$gt": [{ "$size": "$$existing" }, 0] }, { "$map": { "input": "$$value", "as": "g", "in": { "$cond": [ { "$and": cond }, { "$mergeObjects": [ "$$g", { "data": { "$concatArrays": ["$$g.data", ["$$current.data"]] } } ] }, "$$g" ] } } }, { "$concatArrays": [ "$$value", [ curr ] ] } ] } } } } } }}
+
+    
     def removeEmptyDataSets(self):
         return { '$match': { '$expr': { '$gt': [ { '$sum': { '$map': { 'input': { '$objectToArray': '$data' }, 'as': 'kv', 'in': { '$abs': '$$kv.v' } } } }, 0 ] } } }
     
-    def createIdForState(self, collatetype: CollateType):
-        value = '$_id.value' if collatetype!=CollateType.MARKETPLACE else collatetype.value
-        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': collatetype.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', value, '_', { '$dateToString': { 'date': '$_id.date', 'format': '%Y-%m-%d' } }, '_', '$_id.state' ] } } ] } } }
+    def createIdForStateSku(self):
+        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': CollateType.SKU.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', "$_id.value", '_', { '$dateToString': { 'date': '$_id.date', 'format': '%Y-%m-%d' } }, '_', '$_id.state' ] } } ] } } }
 
-    def createIdForDate(self, collatetype: CollateType):
-        value = '$_id.value' if collatetype!=CollateType.MARKETPLACE else collatetype.value
-        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { 'collatetype': collatetype.value, 'data': '$data', '_id': { '$concat': [ { '$toString': [ '$_id.marketplace' ] }, '_', value, '_', { '$dateToString': { 'date': '$_id.date' , 'format': '%Y-%m-%d' } } ] } } ] } } }
+    def setIdForState(self, collatetype: CollateType):
+        value = '$value' if collatetype!=CollateType.MARKETPLACE else collatetype.value
+        return {"$set": { 'collatetype': collatetype.value, '_id': { '$concat': [ { '$toString': [ '$marketplace' ] }, '_', value, '_', { '$dateToString': { 'date': '$date' , 'format': '%Y-%m-%d' } }, "_","$state" ] } }}
+    
+    def setIdForDate(self, collatetype: CollateType):
+        value = '$value' if collatetype!=CollateType.MARKETPLACE else collatetype.value
+        return {"$set": { 'collatetype': collatetype.value, '_id': { '$concat': [ { '$toString': [ '$marketplace' ] }, '_', value, '_', { '$dateToString': { 'date': '$date' , 'format': '%Y-%m-%d' } } ] } }}
+
 
     def mergeToStateAnalytics(self):
         return self.pp.merge(CollectionType.STATE_ANALYTICS)
     
     def mergeToDateAnalytics(self):
         return self.pp.merge(CollectionType.DATE_ANALYTICS)
+    
+    def lookupStateAnalytics(self, collatetype: CollateType):
+        pipeline = [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] }] } } } ]
+        return { '$lookup': { 'from': 'state_analytics', 'let': { 'uid': '$uid', 'marketplace': '$_id', 'collatetype': collatetype.value, 'date': '$date'}, 'pipeline': pipeline, 'as': 'data' } }
+    
+    def lookupDateAnalytics(self, collatetype: CollateType):
+        pipeline = [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] } ] } } } ]
+        return { '$lookup': { 'from': 'date_analytics', 'let': { 'uid': '$uid', 'marketplace': '$_id', 'collatetype': collatetype.value, 'date': '$date', }, 'pipeline': pipeline, 'as': 'data' } }
 
     def groupStateAnalyticsByDate(self):
         return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$value', 'parent': '$parent', 'date': '$date', 'collatetype': "$collatetype" }, 'data': { '$push': '$data' } } }
-
-    def groupStateAnalyticsByParent(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$parent', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } }
-
-    def groupStateAnalyticsByCategory(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$category', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } }
-
-    def groupDateAnalyticsByValue(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$parent', 'date': '$date' }, 'data': { '$push': '$data' } } }
-
-    def groupDateAnalyticsByCategory(self):
-        return { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'value': '$category', 'date': '$date' }, 'data': { '$push': '$data' } } }
-
+    
     def lookupAds(self):
         return { '$lookup': { 'from': 'adv', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'assettype': 'Ad', 'date': '$date', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
     
@@ -111,218 +136,217 @@ class AnalyticsProcessor:
         return { '$project': { 'ad': 0, 'traffic': 0 } }
     
     def addParentSku(self):
-        return { "$lookup": { "from": "products", "let": { "uid": "$uid", "marketplace": "$marketplace", "asin": "$value" }, "pipeline": [ { "$match": { "$expr": { "$and": [ { "$eq": ["$uid", "$$uid"] }, { "$eq": [ "$marketplace", "$$marketplace" ] }, { "$eq": ["$asin", "$$asin"] } ] } } }, { "$project": { "parent": "$parentsku", "category": "$producttype", "_id": 0 } } ], "as": "parent" } }
+        return { "$lookup": { "from": "products", "let": { "uid": "$uid", "marketplace": "$marketplace", "sku": "$value" }, "pipeline": [ { "$match": { "$expr": { "$and": [ { "$eq": ["$uid", "$$uid"] }, { "$eq": [ "$marketplace", "$$marketplace" ] }, { "$eq": ["$sku", "$$sku"] } ] } } }, { "$project": { "parent": "$parentsku", "category": "$producttype", "_id": 0 } } ], "as": "product" } }
 
     def setParentSku(self):
-        return { "$set": { "parent": { "$first": "$parent.parent" }, "category": { "$first": "$parent.category" } } }
-    
+        return { "$set": { "parentsku": { "$first": "$product.parent" }, "category": { "$first": "$product.category" } } }
+
     def addProductType(self):
         return { "$lookup": { "from": "products", "let": { "uid": "$uid", "marketplace": "$marketplace", "asin": "$value" }, "pipeline": [ { "$match": { "$expr": { "$and": [ { "$eq": ["$uid", "$$uid"] }, { "$eq": [ "$marketplace", "$$marketplace" ] }, { "$eq": ["$asin", "$$asin"] } ] } } }, { "$project": { "parent": "$parentsku", "_id": 0 } } ], "as": "parent" } }
     
     def setProductType(self):
         return { "$set": { "parent": { "$first": "$parent.parent" } } }
 
-
-
-    async def executeSkuState(self, date: datetime):
-        pipeline = [
-            self.match(date),
-            self.lookupSettlements(),
-            self.lookupOrderItems(),
-            self.addOrderValueTax(),
-            self.unwindOrderItems(),
-            self.getSkuValues(),
-            self.setSkuRatio(),
-            self.reduceSettlements(),
-            self.addSkuFees(),
-            self.addNonSkuFees(),
-            self.addNetProceeds(),
-            self.createData(),
-            self.projectData(),
-            self.groupByState(),
-            self.collateData(),
-            self.removeEmptyDataSets(),
-            self.createIdForState(CollateType.SKU),
-            self.mergeToStateAnalytics()
+    def matchMarketplaceSetAndOpenDates(self):
+        return [
+            self.matchmarketplace(),
+            self.setDates(),
+            self.openDates(),
+            self.openDate()
         ]
-        
-        await self.client.db.orders.db.aggregate(pipeline)
+    
+    
+    def lookupOrders(self, pipeline: list[dict]):
+        pipeline = [{ '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$date', '$$date' ] } ] } } }] + pipeline
+        return { '$lookup': { 'from': 'orders', 'let': {"uid": "$uid", "marketplace": "$_id", "date": "$date"}, 'pipeline': pipeline, 'as': 'data' } }
+    
+    def opendata(self):
+        return { '$unwind': { 'path': '$data', 'preserveNullAndEmptyArrays': False } }
+    
+    def setDataAsRoot(self):
+        return { '$replaceRoot': { 'newRoot': '$data' } }
 
-    async def executeSkuDate(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.SKU),
-            self.groupStateAnalyticsByDate(),
+
+    async def executeSkuState(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupOrders(
+            [
+                self.lookupSettlements(),
+                self.lookupOrderItems(),
+                self.addOrderValueTax(),
+                self.unwindOrderItems(),
+                self.getSkuValues(),
+                self.setSkuRatio(),
+                self.reduceSettlements(),
+                self.addSkuFees(),
+                self.addNonSkuFees(),
+                self.addNetProceeds(),
+                self.createData(),
+                self.projectData(),
+                self.groupByState(),
+                self.collateData(),
+                self.removeEmptyDataSets(),
+                self.createIdForStateSku()
+            ]
+        ))
+        pipeline.extend([self.opendata(), self.setDataAsRoot(), 
+                self.addParentSku(),
+                self.setParentSku(),
+                {"$project": {"product": 0}},
+                self.mergeToStateAnalytics()])
+        
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+
+    async def executeSkuDate(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupStateAnalytics(CollateType.SKU))
+        pipeline.extend([
+            self.setData(False, CollateType.SKU),
+            self.opendata(),
+            self.setDataAsRoot(),
             self.collateData(),
-            self.createIdForDate(CollateType.SKU),
+            self.setIdForDate(CollateType.SKU),
             self.lookupAds(),
             self.collateData('ad'),
             self.mergeDataWithAdTraffic(),
             self.hideAdTraffic(),
             self.mergeToDateAnalytics()
-        ]
-        await self.client.db.state_analytics.db.aggregate(pipeline)
-
-    async def executeSku(self, date: datetime):
-        await self.executeSkuState(date)
-        await self.executeSkuDate(date)
-
-    async def executeAsinState(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.SKU),
-            self.groupStateAnalyticsByParent(),
-            self.collateData(),
-            self.createIdForState(CollateType.ASIN),
-            self.addParentSku(),
-            self.setParentSku(),
-            self.mergeToStateAnalytics()
-        ]
+        ])
         
-        await self.client.db.state_analytics.db.aggregate(pipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeAsinDate(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.SKU),
-            self.groupDateAnalyticsByValue(),
+    async def executeAsinState(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupStateAnalytics(CollateType.SKU))
+        pipeline.extend([
+            self.setData(True, CollateType.ASIN),
+            self.opendata(),
+            self.setDataAsRoot(),
             self.collateData(),
-            self.createIdForDate(CollateType.ASIN),
+            self.setIdForState(CollateType.ASIN),
+            self.mergeToStateAnalytics()
+        ])
+        
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+
+    async def executeAsinDate(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupDateAnalytics(CollateType.SKU))
+        pipeline.extend([
+            self.setData(False, CollateType.ASIN),
+            self.opendata(),
+            self.setDataAsRoot(),
+            self.collateData(),
+            self.setIdForDate(CollateType.ASIN),
             self.lookupTraffic(),
             self.collateData('traffic'),
             self.mergeDataWithAdTraffic(),
             self.hideAdTraffic(),
-            self.addParentSku(),
-            self.setParentSku(),
-            self.mergeToDateAnalytics(),
-        ]
+            self.mergeToDateAnalytics()
+        ])
         
-        await self.client.db.date_analytics.db.aggregate(pipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeAsin(self, date: datetime):
-        await self.executeAsinState(date)
-        await self.executeAsinDate(date)
-
-    async def executeParentState(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.ASIN),
-            self.groupStateAnalyticsByParent(),
-            {"$match": {"_id.value": {"$ne": None}}},
+    async def executeParentState(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupStateAnalytics(CollateType.ASIN))
+        pipeline.extend([
+            self.setData(True, CollateType.PARENT),
+            self.opendata(),
+            self.setDataAsRoot(),
             self.collateData(),
-            self.createIdForState(CollateType.PARENT),
+            self.setIdForState(CollateType.PARENT),
+            {"$match": {"_id": {"$ne": None}}},
+            {"$project": {"category": 0}},
             self.mergeToStateAnalytics()
-        ]
+        ])
         
-        await self.client.db.state_analytics.db.aggregate(pipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeParentDate(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.ASIN),
-            self.groupDateAnalyticsByValue(),
-            {"$match": {"_id.value": {"$ne": None}}},
+    async def executeParentDate(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupDateAnalytics(CollateType.ASIN))
+        pipeline.extend([
+            self.setData(False, CollateType.PARENT),
+            self.opendata(),
+            self.setDataAsRoot(),
             self.collateData(),
-            self.createIdForDate(CollateType.PARENT),
-            self.mergeToDateAnalytics(),
-        ]
+            self.setIdForDate(CollateType.PARENT),
+            self.lookupTraffic(),
+            self.collateData('traffic'),
+            self.mergeDataWithAdTraffic(),
+            self.hideAdTraffic(),
+            {"$match": {"_id": {"$ne": None}}},
+            {"$project": {"category": 0}},
+            self.mergeToDateAnalytics()
+        ])
         
-        await self.client.db.date_analytics.db.aggregate(pipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeParent(self, date: datetime):
-        await self.executeParentState(date)
-        await self.executeParentDate(date)
 
-    async def executeCategoryState(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.ASIN),
-            self.groupStateAnalyticsByCategory(),
-            {"$match": {"_id.value": {"$ne": None}}},
+    async def executeCategoryDate(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupDateAnalytics(CollateType.ASIN))
+        pipeline.extend([
+            self.setData(False, CollateType.CATEGORY),
+            self.opendata(),
+            self.setDataAsRoot(),
             self.collateData(),
-            self.createIdForState(CollateType.CATEGORY),
+            self.setIdForDate(CollateType.CATEGORY),
+            self.mergeToDateAnalytics()
+        ])
+        
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+
+    async def executeMarketplaceState(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupStateAnalytics(CollateType.ASIN))
+        pipeline.extend([
+            self.setData(True, CollateType.MARKETPLACE),
+            self.opendata(),
+            self.setDataAsRoot(),
+            self.collateData(),
+            self.setIdForState(CollateType.MARKETPLACE),
+            {"$match": {"_id": {"$ne": None}}},
+            {"$project": {"category": 0, "parentsku": 0}},
             self.mergeToStateAnalytics()
-        ]
+        ])
         
-        await self.client.db.state_analytics.db.aggregate(pipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeCategoryDate(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.ASIN),
-            self.groupDateAnalyticsByCategory(),
-            {"$match": {"_id.value": {"$ne": None}}},
+    async def executeMarketplaceDate(self):
+        pipeline = self.matchMarketplaceSetAndOpenDates()
+        pipeline.append(self.lookupDateAnalytics(CollateType.ASIN))
+        pipeline.extend([
+            self.setData(False, CollateType.MARKETPLACE),
+            self.opendata(),
+            self.setDataAsRoot(),
             self.collateData(),
-            self.createIdForDate(CollateType.CATEGORY),
-            self.mergeToDateAnalytics(),
-        ]
+            self.setIdForDate(CollateType.MARKETPLACE),
+            {"$match": {"_id": {"$ne": None}}},
+            {"$project": {"category": 0, "parentsku": 0}},
+            self.mergeToDateAnalytics()
+        ])
         
-        await self.client.db.date_analytics.db.aggregate(pipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeCategory(self, date: datetime):
-        await self.executeCategoryState(date)
-        await self.executeCategoryDate(date)
 
-    async def executeMarketplaceState(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.PARENT),
-            { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } },
-            self.collateData(),
-            self.createIdForState(CollateType.MARKETPLACE),
-            self.mergeToStateAnalytics()
-        ]
+    async def execute(self):
+        await self.client.db.state_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
+        await self.client.db.date_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
+        start_time = time.perf_counter()
+        await self.executeSkuState()
+        await self.executeSkuDate()
+        await self.executeAsinState()
+        await self.executeAsinDate()
+        await self.executeParentState()
+        await self.executeParentDate()
+        await self.executeCategoryDate()
+        await self.executeMarketplaceState()
+        await self.executeMarketplaceDate()
+        process_time_seconds = (time.perf_counter() - start_time)  # ms
+        print(f"Total Analytics took {process_time_seconds:.4f} seconds")
+
         
-        await self.client.db.state_analytics.db.aggregate(pipeline)
-
-    async def executeMarketplaceDate(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.PARENT),
-            { '$group': { '_id': { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'state': "$state" }, 'data': { '$push': '$data' } } },
-            self.collateData(),
-            self.createIdForDate(CollateType.MARKETPLACE),
-            self.mergeToDateAnalytics(),
-        ]
-        
-        await self.client.db.date_analytics.db.aggregate(pipeline)
-
-    async def executeMarketplace(self, date: datetime):
-        await self.executeMarketplaceState(date)
-        await self.executeMarketplaceDate(date)
-
-    async def categoryDate(self, date: datetime):
-        pipeline = [
-            self.matchCollateTypeAndDate(date, CollateType.ASIN),
-            self.groupDateAnalyticsByValue(),
-            self.collateData(),
-            self.addProductType(),
-            self.setProductType(),
-            self.createIdForDate(CollateType.CATEGORY),
-            {"$set": {"value": "parent"}},
-            {"$project": {"value": 0}},
-            self.mergeToDateAnalytics(),
-        ]
-        
-        await self.client.db.date_analytics.db.aggregate(pipeline)
-
-    async def execute(self, date: datetime):
-        for collateType in CollateType.values():
-            print(f'------------------{collateType.value}-----{date.strftime("%Y-%m-%d")}-----------------------')
-            if collateType==CollateType.SKU: await self.executeSku(date)
-            elif collateType==CollateType.ASIN: await self.executeAsin(date)
-            elif collateType==CollateType.PARENT: await self.executeParent(date)
-            elif collateType==CollateType.MARKETPLACE: await self.executeMarketplace(date)
-
-    async def getDate(self, date: datetime|None):
-        if not date: 
-            await self.client.db.state_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
-            await self.client.db.date_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
-            return self.dates.enddate
-        dates = date_util.getAllDatesBetweenTwoDates(self.dates.startdate, self.dates.enddate)
-        index = dates.index(date)
-        return dates[index-1] if index>0 else None
-
-
-    async def executeDate(self, context: LambdaContext, date: datetime|None=None):
-        exitBefore = 1000*120
-        date = await self.getDate(date)
-        shouldContinue = True
-        while date is not None and shouldContinue:
-            await self.execute(date)
-            date = await self.getDate(date)
-            shouldContinue = self.client.env!=ENVIRONMENT.LOCAL or context.get_remaining_time_in_millis()>exitBefore
-        return date
 
         
