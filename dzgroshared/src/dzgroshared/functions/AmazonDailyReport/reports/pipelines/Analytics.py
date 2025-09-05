@@ -20,6 +20,8 @@ class AnalyticsProcessor:
         self.pp = PipelineProcessor(self.client.uid, self.client.marketplace)
         self.allDates = date_util.getAllDatesBetweenTwoDates(self.dates.startdate, self.dates.enddate)
 
+
+
     def matchmarketplace(self):
         return { '$match': { '_id': self.client.marketplace, 'uid': self.client.uid } }
     
@@ -43,7 +45,7 @@ class AnalyticsProcessor:
         return { '$lookup': { 'from': 'order_items', 'localField': '_id', 'foreignField': 'order', 'as': 'orderitem' } }
 
     def addOrderValueTax(self):
-        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { '$reduce': { 'input': '$orderitem', 'initialValue': { 'orderValue': 0, 'orderTax': 0 }, 'in': { '$mergeObjects': [ '$$value', { 'orderValue': { '$sum': [ '$$value.orderValue', '$$this.revenue' ] }, 'orderTax': { '$sum': [ '$$value.orderTax', '$$this.tax' ] } } ] } } } ] } } }
+        return { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { '$reduce': { 'input': '$orderitem', 'initialValue': { 'orderValue': 0, 'orderTax': 0, 'orders': 1, 'cancelledorders': { '$cond': { 'if': { '$eq': [ '$orderstatus', 'Cancelled' ] }, 'then': 1, 'else': 0 } }, 'fbmordervalue': 0, 'fbaordervalue': 0, 'fbmorders': { '$cond': { 'if': { '$eq': [ '$fulfillment', 'Merchant' ] }, 'then': 1, 'else': 0 } }, 'fbaorders': { '$cond': { 'if': { '$and': [ { '$ne': [ '$orderstatus', 'Cancelled' ] }, { '$ne': [ '$fulfillment', 'Merchant' ] } ] }, 'then': 1, 'else': 0 } } }, 'in': { '$mergeObjects': [ '$$value', { 'orderValue': { '$sum': [ '$$value.orderValue', '$$this.revenue' ] }, 'orderTax': { '$sum': [ '$$value.orderTax', '$$this.tax' ] }, 'fbaordervalue': { '$sum': [ '$$value.fbaordervalue', { '$cond': { 'if': { '$ne': [ '$fulfillment', 'Merchant' ] }, 'then': '$$this.revenue', 'else': 0 } } ] }, 'fbmordervalue': { '$sum': [ '$$value.fbmordervalue', { '$cond': { 'if': { '$eq': [ '$fulfillment', 'Merchant' ] }, 'then': '$$this.revenue', 'else': 0 } } ] } } ] } } } ] } } }
     
     def unwindOrderItems(self):
         return { '$unwind': { 'path': '$orderitem', 'preserveNullAndEmptyArrays': False } }
@@ -67,7 +69,7 @@ class AnalyticsProcessor:
         return { '$set': { 'netproceeds': { '$cond': { 'if': { '$eq': [ { '$size': '$settlement' }, 0 ] }, 'then': 0, 'else': { '$add': [ '$skuValue', '$skuReturnValue', '$skufees', '$nonskufees' ] } } } } }
     
     def createData(self):
-        return { '$set': { 'data': { 'netproceeds': '$netproceeds', 'ordervalue': '$skuValue','ordertax': "$skuTax", 'returnvalue': '$skuReturnValue', 'quantity': '$quantity', 'returnQuantity': '$returnQuantity', 'fees': '$skufees', 'otherexpenses': '$nonskufees'} } }
+        return { '$set': { 'data': { 'netproceeds': '$netproceeds', 'ordervalue': '$skuValue', 'ordertax': '$skuTax', 'returnvalue': '$skuReturnValue', 'quantity': '$quantity', 'returnQuantity': '$returnQuantity', 'fees': '$skufees', 'otherexpenses': '$nonskufees', 'orders': '$orders', 'cancelledorders': '$cancelledorders', 'fbmordervalue': '$fbmordervalue', 'fbaordervalue': '$fbaordervalue', 'fbmorders': '$fbmorders', 'fbaorders': '$fbaorders' } }}
     
     def projectData(self):
         return { '$project': { 'uid': '$uid', 'marketplace': '$marketplace', 'sku': '$orderitem.sku', 'parent': '$orderitem.asin', 'state': '$state', 'date': '$date', 'data': '$data', '_id': 0 } }
@@ -167,36 +169,6 @@ class AnalyticsProcessor:
         return { '$replaceRoot': { 'newRoot': '$data' } }
 
 
-    async def executeSkuState(self):
-        pipeline = self.matchMarketplaceSetAndOpenDates()
-        pipeline.append(self.lookupOrders(
-            [
-                self.lookupSettlements(),
-                self.lookupOrderItems(),
-                self.addOrderValueTax(),
-                self.unwindOrderItems(),
-                self.getSkuValues(),
-                self.setSkuRatio(),
-                self.reduceSettlements(),
-                self.addSkuFees(),
-                self.addNonSkuFees(),
-                self.addNetProceeds(),
-                self.createData(),
-                self.projectData(),
-                self.groupByState(),
-                self.collateData(),
-                self.removeEmptyDataSets(),
-                self.createIdForStateSku()
-            ]
-        ))
-        pipeline.extend([self.opendata(), self.setDataAsRoot(), 
-                self.addParentSku(),
-                self.setParentSku(),
-                {"$project": {"product": 0}},
-                self.mergeToStateAnalytics()])
-        
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
-
     async def executeSkuDate(self):
         pipeline = self.matchMarketplaceSetAndOpenDates()
         pipeline.append(self.lookupStateAnalytics(CollateType.SKU))
@@ -215,19 +187,6 @@ class AnalyticsProcessor:
         
         await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeAsinState(self):
-        pipeline = self.matchMarketplaceSetAndOpenDates()
-        pipeline.append(self.lookupStateAnalytics(CollateType.SKU))
-        pipeline.extend([
-            self.setData(True, CollateType.ASIN),
-            self.opendata(),
-            self.setDataAsRoot(),
-            self.collateData(),
-            self.setIdForState(CollateType.ASIN),
-            self.mergeToStateAnalytics()
-        ])
-        
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
     async def executeAsinDate(self):
         pipeline = self.matchMarketplaceSetAndOpenDates()
@@ -243,22 +202,6 @@ class AnalyticsProcessor:
             self.mergeDataWithAdTraffic(),
             self.hideAdTraffic(),
             self.mergeToDateAnalytics()
-        ])
-        
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
-
-    async def executeParentState(self):
-        pipeline = self.matchMarketplaceSetAndOpenDates()
-        pipeline.append(self.lookupStateAnalytics(CollateType.ASIN))
-        pipeline.extend([
-            self.setData(True, CollateType.PARENT),
-            self.opendata(),
-            self.setDataAsRoot(),
-            self.collateData(),
-            self.setIdForState(CollateType.PARENT),
-            {"$match": {"_id": {"$ne": None}}},
-            {"$project": {"category": 0}},
-            self.mergeToStateAnalytics()
         ])
         
         await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
@@ -298,22 +241,6 @@ class AnalyticsProcessor:
         
         await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
-    async def executeMarketplaceState(self):
-        pipeline = self.matchMarketplaceSetAndOpenDates()
-        pipeline.append(self.lookupStateAnalytics(CollateType.ASIN))
-        pipeline.extend([
-            self.setData(True, CollateType.MARKETPLACE),
-            self.opendata(),
-            self.setDataAsRoot(),
-            self.collateData(),
-            self.setIdForState(CollateType.MARKETPLACE),
-            {"$match": {"_id": {"$ne": None}}},
-            {"$project": {"category": 0, "parentsku": 0}},
-            self.mergeToStateAnalytics()
-        ])
-        
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
-
     async def executeMarketplaceDate(self):
         pipeline = self.matchMarketplaceSetAndOpenDates()
         pipeline.append(self.lookupDateAnalytics(CollateType.ASIN))
@@ -335,14 +262,13 @@ class AnalyticsProcessor:
         await self.client.db.state_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
         await self.client.db.date_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
         start_time = time.perf_counter()
-        await self.executeSkuState()
+        from dzgroshared.functions.AmazonDailyReport.reports.pipelines import CreateStateAnalytics
+        statepipeline = CreateStateAnalytics.pipeline(self.client.uid, self.client.marketplace, self.dates)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(statepipeline)
         await self.executeSkuDate()
-        await self.executeAsinState()
         await self.executeAsinDate()
-        await self.executeParentState()
         await self.executeParentDate()
         await self.executeCategoryDate()
-        await self.executeMarketplaceState()
         await self.executeMarketplaceDate()
         process_time_seconds = (time.perf_counter() - start_time)  # ms
         print(f"Total Analytics took {process_time_seconds:.4f} seconds")

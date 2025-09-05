@@ -1,633 +1,252 @@
-revenue :dict = {"label": "Net Revenue", "key": "revenue", "desc": "Total value of orders after returns including tax"}
-ordervalue :dict = {"label": "Gross Revenue", "key": "ordervalue", "desc": "Total value of purchases including tax"}
-returnordervalue :dict = {"label": "Returned Revenue", "key": "returnordervalue", "desc": "Total value of returned purchases including tax"}
-tacos :dict = {"label": "TACoS %", "key": "tacos", "desc": "Ad cost as a percentage of total revenue"}
-organicsalespercent :dict = {"label": "Organic Sales %", "key": "organicsalespercent", "desc": "Percentage of revenue generated from non-ad sources"}
-quantity :dict = {"label": "Quantity", "key": "quantity", "desc": "Total items purchased"}
-returnquantity :dict = {"label": "Return Quantity", "key": "returnquantity", "desc": "Items returned by customers"}
-netquantity :dict = {"label": "Net Quantity", "key": "netquantity", "desc": "Net items sold after returns"}
-returnpercent :dict = {"label": "Return %", "key": "returnpercent", "desc": "Items returned as a percentage of total items sold"}
-asp :dict = {"label": "Average Selling Price", "key": "asp", "desc": "Average selling price of items sold"}
-expenses :dict = {"label": "Expenses", "key": "expenses", "desc": "Total Expenses"}
-fees :dict = {"label": "Fees", "key": "fees", "desc": "Fees charged by the platform"}
-otherexpenses :dict = {"label": "Other Expenses", "key": "otherexpenses", "desc": "Additional adjustments or costs"}
-netproceeds :dict = {"label": "Net Payout", "key": "netproceeds", "desc": "Net revenue after fees, returns, and adjustments"}
-netpayoutperunit :dict = {"label": "Net Payout/Unit", "key": "netpayoutperunit", "desc": "Average net revenue earned per item sold"}
-netpayoutpercent :dict = {"label": "Net Payout %", "key": "netpayoutpercent", "desc": "Net revenue as a percentage of total order value"}
-impressions :dict = {"label": "Impressions", "key": "impressions", "desc": "Total number of times ads were shown"}
-clicks :dict = {"label": "Clicks", "key": "clicks", "desc": "Total number of times ads were clicked"}
-ctr :dict = {"label": "CTR %", "key": "ctr", "desc": "Percentage of clicks received out of total impressions"}
-cost :dict = {"label": "Ad Spend", "key": "cost", "desc": "Cost incurred for ads"}
-cpc :dict = {"label": "CPC", "key": "cpc", "desc": "Average cost spent for each click"}
-units :dict = {"label": "Ad Units", "key": "units", "desc": "Total number of items sold through ads"}
-orders :dict = {"label": "Ad Orders", "key": "orders", "desc": "Total number of orders received through ads"}
-cvr :dict = {"label": "CVR %", "key": "cvr", "desc": "Percentage of clicks that resulted in a purchase"}
-sales :dict = {"label": "Ad Sales", "key": "sales", "desc": "Revenue generated from ads"}
-acos :dict = {"label": "ACOS %", "key": "acos", "desc": "Cost spent on advertising as a percentage of revenue generated from ads"}
-roas :dict = {"label": "ROAS", "key": "roas", "desc": "Revenue generated for every unit of ad cost"}
-adspendperunit :dict = {"label": "Ad Spend/Unit", "key": "adspendperunit", "desc": "Average ad cost per item sold"}
-buyboxviewpercent :dict = {"label": "Buy Box %", "key": "buyboxviewpercent", "desc": "% times the featured offer was with your brand"}
-pageviews :dict = {"label": "Page Views", "key": "pageviews", "desc": "Total number of pages viewed"}
-browserpageviews :dict = {"label": "Browser Page Views", "key": "browserpageviews", "desc": "Pages viewed from web browsers"}
-browserpageviewpercent :dict = {"label": "Browser Page View %", "key": "browserpageviewpercent", "desc": "Browser page views as a percentage of total page views"}
-mobileapppageviews :dict = {"label": "Mobile App Page Views", "key": "mobileapppageviews", "desc": "Pages viewed from mobile apps"}
-mobileapppageviewpercent :dict = {"label": "Mobile App Page View %", "key": "mobileapppageviewpercent", "desc": "Mobile app page views as a percentage of total page views"}    
-unitsessionpercent :dict = {"label": "Unit Session %", "key": "unitsessionpercent", "desc": "Percentage of sessions that resulted in a purchase"}
-sessions :dict = {"label": "Sessions", "key": "sessions", "desc": "Total number of user sessions"}
-browsersessions :dict = {"label": "Browser Sessions", "key": "browsersessions", "desc": "Sessions originating from web browsers"}
-mobileappsessions :dict = {"label": "Mobile App Sessions", "key": "mobileappsessions", "desc": "Sessions originating from mobile applications"}
-browsersessionpercent :dict = {"label": "Browser Session %", "key": "browsersessionpercent", "desc": "Browser sessions as a percentage of total sessions"}
-mobileappsessionpercent :dict = {"label": "Mobile App Session %", "key": "mobileappsessionpercent", "desc": "Mobile app sessions as a percentage of total sessions"}
+from dzgroshared.models.enums import AnalyticsMetric, AnalyticsMetricOperation, CountryCode
+from dzgroshared.models.model import MetricCalculation, MetricDetail, MetricGroup, MetricItem
 
-sales_fields = [
-    {"label": "Net Revenue", "key": "revenue", "desc": "Total value of orders after returns including tax"},
-    {"label": "Gross Revenue", "key": "ordervalue", "desc": "Total value of purchases including tax"},
-    {"label": "Returned Revenue", "key": "returnordervalue", "desc": "Total value of returned purchases including tax"},
-    {"label": "TACoS %", "key": "tacos", "desc": "Ad cost as a percentage of total revenue"},
-    {"label": "Organic Sales %", "key": "organicsalespercent", "desc": "Percentage of revenue generated from non-ad sources"},
-    {"label": "Quantity", "key": "quantity", "desc": "Total items purchased"},
-    {"label": "Return Quantity", "key": "returnquantity", "desc": "Items returned by customers"},
-    {"label": "Net Quantity", "key": "netquantity", "desc": "Net items sold after returns"},
-    {"label": "Return %", "key": "returnpercent", "desc": "Items returned as a percentage of total items sold"},
-    {"label": "Average Selling Price", "key": "asp", "desc": "Average selling price of items sold"},
-    {"label": "Expenses", "key": "expenses", "desc": "Total Expenses"},
-    {"label": "Fees", "key": "fees", "desc": "Fees charged by the platform"},
-    {"label": "Other Expenses", "key": "otherexpenses", "desc": "Additional adjustments or costs"},
-    {"label": "Net Payout", "key": "netproceeds", "desc": "Net revenue after fees, returns, and adjustments"},
-    {"label": "Net Payout/Unit", "key": "netpayoutperunit", "desc": "Average net revenue earned per item sold"},
-    {"label": "Net Payout %", "key": "netpayoutpercent", "desc": "Net revenue as a percentage of total order value"}
+calculations: list[MetricCalculation] = [
+    MetricCalculation( metric=AnalyticsMetric.REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_REVENUE, AnalyticsMetric.FBA_REVENUE]),
+    MetricCalculation( metric=AnalyticsMetric.RETURN_VALUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_RETURN_VALUE, AnalyticsMetric.FBA_RETURN_VALUE] ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_NET_REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_REVENUE, AnalyticsMetric.FBM_RETURN_VALUE] ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_NET_REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBA_REVENUE, AnalyticsMetric.FBA_RETURN_VALUE] ),
+    MetricCalculation( metric=AnalyticsMetric.TAX, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_TAX, AnalyticsMetric.FBA_TAX] ),
+    MetricCalculation( metric=AnalyticsMetric.NET_REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.REVENUE, AnalyticsMetric.RETURN_VALUE], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.ORDERS, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_ORDERS, AnalyticsMetric.FBA_ORDERS] ),
+    MetricCalculation( metric=AnalyticsMetric.CANCELLED_ORDERS, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_CANCELLED_ORDERS, AnalyticsMetric.FBA_CANCELLED_ORDERS] ),
+    MetricCalculation( metric=AnalyticsMetric.NET_ORDERS, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.ORDERS, AnalyticsMetric.CANCELLED_ORDERS], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_NET_ORDERS, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.FBM_NET_ORDERS, AnalyticsMetric.FBM_CANCELLED_ORDERS] ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_NET_ORDERS, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.FBA_NET_ORDERS, AnalyticsMetric.FBA_CANCELLED_ORDERS] ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_NET_QUANTITY, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.FBA_QUANTITY, AnalyticsMetric.FBA_RETURN_QUANTITY] ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_NET_QUANTITY, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.FBM_QUANTITY, AnalyticsMetric.FBM_RETURN_QUANTITY] ),
+    MetricCalculation( metric=AnalyticsMetric.NET_QUANTITY, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.QUANTITY, AnalyticsMetric.RETURN_QUANTITY], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.QUANTITY, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_QUANTITY, AnalyticsMetric.FBA_QUANTITY] ),
+    MetricCalculation( metric=AnalyticsMetric.NET_QUANTITY, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.QUANTITY, AnalyticsMetric.RETURN_QUANTITY], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBA_RETURN_QUANTITY, AnalyticsMetric.FBA_QUANTITY] ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_RETURN_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBM_RETURN_QUANTITY, AnalyticsMetric.FBM_QUANTITY] ),
+    MetricCalculation( metric=AnalyticsMetric.RETURN_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.RETURN_QUANTITY, AnalyticsMetric.QUANTITY], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.RETURN_QUANTITY, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBA_RETURN_QUANTITY, AnalyticsMetric.FBM_RETURN_QUANTITY]),
+    MetricCalculation( metric=AnalyticsMetric.FEES, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_FEES, AnalyticsMetric.FBA_FEES] ),
+    MetricCalculation( metric=AnalyticsMetric.OTHER_EXPENSES, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_OTHER_EXPENSES, AnalyticsMetric.FBA_OTHER_EXPENSES] ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_EXPENSES, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBA_FEES, AnalyticsMetric.FBA_OTHER_EXPENSES] ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_EXPENSES, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_FEES, AnalyticsMetric.FBM_OTHER_EXPENSES] ),
+    MetricCalculation( metric=AnalyticsMetric.EXPENSES, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBA_EXPENSES, AnalyticsMetric.FBM_EXPENSES], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.EXPENSES, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.EXPENSES, AnalyticsMetric.SPEND], level=2 ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_NET_PROCEEDS, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBA_NET_REVENUE, AnalyticsMetric.FBA_EXPENSES], level=2 ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_NET_PROCEEDS, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_NET_REVENUE, AnalyticsMetric.FBM_EXPENSES], level=2 ),
+    MetricCalculation( metric=AnalyticsMetric.NET_PROCEEDS, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.NET_REVENUE,AnalyticsMetric.EXPENSES], level=3 ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_PAYOUT_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBA_NET_PROCEEDS, AnalyticsMetric.FBA_REVENUE], level=4 ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_PAYOUT_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBM_NET_PROCEEDS, AnalyticsMetric.FBM_REVENUE], level=4 ),
+    MetricCalculation( metric=AnalyticsMetric.PAYOUT_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.NET_PROCEEDS, AnalyticsMetric.REVENUE], level=4 ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_PAYOUT_PER_UNIT, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBA_NET_PROCEEDS, AnalyticsMetric.FBA_QUANTITY],avoidMultiplier=True, level=4 ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_PAYOUT_PER_UNIT, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBM_NET_PROCEEDS, AnalyticsMetric.FBM_QUANTITY],avoidMultiplier=True, level=4 ),
+    MetricCalculation( metric=AnalyticsMetric.PAYOUT_PER_UNIT, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.NET_PROCEEDS, AnalyticsMetric.QUANTITY],avoidMultiplier=True, level=4 ),
+    MetricCalculation( metric=AnalyticsMetric.FBA_AVERAGE_SALE_PRICE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBA_REVENUE, AnalyticsMetric.FBA_QUANTITY],avoidMultiplier=True, level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.FBM_AVERAGE_SALE_PRICE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBM_REVENUE, AnalyticsMetric.FBM_QUANTITY],avoidMultiplier=True, level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.AVERAGE_SALE_PRICE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.REVENUE, AnalyticsMetric.QUANTITY] , avoidMultiplier=True, level=2),
+    MetricCalculation( metric=AnalyticsMetric.CTR, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.CLICKS, AnalyticsMetric.IMPRESSIONS] ),
+    MetricCalculation( metric=AnalyticsMetric.ACOS, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.SPEND, AnalyticsMetric.AD_SALES] ),
+    MetricCalculation( metric=AnalyticsMetric.CPC, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.SPEND, AnalyticsMetric.CLICKS], avoidMultiplier=True ),
+    MetricCalculation( metric=AnalyticsMetric.ROAS, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.AD_SALES, AnalyticsMetric.SPEND], avoidMultiplier=True ),
+    MetricCalculation( metric=AnalyticsMetric.BROWSER_SESSIONS_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.BROWSER_SESSIONS, AnalyticsMetric.SESSIONS] ),
+    MetricCalculation( metric=AnalyticsMetric.MOBILE_APP_SESSIONS_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.MOBILE_APP_SESSIONS, AnalyticsMetric.SESSIONS] ),
+    MetricCalculation( metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.UNIT_SESSIONS, AnalyticsMetric.SESSIONS] ),
+    MetricCalculation( metric=AnalyticsMetric.BROWSER_PAGE_VIEWS_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.BROWSER_PAGE_VIEWS, AnalyticsMetric.PAGE_VIEWS] ),
+    MetricCalculation( metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.MOBILE_APP_PAGE_VIEWS, AnalyticsMetric.PAGE_VIEWS] ),
+    MetricCalculation( metric=AnalyticsMetric.BUY_BOX_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.BUY_BOX_VIEWS, AnalyticsMetric.PAGE_VIEWS] ),
+    MetricCalculation( metric=AnalyticsMetric.BUY_BOX_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.BUY_BOX_VIEWS, AnalyticsMetric.PAGE_VIEWS] ),
+    MetricCalculation( metric=AnalyticsMetric.PRE_TAX_REVENUE, operation=AnalyticsMetricOperation.SUBTRACT, metrics=[AnalyticsMetric.REVENUE, AnalyticsMetric.TAX], level=1 ),
+    MetricCalculation( metric=AnalyticsMetric.TACOS, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.SPEND, AnalyticsMetric.PRE_TAX_REVENUE], level=2 ),
+    MetricCalculation( metric=AnalyticsMetric.ORGANIC_SALES_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.AD_SALES, AnalyticsMetric.PRE_TAX_REVENUE], level=2 )
 ]
 
-traffic_fields = [
-    {"label": "Buy Box %", "key": "buyboxviewpercent", "desc": "% times the featured offer was with your brand"},
-    {"label": "Page Views", "key": "pageviews", "desc": "Total number of pages viewed"},
-    {"label": "Browser Page Views", "key": "browserpageviews", "desc": "Pages viewed from web browsers"},
-    {"label": "Browser Page View %", "key": "browserpageviewpercent", "desc": "Browser page views as a percentage of total page views"},
-    {"label": "Mobile App Page Views", "key": "mobileapppageviews", "desc": "Pages viewed from mobile apps"},
-    {"label": "Mobile App Page View %", "key": "mobileapppageviewpercent", "desc": "Mobile app page views as a percentage of total page views"},
-    {"label": "Unit Session %", "key": "unitsessionpercent", "desc": "Percentage of sessions that resulted in a purchase"},
-    {"label": "Sessions", "key": "sessions", "desc": "Total number of user sessions"},
-    {"label": "Browser Sessions", "key": "browsersessions", "desc": "Sessions originating from web browsers"},
-    {"label": "Mobile App Sessions", "key": "mobileappsessions", "desc": "Sessions originating from mobile applications"},
-    {"label": "Browser Session %", "key": "browsersessionpercent", "desc": "Browser sessions as a percentage of total sessions"},
-    {"label": "Mobile App Session %", "key": "mobileappsessionpercent", "desc": "Mobile app sessions as a percentage of total sessions"},
+details: list[MetricDetail] = [
+    MetricDetail( metric=AnalyticsMetric.NET_REVENUE, ispercentage=False, label="Net Revenue", description="Total value of orders after returns including tax"),
+    MetricDetail( metric=AnalyticsMetric.FBM_NET_REVENUE, ispercentage=False, label="FBM Net Revenue", description="Total value of FBM orders after returns including tax"),
+    MetricDetail( metric=AnalyticsMetric.FBA_NET_REVENUE, ispercentage=False, label="FBA Net Revenue", description="Total value of FBA orders after returns including tax"),
+    MetricDetail( metric=AnalyticsMetric.REVENUE, ispercentage=False, label="Gross Revenue", description="Total value of purchases including tax" ),
+    MetricDetail( metric=AnalyticsMetric.FBA_REVENUE, ispercentage=False, label="FBA Revenue", description="Total value of FBA orders including tax" ),
+    MetricDetail( metric=AnalyticsMetric.FBM_REVENUE, ispercentage=False, label="FBM Revenue", description="Total value of FBM orders including tax" ),
+    MetricDetail( metric=AnalyticsMetric.RETURN_VALUE, ispercentage=False, label="Return Value", description="Total value of return orders including tax"),
+    MetricDetail( metric=AnalyticsMetric.FBA_RETURN_VALUE, ispercentage=False, label="FBA Return Value", description="Total value of FBA return orders including tax"),
+    MetricDetail( metric=AnalyticsMetric.FBM_RETURN_VALUE, ispercentage=False, label="FBM Return Value", description="Total value of FBM return orders including tax"),
+    MetricDetail( metric=AnalyticsMetric.PAYOUT_PERCENTAGE, ispercentage=True, label="Net Payout %", description="Net revenue as a percentage of gross revenue"),
+    MetricDetail( metric=AnalyticsMetric.NET_ORDERS, ispercentage=False, label="Net Orders", description="Total orders after cancellations"),
+    MetricDetail( metric=AnalyticsMetric.FBA_ORDERS, ispercentage=False, label="FBA Orders", description="Total orders received for FBA"),
+    MetricDetail( metric=AnalyticsMetric.FBM_ORDERS, ispercentage=False, label="FBM Orders", description="Total orders received for FBM"),
+    MetricDetail( metric=AnalyticsMetric.ORDERS, ispercentage=False, label="Total Orders", description="Total orders received" ),
+    MetricDetail( metric=AnalyticsMetric.CANCELLED_ORDERS, ispercentage=False, label="Cancelled Orders", description="Total orders cancelled" ),
+    MetricDetail( metric=AnalyticsMetric.RETURN_VALUE, ispercentage=False, label="Return Value", description="Total value of return orders including tax"),
+    MetricDetail( metric=AnalyticsMetric.TACOS, ispercentage=True, label="TACOS", description="Total Ad Cost as a percentage of Pre Tax Revenue"),
+    MetricDetail( metric=AnalyticsMetric.ORGANIC_SALES_PERCENTAGE, ispercentage=True, label="Organic Sales %", description="Percentage of revenue generated from non-ad sources"),
+    MetricDetail( metric=AnalyticsMetric.NET_QUANTITY, ispercentage=False, label="Net Units", description="Total items purchased after returns"),
+    MetricDetail( metric=AnalyticsMetric.QUANTITY, ispercentage=False, label="Total Units", description="Total Items Ordered"),
+    MetricDetail( metric=AnalyticsMetric.RETURN_QUANTITY, ispercentage=False, label="Return Units", description="Items returned by customers"),
+    MetricDetail( metric=AnalyticsMetric.RETURN_PERCENTAGE, ispercentage=True, label="Return %", description="Items returned as a percentage of total items sold"),
+    MetricDetail( metric=AnalyticsMetric.AVERAGE_SALE_PRICE, ispercentage=False, label="Average Selling Price", description="Average selling price of items sold"),
+    MetricDetail( metric=AnalyticsMetric.EXPENSES, ispercentage=False, label="Expenses", description="Total Expenses"),
+    MetricDetail( metric=AnalyticsMetric.FEES, ispercentage=False, label="Fees", description="Fees charged by the platform"),
+    MetricDetail( metric=AnalyticsMetric.OTHER_EXPENSES, ispercentage=False, label="Other Expenses", description="Additional adjustments or costs"),
+    MetricDetail( metric=AnalyticsMetric.NET_PROCEEDS, ispercentage=False, label="Net Payout", description="Net revenue after fees, returns, and adjustments"),
+    MetricDetail( metric=AnalyticsMetric.PAYOUT_PER_UNIT, ispercentage=False, label="Net Payout/Unit", description="Average net revenue earned per item sold"),
+    MetricDetail( metric=AnalyticsMetric.IMPRESSIONS, ispercentage=False, label="Impressions", description="Total number of impressions"),
+    MetricDetail( metric=AnalyticsMetric.CLICKS, ispercentage=False, label="Clicks", description="Total number of clicks"),
+    MetricDetail( metric=AnalyticsMetric.CTR, ispercentage=True, label="CTR", description="Percentage of clicks received out of total impressions"),
+    MetricDetail( metric=AnalyticsMetric.SPEND, ispercentage=False, label="Ad Spend", description="Cost incurred for ads"),
+    MetricDetail( metric=AnalyticsMetric.CPC, ispercentage=False, label="CPC", description="Average cost spent for each click"),
+    MetricDetail( metric=AnalyticsMetric.AD_UNITS, ispercentage=False, label="Ad Units", description="Total number of items sold through ads"),
+    MetricDetail( metric=AnalyticsMetric.AD_ORDERS, ispercentage=False, label="Ad Orders", description="Total number of orders received through ads"),
+    MetricDetail( metric=AnalyticsMetric.CVR, ispercentage=True, label="CVR", description="Percentage of clicks that resulted in a purchase"),
+    MetricDetail( metric=AnalyticsMetric.AD_SALES, ispercentage=False, label="Ad Sales", description="Revenue generated from ads"),
+    MetricDetail( metric=AnalyticsMetric.ACOS, ispercentage=True, label="ACOS", description="Cost spent on advertising as a percentage of revenue generated from ads"),
+    MetricDetail( metric=AnalyticsMetric.ROAS, ispercentage=False, label="ROAS", description="Revenue generated for every unit of ad cost"),
+    MetricDetail( metric=AnalyticsMetric.SESSIONS, ispercentage=False, label="Sessions", description="Total number of user sessions"),
+    MetricDetail( metric=AnalyticsMetric.BROWSER_SESSIONS, ispercentage=False, label="Browser Sessions", description="Sessions originating from web browsers"),
+    MetricDetail( metric=AnalyticsMetric.MOBILE_APP_SESSIONS, ispercentage=False, label="Mobile App Sessions", description="Sessions originating from mobile applications"),
+    MetricDetail( metric=AnalyticsMetric.BROWSER_SESSIONS_PERCENTAGE, ispercentage=True, label="Browser Session %", description="Browser sessions as a percentage of total sessions"),
+    MetricDetail( metric=AnalyticsMetric.MOBILE_APP_SESSIONS_PERCENTAGE, ispercentage=True, label="Mobile App Session %", description="Mobile app sessions as a percentage of total sessions"),
+    MetricDetail( metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE, ispercentage=True, label="Unit Session %", description="Percentage of sessions that resulted in a purchase"),
+    MetricDetail( metric=AnalyticsMetric.PAGE_VIEWS, ispercentage=False, label="Page Views", description="Total number of pages viewed"),
+    MetricDetail( metric=AnalyticsMetric.BROWSER_PAGE_VIEWS, ispercentage=False, label="Browser Page Views", description="Pages viewed from web browsers"),
+    MetricDetail( metric=AnalyticsMetric.BROWSER_PAGE_VIEWS_PERCENTAGE, ispercentage=True, label="Browser Page View %", description="Browser page views as a percentage of total page views"),
+    MetricDetail( metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS, ispercentage=False, label="Mobile App Page Views", description="Pages viewed from mobile apps"),
+    MetricDetail( metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS_PERCENTAGE, ispercentage=True, label="Mobile App Page View %", description="Mobile app page views as a percentage of total page views"),
+    MetricDetail( metric=AnalyticsMetric.BUY_BOX_PERCENTAGE, ispercentage=True, label="Buy Box %", description="% times the featured offer was with your brand")
 ]
 
-ad_fields = [
-    {"label": "Impressions", "key": "impressions", "desc": "Total number of times ads were shown"},
-    {"label": "Clicks", "key": "clicks", "desc": "Total number of times ads were clicked"},
-    {"label": "CTR %", "key": "ctr", "desc": "Percentage of clicks received out of total impressions"},
-    {"label": "Ad Spend", "key": "cost", "desc": "Cost incurred for ads"},
-    {"label": "CPC", "key": "cpc", "desc": "Average cost spent for each click"},
-    {"label": "Ad Units", "key": "units", "desc": "Total number of items sold through ads"},
-    {"label": "Ad Orders", "key": "orders", "desc": "Total number of items sold through ads"},
-    {"label": "CVR %", "key": "cvr", "desc": "Percentage of clicks that resulted in a purchase"},
-    {"label": "Ad Sales", "key": "sales", "desc": "Revenue generated from ads"},
-    {"label": "ACOS %", "key": "acos", "desc": "Cost spent on advertising as a percentage of revenue generated from ads"},
-    {"label": "ROAS", "key": "roas", "desc": "Revenue generated for every unit of ad cost"},
-    {"label": "Ad Spend/Unit", "key": "adspendperunit", "desc": "Average ad cost per item sold"}
+metricGroups: list[MetricGroup] = [
+    MetricGroup(
+        metric="Sales", items = [
+                    MetricItem(metric=AnalyticsMetric.NET_REVENUE, items=[ MetricItem(metric=AnalyticsMetric.REVENUE), MetricItem(metric=AnalyticsMetric.RETURN_VALUE)]),
+                    MetricItem(metric=AnalyticsMetric.NET_ORDERS, items=[ MetricItem(metric=AnalyticsMetric.ORDERS), MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS) ]),
+                    MetricItem(metric=AnalyticsMetric.NET_QUANTITY, items=[ MetricItem(metric=AnalyticsMetric.QUANTITY), MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY), MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE) ]),
+                    MetricItem(metric=AnalyticsMetric.TACOS),
+                    MetricItem(metric=AnalyticsMetric.ORGANIC_SALES_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE),
+                    MetricItem(metric=AnalyticsMetric.EXPENSES, items=[ MetricItem(metric=AnalyticsMetric.FEES), MetricItem(metric=AnalyticsMetric.OTHER_EXPENSES), MetricItem(metric=AnalyticsMetric.SPEND) ]),
+                    MetricItem(metric=AnalyticsMetric.NET_PROCEEDS, items=[ MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT), MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE) ])
+        ]),
+    MetricGroup(
+        metric="FBA Sales", items = [
+                    MetricItem(metric=AnalyticsMetric.FBA_NET_REVENUE, items=[MetricItem(metric=AnalyticsMetric.FBA_REVENUE), MetricItem(metric=AnalyticsMetric.FBA_RETURN_VALUE)]),
+                    MetricItem(metric=AnalyticsMetric.FBA_NET_ORDERS, items=[ MetricItem(metric=AnalyticsMetric.FBA_ORDERS), MetricItem(metric=AnalyticsMetric.FBA_CANCELLED_ORDERS) ]),
+                    MetricItem(metric=AnalyticsMetric.FBA_NET_QUANTITY, items=[ MetricItem(metric=AnalyticsMetric.FBA_QUANTITY), MetricItem(metric=AnalyticsMetric.FBA_RETURN_QUANTITY), MetricItem(metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE) ]),
+                    MetricItem(metric=AnalyticsMetric.FBA_AVERAGE_SALE_PRICE)
+        ]),
+    MetricGroup(
+        metric="FBM Sales", items = [
+                    MetricItem(metric=AnalyticsMetric.FBM_NET_REVENUE, items=[MetricItem(metric=AnalyticsMetric.FBM_REVENUE), MetricItem(metric=AnalyticsMetric.FBM_RETURN_VALUE)]),
+                    MetricItem(metric=AnalyticsMetric.FBM_NET_ORDERS, items=[ MetricItem(metric=AnalyticsMetric.FBM_ORDERS), MetricItem(metric=AnalyticsMetric.FBM_CANCELLED_ORDERS) ]),
+                    MetricItem(metric=AnalyticsMetric.FBM_NET_QUANTITY, items=[ MetricItem(metric=AnalyticsMetric.FBM_QUANTITY), MetricItem(metric=AnalyticsMetric.FBM_RETURN_QUANTITY), MetricItem(metric=AnalyticsMetric.FBM_RETURN_PERCENTAGE) ]),
+                    MetricItem(metric=AnalyticsMetric.FBM_AVERAGE_SALE_PRICE)
+        ]),
+    MetricGroup(
+        metric="Advertisement", items = [
+                    MetricItem(metric=AnalyticsMetric.IMPRESSIONS),
+                    MetricItem(metric=AnalyticsMetric.CLICKS, items=[ MetricItem(metric=AnalyticsMetric.CTR) ]),
+                    MetricItem(metric=AnalyticsMetric.SPEND, items=[ MetricItem(metric=AnalyticsMetric.CPC) ]),
+                    MetricItem(metric=AnalyticsMetric.AD_UNITS, items=[ MetricItem(metric=AnalyticsMetric.AD_ORDERS), MetricItem(metric=AnalyticsMetric.CVR) ]),
+                    MetricItem(metric=AnalyticsMetric.AD_SALES, items=[ MetricItem(metric=AnalyticsMetric.ACOS), MetricItem(metric=AnalyticsMetric.AD_SALES) ]),
+                    MetricItem(metric=AnalyticsMetric.ROAS)
+        ]),
+    MetricGroup(
+        metric="Traffic", items = [
+                    MetricItem(metric=AnalyticsMetric.SESSIONS, items=[ MetricItem(metric=AnalyticsMetric.BROWSER_SESSIONS), MetricItem(metric=AnalyticsMetric.BROWSER_SESSIONS_PERCENTAGE), MetricItem(metric=AnalyticsMetric.MOBILE_APP_SESSIONS), MetricItem(metric=AnalyticsMetric.MOBILE_APP_SESSIONS_PERCENTAGE) ]),
+                    MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.PAGE_VIEWS, items=[ MetricItem(metric=AnalyticsMetric.BROWSER_PAGE_VIEWS), MetricItem(metric=AnalyticsMetric.BROWSER_PAGE_VIEWS_PERCENTAGE), MetricItem(metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS), MetricItem(metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS_PERCENTAGE) ]),
+                    MetricItem(metric=AnalyticsMetric.BUY_BOX_PERCENTAGE)
+        ])
 ]
 
-# import json
-# for field in sales_fields+ad_fields+traffic_fields:
-#     print(field['key'], ":dict =", json.dumps(field))
-
-metricsGroups = [
-    {
-        "label": "Sales",
-        "key": "sales",
-        "items": [
-            revenue.update({"items": [ordervalue, returnordervalue]}),
-            tacos,
-            organicsalespercent,
-            quantity.update({"items": [returnquantity, netquantity, returnpercent]}),
-            asp,
-            expenses.update({"items": [fees, otherexpenses]}),
-            netproceeds.update({"items": [netpayoutperunit, netpayoutpercent]})
-
-        ]
-    },
-    {
-        "label": "Advertisement",
-        "key": "ad",
-        "items": [
-            impressions,
-            clicks.update({"items": [ctr]}),
-            cost.update({"items": [cpc]}),
-            units.update({"items": [orders,cvr]}),
-            sales.update({"items": [acos, adspendperunit]}),
-            roas
-
-        ]
-    },
-    {
-        "label": "Traffic",
-        "key": "traffic",
-        "items": [
-            sessions.update({"items": [browsersessions, browsersessionpercent, mobileappsessions, mobileappsessionpercent]}),
-            unitsessionpercent,
-            pageviews.update({"items": [browserpageviews, browserpageviewpercent, mobileapppageviews, mobileapppageviewpercent]}),
-            buyboxviewpercent
-        ]
-    },
-]
-
-
-percent_fields = [
-        "ctr", "cvr", "acos", "netpayoutpercent", "unitsessionpercent",
-        "browsersessionpercent", "mobileappsessionpercent",
-        "browserpageviewpercent", "mobileapppageviewpercent",
-        "buyboxviewpercent", "tacos", "adsalespercent", "organicsalespercent","returnpercent"
-    ]
-non_percent_fields = [
-    "clicks","impressions","orders","sessions","units","quantity","returnquantity",
-    "pageviews","browsersessions","browserpageviews","mobileappsessions",
-    "mobileapppageviews","buyboxviews","netquantity",
-    "cost","sales","ordervalue","netproceeds","fees","returnvalue","ordertax",
-    "otherexpenses","roas","expenses","units"
-]
+percent_fields = [d.metric.value for d in details if d.ispercentage]
+non_percent_fields = [d.metric.value for d in details if not d.ispercentage]
 
 def addMissingFields(data_key: str = "data"):
-    return { "$addFields": {f"{data_key}.{key}": { "$ifNull": [f"${data_key}.{key}", 0] } for key in percent_fields+non_percent_fields} }
+    return { "$addFields": {f"{data_key}.{key.value}": {"$round": [{ "$ifNull": [f"${data_key}.{key.value}", 0] },2]} for key in AnalyticsMetric.values()} }
+
+def format_number(value, key, countrycode: CountryCode):
+    if value is None:
+        return None
+
+    # percent formatting
+    if key in percent_fields:
+        return f"{value:.2f}%"
+
+    # non-percent big number formatting
+    if key in non_percent_fields:
+        abs_val = abs(value)
+
+
+        # Universal: thousands (K)
+        if abs_val >= 1e3 and abs_val < 1e5:  # 1,000 to < 1,00,000
+            return f"{abs_val/1e3:.2f} K"
+
+        if countrycode==CountryCode.INDIA:
+            # Indian system: Lacs / Crores
+            if abs_val >= 1e7:  # 1 Crore
+                return f"{abs_val/1e7:.2f} Cr"
+            elif abs_val >= 1e5:  # 1 Lakh
+                return f"{abs_val/1e5:.2f} Lacs"
+        else:
+            # International system: M / B
+            if abs_val >= 1e9:
+                return f"{abs_val/1e9:.2f} B"
+            elif abs_val >= 1e6:
+                return f"{abs_val/1e6:.2f} M"
+
+        # fallback (small numbers)
+        return f"{abs_val:.1f}" if isinstance(value, float) else f"{abs_val:.0f}"
+
+    # default formatting (non-percent, not in big number keys)
+    return f"{value:.2f}"
+
+
+def transform(schema, data, countrycode: CountryCode, level=1):
+    result: dict = {"label": schema['metric']}
+    if level > 1 and "metric" in schema:
+        key = AnalyticsMetric(schema['metric'])
+        value = data.get(key.value)
+        result['label'] = next((d.label for d in details if d.metric == key), schema['metric'])
+        result["value"] = value
+        result["valueString"] = format_number(value, key, countrycode)
+
+    if schema.get("items"):
+        result["items"] = [
+            transform(item, data, countrycode, level + 1)
+            for item in schema["items"]
+        ]
+
+    return result
 
 def addDerivedMetrics(data_key: str = "data"):
+    level1: dict = {}
+    level2: dict = {}
+    level3: dict = {}
+    level4: dict = {}
+    level5: dict = {}
     dk = f"${data_key}."
-    return [
-        {
-            "$addFields": {
-                # ---- ad metrics ----
-                f"{data_key}.ctr": {
-                    "$cond": [
-                        {"$gt": [f"{dk}impressions", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}clicks", f"{dk}impressions"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.cpc": {
-                    "$cond": [
-                        {"$gt": [f"{dk}clicks", 0]},
-                        {"$round": [
-                            {"$divide": [f"{dk}cost", f"{dk}clicks"]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.cvr": {
-                    "$cond": [
-                        {"$gt": [f"{dk}clicks", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}units", f"{dk}clicks"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.acos": {
-                    "$cond": [
-                        {"$gt": [f"{dk}sales", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}cost", f"{dk}sales"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.roas": {
-                    "$cond": [
-                        {"$gt": [f"{dk}cost", 0]},
-                        {"$round": [
-                            {"$divide": [f"{dk}sales", f"{dk}cost"]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.adspendperunit": {
-                    "$cond": [
-                        {"$gt": [f"{dk}units", 0]},
-                        {"$round": [
-                            {"$divide": [f"{dk}cost", f"{dk}units"]}, 2
-                        ]},
-                        0
-                    ]
-                },
-
-                # ---- sales metrics ----
-                f"{data_key}.netquantity": {
-                    "$subtract": [
-                        {"$ifNull": [f"{dk}quantity", 0]},
-                        {"$ifNull": [f"{dk}returnquantity", 0]}
-                    ]
-                },
-                f"{data_key}.returnpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}quantity", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}returnquantity", f"{dk}quantity"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.revenue": {
-                    "$add": [
-                        {"$ifNull": [f"{dk}ordervalue", 0]},
-                        {"$ifNull": [f"{dk}returnordervalue", 0]}
-                    ]
-                },
-                f"{data_key}.asp": {
-                    "$add": [
-                        {"$ifNull": [f"{dk}ordervalue", 0]},
-                        {"$ifNull": [f"{dk}quantity", 0]}
-                    ]
-                },
-                f"{data_key}.netpayoutperunit": {
-                    "$cond": [
-                        {"$gt": [f"{dk}quantity", 0]},
-                        {"$round": [
-                            {"$divide": [f"{dk}netproceeds", f"{dk}quantity"]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.netpayoutpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}ordervalue", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}netproceeds", f"{dk}ordervalue"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.expenses": {
-                    "$add": [
-                        {"$ifNull": [f"{dk}fees", 0]},
-                        {"$ifNull": [f"{dk}otherexpenses", 0]}
-                    ]
-                },
-
-                # ---- traffic metrics ----
-                f"{data_key}.unitsessionpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}sessions", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}unitsessions", f"{dk}sessions"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.browsersessionpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}sessions", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}browsersessions", f"{dk}sessions"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.mobileappsessionpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}sessions", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}mobileappsessions", f"{dk}sessions"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.browserpageviewpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}pageviews", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}browserpageviews", f"{dk}pageviews"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.mobileapppageviewpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}pageviews", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}mobileapppageviews", f"{dk}pageviews"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.buyboxviewpercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}pageviews", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}buyboxviews", f"{dk}pageviews"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-
-                # ---- cross functional ----
-                f"{data_key}.tacos": {
-                    "$cond": [
-                        {"$gt": [f"{dk}ordervalue", 0]},
-                        {"$round": [
-                            {"$subtract": [f"{dk}ordervalue", f"{dk}ordertax"]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.pretaxrevenue": {
-                    "$cond": [
-                        {"$gt": [f"{dk}ordervalue", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [f"{dk}cost", f"{dk}ordervalue"]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                },
-                f"{data_key}.organicsalespercent": {
-                    "$cond": [
-                        {"$gt": [f"{dk}pretaxrevenue", 0]},
-                        {"$round": [
-                            {"$multiply": [
-                                {"$divide": [
-                                    {"$subtract": [f"{dk}pretaxrevenue", f"{dk}sales"]},
-                                    f"{dk}pretaxrevenue"
-                                ]}, 100
-                            ]}, 2
-                        ]},
-                        0
-                    ]
-                }
-            }
-        }
-    ]
-
-
-def build_transformation_pipeline(is_india: bool = False, data_key: str = "data"):
-    # everything else treated as non-percent
-    # (we don’t need to explicitly list all because transformation covers all keys)
-    
-    # Indian vs Global scales
-    india_labels = ["Cr", "L", "K"]
-    global_labels = ["Bn", "M", "K"]
-    labels = india_labels if is_india else global_labels
-    scale_divs = [10000000, 100000, 1000] if is_india else [1_000_000_000, 1_000_000, 1000]
-
-    return [
-        {
-            "$addFields": {
-                data_key: {
-                    "$map": {
-                        "input": {"$objectToArray": f"${data_key}"},
-                        "as": "kv",
-                        "in": {
-                            "k": "$$kv.k",
-                            "v": {
-                                "$let": {
-                                    "vars": {
-                                        "val": "$$kv.v",
-                                        "isPercent": {"$in": ["$$kv.k", percent_fields]}
-                                    },
-                                    "in": {
-                                        "$cond": [
-                                            "$$isPercent",
-                                            {  # Percent fields
-                                                "value": {
-                                                    "$concat": [
-                                                        {
-                                                            "$cond": [
-                                                                {"$lt": ["$$val", 10]},
-                                                                {"$toString": {"$round": ["$$val", 2]}},
-                                                                {"$toString": {"$round": ["$$val", 1]}}
-                                                            ]
-                                                        },
-                                                        "%"
-                                                    ]
-                                                },
-                                                "rawvalue": {"$round": ["$$val", 2]}
-                                            },
-                                            {  # Non-percent fields
-                                                "$let": {
-                                                    "vars": {
-                                                        "rounded": {
-                                                            "$cond": [
-                                                                {"$gte": ["$$val", 100]},
-                                                                {"$round": ["$$val", 0]},
-                                                                {"$round": ["$$val", 1]}
-                                                            ]
-                                                        }
-                                                    },
-                                                    "in": {
-                                                        "$let": {
-                                                            "vars": {
-                                                                "scaled": {
-                                                                    "$switch": {
-                                                                        "branches": [
-                                                                            {
-                                                                                "case": {"$gte": ["$$val", scale_divs[0]]},
-                                                                                "then": {
-                                                                                    "$concat": [
-                                                                                        {"$toString": {"$round": [{"$divide": ["$$val", scale_divs[0]]}, 2]}},
-                                                                                        f" {labels[0]}"
-                                                                                    ]
-                                                                                }
-                                                                            },
-                                                                            {
-                                                                                "case": {"$gte": ["$$val", scale_divs[1]]},
-                                                                                "then": {
-                                                                                    "$concat": [
-                                                                                        {"$toString": {"$round": [{"$divide": ["$$val", scale_divs[1]]}, 2]}},
-                                                                                        f" {labels[1]}"
-                                                                                    ]
-                                                                                }
-                                                                            },
-                                                                            {
-                                                                                "case": {"$gte": ["$$val", scale_divs[2]]},
-                                                                                "then": {
-                                                                                    "$concat": [
-                                                                                        {"$toString": {"$round": [{"$divide": ["$$val", scale_divs[2]]}, 2]}},
-                                                                                        f" {labels[2]}"
-                                                                                    ]
-                                                                                }
-                                                                            }
-                                                                        ],
-                                                                        "default": {"$toString": "$$rounded"}
-                                                                    }
-                                                                }
-                                                            },
-                                                            "in": {
-                                                                "value": "$$scaled",
-                                                                "rawvalue": "$$rounded"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        {
-            "$addFields": {
-                data_key: {"$arrayToObject": f"${data_key}"}
-            }
-        }
-    ]
+    for item in calculations:
+        result: dict = {}
+        if item.operation == AnalyticsMetricOperation.SUM:
+            result = { "$sum": [f"{dk}{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.SUBTRACT:
+            result = { "$subtract": [f"{dk}{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.DIVIDE:
+            multiplier = 100 if not item.avoidMultiplier else 1
+            result = { "$cond": [ {"$gt": [f"{dk}{item.metrics[1].value}", 0]}, {"$round": [ {"$multiply": [ {"$divide": [f"{dk}{item.metrics[0].value}", f"{dk}{item.metrics[1].value}"]}, multiplier ]}, 2 ]}, 0 ] }
+        elif item.operation == AnalyticsMetricOperation.MULTIPLY:
+            result = { "$multiply": [f"{dk}{m.value}" for m in item.metrics] }
+        if item.level == 0:
+            level1.update( {f"{data_key}.{item.metric.value}": result} )
+        elif item.level == 1:
+            level2.update( {f"{data_key}.{item.metric.value}": result} )
+        elif item.level == 2:
+            level3.update( {f"{data_key}.{item.metric.value}": result} )
+        elif item.level == 3:
+            level4.update( {f"{data_key}.{item.metric.value}": result} )
+        elif item.level == 4:
+            level5.update( {f"{data_key}.{item.metric.value}": result} )
+    return [{ "$addFields": level1 }, { "$addFields": level2 }, { "$addFields": level3 }, { "$addFields": level4 }, { "$addFields": level5 }]
 
 def addGrowth():
-    return {
-    "$addFields": {
-      "growth": {
-        "$arrayToObject": {
-          "$map": {
-            "input": { "$objectToArray": "$curr" },
-            "as": "kv",
-            "in": {
-              "k": "$$kv.k",
-              "v": {
-                  "$let": {
-                    "vars": {
-                      "currVal": "$$kv.v.rawvalue",
-                      "preVal": {
-                        "$getField": {
-                          "input": {
-                            "$getField": {
-                              "field": "$$kv.k",
-                              "input": "$pre"
-                            }
-                          },
-                          "field": "rawvalue"
-                        }
-                      },
-                      "percentFields": percent_fields
-                    },
-                    "in": {
-                      "$cond": [
-                        { "$in": ["$$kv.k", "$$percentFields"] },
-                        
-                        {
-                                "$cond": [
-                                  { "$lt": [{ "$abs": { "$subtract": ["$$currVal", "$$preVal"] } }, 10] },
-                                  { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 2] },
-                                  { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 1] }
-                                ]
-                              },
-                        
-                        {
-                                "$cond": [
-                                  { "$or": [{ "$eq": ["$$preVal", 0] }, { "$eq": ["$$preVal", None] }] },
-                                  0,
-                                  {
-                                    "$cond": [
-                                      {
-                                        "$lt": [
-                                          {
-                                            "$abs": {
-                                              "$multiply": [
-                                                { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] },
-                                                100
-                                              ]
-                                            }
-                                          },
-                                          10
-                                        ]
-                                      },
-                                      {
-                                        "$round": [
-                                          {
-                                            "$multiply": [
-                                              { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] },
-                                              100
-                                            ]
-                                          },
-                                          2
-                                        ]
-                                      },
-                                      {
-                                        "$round": [
-                                          {
-                                            "$multiply": [
-                                              { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] },
-                                              100
-                                            ]
-                                          },
-                                          1
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                      ]
-                    }
-                  }
-                }
-            }
-          }
-        }
-      }
-    }
-  }
+    return { "$addFields": { "growth": { "$arrayToObject": { "$map": { "input": { "$objectToArray": "$curr" }, "as": "kv", "in": { "k": "$$kv.k", "v": { "$let": { "vars": { "currVal": "$$kv.v.rawvalue", "preVal": { "$getField": { "input": { "$getField": { "field": "$$kv.k", "input": "$pre" } }, "field": "rawvalue" } }, "percentFields": percent_fields }, "in": { "$cond": [ { "$in": ["$$kv.k", "$$percentFields"] }, { "$cond": [ { "$lt": [{ "$abs": { "$subtract": ["$$currVal", "$$preVal"] } }, 10] }, { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 2] }, { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 1] } ] }, { "$cond": [ { "$or": [{ "$eq": ["$$preVal", 0] }, { "$eq": ["$$preVal", None] }] }, 0, { "$cond": [ { "$lt": [ { "$abs": { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] } }, 10 ] }, { "$round": [ { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] }, 2 ] }, { "$round": [ { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] }, 1 ] } ] } ] } ] } } } } } } } } }
 
 def create_comparison_data():
-    return {
-  "$addFields": {
-    "data": {
-      "$arrayToObject": {
-        "$map": {
-          "input": { "$objectToArray": "$curr" },
-          "as": "kv",
-          "in": {
-            "k": "$$kv.k",
-            "v": {
-              "$let": {
-                "vars": {
-                  "currVal": "$$kv.v",
-                  "preVal": { "$getField": { "field": "$$kv.k", "input": "$pre" } },
-                  "growthVal": { "$getField": { "field": "$$kv.k", "input": "$growth" } }
-                },
-                "in": {
-                  "curr": "$$currVal.rawvalue",
-                  "pre": "$$preVal.rawvalue",
-                  "growth": {
-                    "$cond": [
-                      { "$in": ["$$kv.k", percent_fields] },
-                      "$$growthVal",
-                      { "$round": ["$$growthVal", 1] }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
+    return { "$addFields": { "data": { "$arrayToObject": { "$map": { "input": { "$objectToArray": "$curr" }, "as": "kv", "in": { "k": "$$kv.k", "v": { "$let": { "vars": { "currVal": "$$kv.v", "preVal": { "$getField": { "field": "$$kv.k", "input": "$pre" } }, "growthVal": { "$getField": { "field": "$$kv.k", "input": "$growth" } } }, "in": { "curr": "$$currVal.rawvalue", "pre": "$$preVal.rawvalue", "growth": { "$cond": [ { "$in": ["$$kv.k", percent_fields] }, "$$growthVal", { "$round": ["$$growthVal", 1] } ] } } } } } } } } } }
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from bson import ObjectId
 from dzgroshared.models.enums import CollateType,CollectionType
-from dzgroshared.models.collections.analytics import CollateTypeAndValue
+from dzgroshared.models.collections.analytics import PeriodDataRequest
 from dzgroshared.db.collections.pipelines import Get30DaysGraph, GetPeriodData, GetMonthData, GetStateDataByMonth, GetMonthCarousel, GetListParams
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
@@ -34,31 +34,33 @@ class DashboardHelper:
         result = await self.db.aggregate([matchDict, project])
         return result[0]
 
-    async def getPeriodData(self, req: CollateTypeAndValue):
+    async def getPeriodData(self, req: PeriodDataRequest):
+        from dzgroshared.db.collections.pipelines.queries import QueryBuilder
+        schema = [s.model_dump(mode="json") for s in QueryBuilder.metricGroups]
         pipeline = GetPeriodData.pipeline(self.db.pp, req)
         data = await self.db.aggregate(pipeline)
-        if req.collatetype!=CollateType.MARKETPLACE: data.pop()
+        data = [{**d, "data": [QueryBuilder.transform(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
         return data
     
-    async def getChartData(self, key:str, req: CollateTypeAndValue):
+    async def getChartData(self, key:str, req: PeriodDataRequest):
         pipeline = Get30DaysGraph.pipeline(self.db.pp, req.collatetype, key, req.value)
         return await self.db.aggregate(pipeline)
     
-    async def getMonthlyDataTable(self, req: CollateTypeAndValue):
+    async def getMonthlyDataTable(self, req: PeriodDataRequest):
         pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
         return await self.db.aggregate(pipeline)
     
-    async def getMonthlyCarousel(self, req: CollateTypeAndValue,month:str):
+    async def getMonthlyCarousel(self, req: PeriodDataRequest,month:str):
         pipeline = GetMonthCarousel.pipeline(self.db.pp, req.collatetype, month, req.value)
         data = await self.db.aggregate(pipeline)
         if len(data)>0: return data[0] 
         raise ValueError("Data not Available")
     
-    async def getStateDataForMonths(self, req: CollateTypeAndValue):
+    async def getStateDataForMonths(self, req: PeriodDataRequest):
         pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
         return await self.db.aggregate(pipeline)
     
-    def getStateDataByMonth(self, req: CollateTypeAndValue, month: str):
+    def getStateDataByMonth(self, req: PeriodDataRequest, month: str):
         pipeline = GetStateDataByMonth.pipeline(self.db.pp, req.collatetype, month, req.value)
         print(pipeline)
         return self.db.aggregate(pipeline)

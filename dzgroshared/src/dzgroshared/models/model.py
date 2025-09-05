@@ -1,8 +1,8 @@
 from pydantic_core import core_schema
 from pydantic import BaseModel,Field, ConfigDict, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.models.enums import CountryCode, MarketplaceId, AmazonAccountType, CollateTypeTag, CollectionType
-from typing import Any, Optional, Literal
+from dzgroshared.models.enums import AnalyticsPeriod, CountryCode, MarketplaceId, AmazonAccountType, CollateTypeTag, CollectionType, AnalyticsMetricOperation, AnalyticsMetric
+from typing import Any, List, Optional, Literal
 from bson import ObjectId
 from datetime import datetime
 
@@ -190,23 +190,23 @@ class AnalyticValueFilterItem(BaseModel):
     operator: str
     value: float
 
-class ValueWithRawValue(BaseModel):
-    value: str
-    rawvalue: float
-
-class AnalyticsLabelValue(BaseModel):
+class Item(BaseModel):
     label: str
-    key: str
-    value: ValueWithRawValue
+    value: Optional[float] = None
+    valueString: Optional[str] = None
+    items: Optional[List["Item"]] = None  # recursive reference
 
-class AnalyticsGroup(BaseModel):
-    label: str
-    items: list[AnalyticsLabelValue]
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "ignore"
+
+
+Item.model_rebuild()  # required for recursive models in Pydantic v2
 
 class AnalyticsPeriodData(BaseModel):
-    period: str
-    dates: str
-    data: list[AnalyticsGroup]
+    label: AnalyticsPeriod
+    dateSpan: str
+    data: list[Item]
 
 class ChartData(BaseModel):
     dates: list[str]
@@ -306,3 +306,34 @@ class StartEndDate(BaseModel):
             raise ValueError("Date range is invalid")
         self.label = f'{self.startdate.strftime("%b %d, %Y")} - {self.enddate.strftime("%b %d, %Y")}'
         return self
+    
+
+    
+class MetricCalculation(BaseModel):
+    metric: AnalyticsMetric
+    operation: AnalyticsMetricOperation
+    metrics: list[AnalyticsMetric]
+    avoidMultiplier: bool = False
+    level: int = 0 # 0 for top-level, 1 for second-level, etc.
+
+class MetricDetail(BaseModel):
+    metric: AnalyticsMetric
+    ispercentage: bool
+    label: str
+    description: str
+
+
+class MetricItem(BaseModel):
+    metric: AnalyticsMetric
+    items: Optional[List["MetricItem"]] = None  # recursive reference
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "ignore"
+
+
+MetricItem.model_rebuild()
+
+
+class MetricGroup(BaseModel):
+    metric: str
+    items: list[MetricItem]

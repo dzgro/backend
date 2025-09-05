@@ -1,12 +1,13 @@
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.models.enums import CollateType
+from dzgroshared.models.enums import CollateType, CountryCode
 from datetime import datetime
 from typing import Literal
 
 
-class CollateTypeAndValue(BaseModel):
+class PeriodDataRequest(BaseModel):
     collatetype: CollateType
+    countrycode: CountryCode
     value: str|SkipJsonSchema[None]=None
 
     @model_validator(mode="after")

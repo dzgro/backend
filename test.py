@@ -1,8 +1,9 @@
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
-from dzgroshared.models.enums import ENVIRONMENT, CountryCode, QueueName
-from dzgroshared.models.model import DataCollections, MockLambdaContext, StartEndDate
+from dzgroshared.models.collections.analytics import PeriodDataRequest
+from dzgroshared.models.enums import ENVIRONMENT, CollateType, CountryCode, QueueName
+from dzgroshared.models.model import AnalyticsPeriodData, DataCollections, MockLambdaContext, StartEndDate
 
 
 client = DzgroSharedClient(ENVIRONMENT.LOCAL)
@@ -25,6 +26,11 @@ async def buildStateDateAnalytics():
 async def buildQueries():
     from dzgroshared.db.collections.queries import QueryHelper
     await QueryHelper(client, uid, marketplace).buildQueries(date_range)
+    print("Done")
+
+async def testapi():
+    data = await client.db.analytics.getPeriodData(PeriodDataRequest(collatetype=CollateType.MARKETPLACE, countrycode=CountryCode.INDIA))
+    x = [AnalyticsPeriodData(**x) for x in data]
     print("Done")
 
 async def deleteData():
@@ -71,6 +77,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildQueries())
+    asyncio.run(buildStateDateAnalytics())
 except Exception as e:
     print(f"Error occurred: {e}")

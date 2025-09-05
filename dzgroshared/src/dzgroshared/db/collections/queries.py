@@ -33,10 +33,8 @@ class QueryHelper:
         from dzgroshared.db.collections.pipelines.queries import QueryBuilder
         pipeline.append(QueryBuilder.addMissingFields('curr'))
         pipeline.extend(QueryBuilder.addDerivedMetrics('curr'))
-        pipeline.extend(QueryBuilder.build_transformation_pipeline(True, 'curr'))
         pipeline.append(QueryBuilder.addMissingFields('pre'))
         pipeline.extend(QueryBuilder.addDerivedMetrics('pre'))
-        pipeline.extend(QueryBuilder.build_transformation_pipeline(True, 'pre'))
         pipeline.append(QueryBuilder.addGrowth())
         pipeline.append(QueryBuilder.create_comparison_data())
         pipeline.append({"$set": {"uid": self.uid, "marketplace": self.marketplace}})

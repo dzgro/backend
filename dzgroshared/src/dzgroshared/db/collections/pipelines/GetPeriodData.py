@@ -1,11 +1,9 @@
 
-from dzgroshared.models.collections.analytics import CollateTypeAndValue
-from dzgroshared.models.enums import CollateType,CollectionType
-from dzgroshared.db.PipelineProcessor import PipelineProcessor, LookUpPipelineMatchExpression, LookUpLetExpression
-from dzgroshared.db.DataTransformer import Datatransformer
+from dzgroshared.models.collections.analytics import PeriodDataRequest
+from dzgroshared.db.PipelineProcessor import PipelineProcessor
 
 
-def pipeline(pp: PipelineProcessor, req: CollateTypeAndValue):
+def pipeline(pp: PipelineProcessor, req: PeriodDataRequest):
     pipeline = [
     {
         '$match': {
@@ -20,7 +18,6 @@ def pipeline(pp: PipelineProcessor, req: CollateTypeAndValue):
                 'uid': '$uid', 
                 'marketplace': '$_id', 
                 'collatetype': req.collatetype.value,
-                'value': req.value,
                 'startdate': '$dates.startdate', 
                 'enddate': '$dates.enddate'
             }, 
@@ -44,10 +41,6 @@ def pipeline(pp: PipelineProcessor, req: CollateTypeAndValue):
                                 }, {
                                     '$gte': [
                                         '$date', '$$startdate'
-                                    ]
-                                }, {
-                                    '$eq': [
-                                        '$value', '$$value'
                                     ]
                                 }, {
                                     '$lte': [
