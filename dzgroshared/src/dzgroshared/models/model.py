@@ -1,7 +1,7 @@
 from pydantic_core import core_schema
 from pydantic import BaseModel,Field, ConfigDict, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.models.enums import AnalyticsPeriod, CountryCode, MarketplaceId, AmazonAccountType, CollateTypeTag, CollectionType, AnalyticsMetricOperation, AnalyticsMetric
+from dzgroshared.models.enums import AnalyticsPeriod, CountryCode, AnalyticGroupMetricLabel, MarketplaceId, AmazonAccountType, QueryTag, CollectionType, AnalyticsMetricOperation, AnalyticsMetric
 from typing import Any, List, Optional, Literal
 from bson import ObjectId
 from datetime import datetime
@@ -96,6 +96,19 @@ class LambdaContext:
     def get_remaining_time_in_millis(self) -> int:
         ...
 
+
+class ObjectIdModel(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+    @model_validator(mode="before")
+    @classmethod
+    def convert_objectids(cls, data):
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, str) and ObjectId.is_valid(value):
+                    data[key] = ObjectId(value)
+        return data
+
 from typing import Optional, Any
 
 class MockLambdaContext(LambdaContext):
@@ -170,16 +183,17 @@ class DzgroError(Exception):
 
 SATKey =  Literal['sales','ad','traffic']
 
-
-
 class LabelValue(BaseModel):
     label: str
-    value:str
-    icon:str|SkipJsonSchema[None]=None
+    value: str
+
+class AnalyticKeylabelValue(BaseModel):
+    label: str
+    value: AnalyticsMetric
 
 class AnalyticKeyGroup(BaseModel):
-    label: str
-    items: list[LabelValue]
+    label: AnalyticGroupMetricLabel
+    items: list[AnalyticKeylabelValue]
 
 class QueryId(BaseModel):
     queryId: PyObjectId
@@ -190,23 +204,25 @@ class AnalyticValueFilterItem(BaseModel):
     operator: str
     value: float
 
-class Item(BaseModel):
+class AnalyticPeriodItem(BaseModel):
     label: str
-    value: Optional[float] = None
-    valueString: Optional[str] = None
-    items: Optional[List["Item"]] = None  # recursive reference
+    value: float
+    valueString: str
+    items: Optional[List["AnalyticPeriodItem"]] = None  # recursive reference
 
     class Config:
         arbitrary_types_allowed = True
         extra = "ignore"
+AnalyticPeriodItem.model_rebuild()  # required for recursive models in Pydantic v2
 
-
-Item.model_rebuild()  # required for recursive models in Pydantic v2
+class AnalyticPeriodGroup(BaseModel):
+    label: AnalyticGroupMetricLabel
+    items: list[AnalyticPeriodItem]
 
 class AnalyticsPeriodData(BaseModel):
     label: AnalyticsPeriod
     dateSpan: str
-    data: list[Item]
+    data: list[AnalyticPeriodGroup]
 
 class ChartData(BaseModel):
     dates: list[str]
@@ -319,6 +335,7 @@ class MetricCalculation(BaseModel):
 class MetricDetail(BaseModel):
     metric: AnalyticsMetric
     ispercentage: bool
+    isReverseGrowth: bool = False
     label: str
     description: str
 
@@ -334,6 +351,7 @@ class MetricItem(BaseModel):
 MetricItem.model_rebuild()
 
 
+
 class MetricGroup(BaseModel):
-    metric: str
+    metric: AnalyticGroupMetricLabel
     items: list[MetricItem]

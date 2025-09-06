@@ -1,27 +1,35 @@
 
-from dzgroshared.models.enums import CollateType, CollectionType
-from dzgroshared.db.PipelineProcessor import PipelineProcessor, LookUpPipelineMatchExpression, LookUpLetExpression
-from dzgroshared.db.DataTransformer import Datatransformer
+from bson import ObjectId
+from dzgroshared.db.extras import Analytics
+from dzgroshared.models.collections.analytics import SingleMetricPeriodDataRequest
 
 
-def pipeline(pp: PipelineProcessor, collateType: CollateType, key: str, value: str|None):
-    matchStage = pp.match({"_id": pp.marketplace, "uid": pp.uid})
-    project = {"$project": {"enddate":1,"uid": 1, "marketplace":"$_id", "_id": 0}}
-    setDates = pp.set({"date": { '$reduce': { 'input': { '$range': [ 0, 30, 1 ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$dateSubtract': { 'startDate': '$enddate', 'amount': '$$this', 'unit': 'day' } } ] ] } } } })
-    unwindDate = pp.unwind("date")
-    letExpr = [LookUpLetExpression(key='date'),LookUpLetExpression(key='collatetype', value=collateType.value)]
-    expr = [LookUpPipelineMatchExpression(key='collatetype'), LookUpPipelineMatchExpression(key='date')]
-    if value: 
-        letExpr.append(LookUpLetExpression(key='value', value=value))
-        expr.append(LookUpPipelineMatchExpression(key='value'))
-    innerpipeline:list[dict] = [pp.matchAllExpressions(expr), pp.project(['sales','ad','traffic'],['_id'])]
-    innerpipeline.append(pp.replaceRoot({ '$arrayToObject': { '$reduce': { 'input': { '$objectToArray': '$$ROOT' }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$objectToArray': { '$ifNull': [ '$$this.v', {} ] } } ] } } } }))
-    lookUpAnalytics = pp.lookup(CollectionType.DATE_ANALYTICS, 'data', innerpipeline, letExpressions=letExpr)
-    transformer = Datatransformer(pp)
-    sortByDate = pp.sort({"date": 1})
-    replaceRoot = pp.replaceRoot({ 'date': { '$dateToString': { 'date': '$date', 'format': '%b %d, %Y' } }, 'value': { '$round': [ { '$ifNull': [ f'$data.{key}', 0 ] }, 1 ] } })
-    group = pp.group(None, {'dates': { '$push': '$date' }, 'values': { '$push': '$value' }})
-    pipeline = [matchStage, project, setDates, unwindDate,lookUpAnalytics ]
-    pipeline.extend(transformer.transformDataForQuery())
-    pipeline.extend([sortByDate, replaceRoot, group])
+def pipeline(uid: str, marketplace: ObjectId, req: SingleMetricPeriodDataRequest):
+    letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
+    if req.value: letdict['value'] = req.value
+    matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', '41e34d1a-6031-70d2-9ff3-d1a704240921' ] }, { '$eq': [ '$marketplace', ObjectId('6895638c452dc4315750e826') ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] } ] } }
+    if req.value: matchDict['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
+    pipeline = [
+        { '$match': { '_id': marketplace, 'uid': uid } }, 
+        { '$set': { 'date': { '$reduce': { 'input': { '$range': [ 0, 30, 1 ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$dateSubtract': { 'startDate': '$dates.enddate', 'amount': '$$this', 'unit': 'day' } } ] ] } } } } }, 
+        { '$unwind': { 'path': '$date' } },
+        { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict }, { '$project': { 'data': 1, '_id': 0 } } ], 'as': 'data' } }, 
+        { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ { 'date': '$date', 'data': { '$first': '$data.data' } } ] } } },
+    ]
+    missingkeys = Analytics.addMissingFields("data")
+    derivedmetrics = Analytics.addDerivedMetrics("data")
+    pipeline.append(missingkeys)
+    pipeline.extend(derivedmetrics)
+    key = f'data.{req.key.value}'
+    pipeline.extend(
+        [
+            {"$project": {"date": 1, key:1}},
+            { '$sort': { 'date': 1 } },
+            { '$replaceRoot': { 'newRoot': { 'date': { '$dateToString': { 'date': '$date', 'format': '%b %d, %Y' } }, 'value': { '$round': [ { '$ifNull': [ f'${key}', 0 ] }, 1 ] } } } },
+            { '$group': { '_id': None, 'dates': { '$push': '$date' }, 'values': { '$push': '$value' } } },
+            { '$project': { '_id': 0 } }
+        ]
+    )
+    from dzgroshared.utils import mongo_pipeline_print
+    mongo_pipeline_print.copy_pipeline(pipeline)
     return pipeline

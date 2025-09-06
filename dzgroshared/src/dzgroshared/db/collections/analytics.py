@@ -1,19 +1,23 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
-from dzgroshared.models.enums import CollateType,CollectionType
-from dzgroshared.models.collections.analytics import PeriodDataRequest
-from dzgroshared.db.collections.pipelines import Get30DaysGraph, GetPeriodData, GetMonthData, GetStateDataByMonth, GetMonthCarousel, GetListParams
+from dzgroshared.models.enums import CollectionType
+from dzgroshared.models.collections.analytics import Month, MonthDataRequest, PeriodDataRequest, SingleMetricPeriodDataRequest
+from dzgroshared.db.collections.pipelines import Get30DaysGraph, GetPeriodData, GetStateDataByMonth, GetMonthCarousel, GetListParams
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.db.extras import Analytics
+from dzgroshared.models.extras import Analytics as AnalyticsModel
 
 class DashboardHelper:
     db: DbManager
     marketplace: ObjectId
     uid: str
+    client: DzgroSharedClient
 
     def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
         self.marketplace = marketplace
         self.uid = uid
+        self.client = client
         self.db = DbManager(client.db.database.get_collection(CollectionType.MARKETPLACES.value), uid=self.uid, marketplace=self.marketplace)
 
     async def getAllDates(self)->list[datetime]:
@@ -35,42 +39,87 @@ class DashboardHelper:
         return result[0]
 
     async def getPeriodData(self, req: PeriodDataRequest):
-        from dzgroshared.db.collections.pipelines.queries import QueryBuilder
-        schema = [s.model_dump(mode="json") for s in QueryBuilder.metricGroups]
         pipeline = GetPeriodData.pipeline(self.db.pp, req)
         data = await self.db.aggregate(pipeline)
-        data = [{**d, "data": [QueryBuilder.transform(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
-        return data
+        return Analytics.transformData('Period',data, req)
     
-    async def getChartData(self, key:str, req: PeriodDataRequest):
-        pipeline = Get30DaysGraph.pipeline(self.db.pp, req.collatetype, key, req.value)
+    async def getChartData(self, req: SingleMetricPeriodDataRequest):
+        pipeline = Get30DaysGraph.pipeline(self.uid, self.marketplace, req)
         return await self.db.aggregate(pipeline)
     
     async def getMonthlyDataTable(self, req: PeriodDataRequest):
-        pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
-        return await self.db.aggregate(pipeline)
+        # pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
+        # return await self.db.aggregate(pipeline)
+        pass
     
-    async def getMonthlyCarousel(self, req: PeriodDataRequest,month:str):
-        pipeline = GetMonthCarousel.pipeline(self.db.pp, req.collatetype, month, req.value)
+    def getPipelineForDataBetweenTwoDates(self, req: PeriodDataRequest, startdate: datetime, enddate: datetime):
+        letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
+        if req.value: letdict['value'] = req.value
+        matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', self.uid ] }, { '$eq': [ '$marketplace', self.marketplace ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$gte': [ '$date', startdate ] }, { '$lte': [ '$date', enddate ] } ] } }
+        if req.value: matchDict['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
+        pipeline = [
+            { '$match': { '_id': self.marketplace, 'uid': self.uid } },
+            { '$set': { 'dates': { 'startdate': startdate, 'enddate': enddate } } }, 
+            { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict }, { '$project': { 'data': 1, '_id': 0 } } ], 'as': 'data' } }, 
+            { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ { 'date': '$date', 'data': { '$first': '$data.data' } } ] } } },
+        ]
+        missingkeys = Analytics.addMissingFields("data")
+        derivedmetrics = Analytics.addDerivedMetrics("data")
+        pipeline.append(missingkeys)
+        pipeline.extend(derivedmetrics)
+        return pipeline
+    
+
+    
+    async def getMonthData(self, req: MonthDataRequest):
+        month = next((Month.model_validate(x) for x in (await self.getMonths()) if x['month']==req.month), None)
+        if not month: return ValueError("Invalid Month")
+        pipeline = self.getPipelineForDataBetweenTwoDates(req, month.startdate, month.enddate)
+        pipeline.append(AnalyticsModel.getProjectionStage('Month', req.collatetype))
+        pipeline.append({"$project": {"data": 1}})
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.db.aggregate(pipeline)
-        if len(data)>0: return data[0] 
-        raise ValueError("Data not Available")
+        return Analytics.transformData('Month',data, req)
+        
     
     async def getStateDataForMonths(self, req: PeriodDataRequest):
-        pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
-        return await self.db.aggregate(pipeline)
+        # pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
+        # return await self.db.aggregate(pipeline)
+        pass
     
     def getStateDataByMonth(self, req: PeriodDataRequest, month: str):
         pipeline = GetStateDataByMonth.pipeline(self.db.pp, req.collatetype, month, req.value)
         print(pipeline)
         return self.db.aggregate(pipeline)
         
-    def getMonths(self):
-        pipeline = [self.db.pp.match({"_id": self.db.pp.marketplace, "uid": self.db.pp.uid})]
-        pipeline.extend(self.db.pp.getMonths())
-        pipeline.append(self.db.pp.project([],["date","uid","marketplace"]))
-        return self.db.aggregate(pipeline)
-
+    async def getMonths(self):
+        def last_day_of_month(year: int, month: int) -> int:
+            """Return the last day number (28–31) of the given month."""
+            if month == 12:next_month = datetime(year + 1, 1, 1)
+            else:next_month = datetime(year, month + 1, 1)
+            return (next_month - timedelta(days=1)).day
+        marketplace = await self.client.db.marketplaces.getMarketplace(self.marketplace)
+        year, month = marketplace.dates.startdate.year, marketplace.dates.startdate.month
+        end_year, end_month = marketplace.dates.enddate.year, marketplace.dates.enddate.month
+        results = []
+        while (year, month) <= (end_year, end_month):
+            first_day = datetime(year, month, 1)
+            last_day = datetime(year, month, last_day_of_month(year, month))
+            range_start = max(first_day, marketplace.dates.startdate)
+            range_end = min(last_day, marketplace.dates.enddate)
+            results.append({
+                "month": first_day.strftime("%b %Y"),
+                "period": f"{range_start.strftime('%d %b')} - {range_end.strftime('%d %b')}",
+                "startdate": range_start,
+                "enddate": range_end
+            })
+            month += 1
+            if month > 12:
+                month = 1
+                year += 1
+        return results
+        
         
     
     

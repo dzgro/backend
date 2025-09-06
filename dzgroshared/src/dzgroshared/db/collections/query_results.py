@@ -1,5 +1,5 @@
 from bson import ObjectId
-from dzgroshared.models.collections.analytics import CollateTypeAndValue
+from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, SingleMetricPeriodDataRequest
 from dzgroshared.models.collections.query_results import QueryRequest
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.db.DataTransformer import Datatransformer
@@ -24,16 +24,6 @@ class QueryResultsHelper:
     async def deleteExtraFields(self, id: ObjectId|None=None):
         filterDict = {"queryid": id} if id else {}
         await self.db.deleteFields(["data.buyBoxViews","data.unitSessions","data.returnQuantity","data.revenuePreTax","data.tax"], filterDict=filterDict)
-
-
-    async def getQueryTable(self, key:str, req: CollateTypeAndValue):
-        matchDict = {"collatetype": req.collatetype.value}
-        if req.value: matchDict.update({"value": req.value})
-        pipeline: list[dict] = [self.db.pp.matchMarketplace(matchDict)]
-        pipeline.extend(Datatransformer(self.db.pp).getQueryResultForTable(key))
-        pipeline.append({ '$project': { 'data': f'$data.{key}', "_id":"$queryid" } })
-        data =  await self.db.aggregate(pipeline)
-        return data
     
     async def getCount(self, body: QueryRequest):
         matchDict = {"collatetype": body.collateType.value, "queryid": ObjectId(body.queryId)}
@@ -79,15 +69,18 @@ class QueryResultsHelper:
         data =  await self.db.aggregate(pipeline)
         return data
     
-    async def getPerformanceByQuery(self, id: str, req: CollateTypeAndValue):
-        filterDict = {"collatetype": req.collatetype.value, "queryid": ObjectId(id)}
+    async def getPerformanceforPeriod(self, req: ComparisonPeriodDataRequest):
+        filterDict = {"collatetype": req.collatetype.value, "queryid": ObjectId(req.queryId)}
         if req.value: filterDict.update({"value": req.value})
-        pipeline = [self.db.pp.matchMarketplace(filterDict)]
-        pipeline.extend(Datatransformer(self.db.pp).convertResultsForPerformance())
-        pipeline.extend([{ '$project': { 'data': 1, '_id': 0 } }, { '$unwind': { 'path': '$data' } }, { '$replaceRoot': { 'newRoot': '$data' } }])
+        from dzgroshared.db.extras import Analytics
+        from dzgroshared.models.extras import Analytics as AnalyticsModel
+        pipeline = [self.db.pp.matchMarketplace(filterDict), AnalyticsModel.getProjectionStage('Comparison', req.collatetype)]
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.db.aggregate(pipeline)
-        # print(pipeline)
-        return data
+        return Analytics.transformData('Comparison',data, req)
+        headers = [item.metric for item in AnalyticsModel.getMetricGroupsBySchemaType('Comparison', req.collatetype)]
+        return {"headers": headers, 'items': (data[0]['data'] if len(data)>0 else [])}
 
 
         

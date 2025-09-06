@@ -1,9 +1,9 @@
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
-from dzgroshared.models.collections.analytics import PeriodDataRequest
-from dzgroshared.models.enums import ENVIRONMENT, CollateType, CountryCode, QueueName
-from dzgroshared.models.model import AnalyticsPeriodData, DataCollections, MockLambdaContext, StartEndDate
+from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, MonthDataRequest, PeriodDataRequest, SingleMetricPeriodDataRequest
+from dzgroshared.models.enums import ENVIRONMENT, AnalyticsMetric, CollateType, CountryCode, QueueName
+from dzgroshared.models.model import AnalyticsPeriodData, DataCollections, MockLambdaContext, PyObjectId, StartEndDate
 
 
 client = DzgroSharedClient(ENVIRONMENT.LOCAL)
@@ -15,22 +15,23 @@ context = MockLambdaContext()
 enddate = datetime(2025, 8, 31)
 startdate= datetime(2025, 7, 3)
 date_range = StartEndDate(startdate=startdate, enddate=enddate)
+queryId=PyObjectId("686750af5ec9b6bf57fe9060")
+countrycode = CountryCode.INDIA
 
 
-async def buildStateDateAnalytics():
+async def buildStateDateAnalyticsAndQueries():
     from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
     processor = AnalyticsProcessor(client, date_range)
     await processor.execute()
-    print("Done")
-
-async def buildQueries():
-    from dzgroshared.db.collections.queries import QueryHelper
-    await QueryHelper(client, uid, marketplace).buildQueries(date_range)
+    from dzgroshared.db.extras import Analytics
+    pipeline = Analytics.getQueriesPipeline(client.uid, client.marketplace, date_range)
+    await client.db.query_results.deleteQueryResults()
+    await client.db.marketplaces.marketplaceDB.aggregate(pipeline)
     print("Done")
 
 async def testapi():
-    data = await client.db.analytics.getPeriodData(PeriodDataRequest(collatetype=CollateType.MARKETPLACE, countrycode=CountryCode.INDIA))
-    x = [AnalyticsPeriodData(**x) for x in data]
+    req = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
+    data = await client.db.analytics.getMonthData(req)
     print("Done")
 
 async def deleteData():
@@ -77,6 +78,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildStateDateAnalytics())
+    asyncio.run(testapi())
 except Exception as e:
     print(f"Error occurred: {e}")

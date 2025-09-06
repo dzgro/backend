@@ -4,53 +4,19 @@ from dzgroshared.db.PipelineProcessor import PipelineProcessor
 
 
 def pipeline(pp: PipelineProcessor, req: PeriodDataRequest):
+    match = { '$match': { '_id': pp.marketplace, 'uid': pp.uid } }
+    lookuplet= { 'uid': '$uid', 'marketplace': '$_id', 'collatetype': req.collatetype.value, 'startdate': '$dates.startdate', 'enddate': '$dates.enddate' }
+    if req.value: lookuplet.update({ 'value': req.value })
+    lookupmatch = { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] } ] } } }
+    if req.value: lookupmatch['$match']['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
     pipeline = [
-    {
-        '$match': {
-            '_id': pp.marketplace,
-            'uid': pp.uid
-
-        }
-    }, {
+        match
+    , {
         '$lookup': {
             'from': 'date_analytics', 
-            'let': {
-                'uid': '$uid', 
-                'marketplace': '$_id', 
-                'collatetype': req.collatetype.value,
-                'startdate': '$dates.startdate', 
-                'enddate': '$dates.enddate'
-            }, 
+            'let': lookuplet, 
             'pipeline': [
-                {
-                    '$match': {
-                        '$expr': {
-                            '$and': [
-                                {
-                                    '$eq': [
-                                        '$uid', '$$uid'
-                                    ]
-                                }, {
-                                    '$eq': [
-                                        '$marketplace', '$$marketplace'
-                                    ]
-                                }, {
-                                    '$eq': [
-                                        '$collatetype', '$$collatetype'
-                                    ]
-                                }, {
-                                    '$gte': [
-                                        '$date', '$$startdate'
-                                    ]
-                                }, {
-                                    '$lte': [
-                                        '$date', '$$enddate'
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                }, {
+                lookupmatch, {
                     '$set': {
                         'dataArray': {
                             '$objectToArray': '$data'
@@ -424,11 +390,13 @@ def pipeline(pp: PipelineProcessor, req: PeriodDataRequest):
         }
     }
 ]
-    from dzgroshared.db.collections.pipelines.queries import QueryBuilder
-    missingkeys = QueryBuilder.addMissingFields("data")
-    derivedmetrics = QueryBuilder.addDerivedMetrics("data")
+    from dzgroshared.db.extras import Analytics
+    from dzgroshared.models.extras import Analytics as AnalyticsModel
+    missingkeys = Analytics.addMissingFields("data")
+    derivedmetrics = Analytics.addDerivedMetrics("data")
     pipeline.append(missingkeys)
     pipeline.extend(derivedmetrics)
+    pipeline.append(AnalyticsModel.getProjectionStage('Period', req.collatetype))
     from dzgroshared.utils import mongo_pipeline_print
     mongo_pipeline_print.copy_pipeline(pipeline)
     return pipeline

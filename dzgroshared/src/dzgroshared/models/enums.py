@@ -12,7 +12,7 @@ class ENVIRONMENT(str, Enum):
     def all():
         return list(ENVIRONMENT)
 
-class CollateTypeTag(str, Enum):
+class QueryTag(str, Enum):
     DAYS_7 = "Last 7 Days"
     DAYS_30 = "Last 30 Days"
     MONTH_ON_NONTH = "This Month vs Last Month (Till Date)"
@@ -565,6 +565,18 @@ class DzgroInventoryPlanningRequestConfiguration(str, Enum):
     DAYS = 'Days'
     DATES = 'Dates'
 
+class AnalyticGroupMetricLabel(str, Enum):
+    SALES = "Sales"
+    FBA_SALES = "FBA Sales"
+    FBM_SALES = "FBM Sales"
+    PROCEEDS = "Proceeds"
+    ADVERTISEMENT = "Advertisement"
+    TRAFFIC = "Traffic"
+
+    @staticmethod
+    def values():
+        return list(AnalyticGroupMetricLabel)
+
 class AnalyticsMetricOperation(str, Enum):
     SUM = "SUM"
     SUBTRACT = "SUBTRACT"
@@ -600,24 +612,27 @@ class AnalyticsMetric(str, Enum):
     FBA_RETURN_VALUE = "fbareturnvalue"
     FBM_RETURN_VALUE = "fbmreturnvalue"
     RETURN_VALUE = "returnvalue"
-    FBA_RETURN_TAXES = "fbareturntax"
-    FBM_RETURN_TAXES = "fbmreturntax"
-    RETURN_TAXES = "returntax"
+    FBA_RETURN_TAX = "fbareturntax"
+    FBM_RETURN_TAX = "fbmreturntax"
+    RETURN_TAX = "returntax"
     FBA_FEES = "fbafees"
     FBM_FEES = "fbmfees"
     FEES = "fees"
-    FBA_OTHER_EXPENSES = "fbaotherexpenses"
-    FBM_OTHER_EXPENSES = "fbmotherexpenses"
-    OTHER_EXPENSES = "otherexpenses"
+    FBA_NON_FEES_EXPENSES = "fbaotherexpenses"
+    FBM_NON_FEES_EXPENSES = "fbmotherexpenses"
+    NON_FEES_EXPENSES = "otherexpenses"
     FBA_NET_PROCEEDS = "fbanetproceeds"
     FBM_NET_PROCEEDS = "fbmnetproceeds"
+    GROSS_PROCEEDS = "grossproceeds"
     NET_PROCEEDS = "netproceeds"
     FBA_AVERAGE_SALE_PRICE = "fbaaveragesaleprice"
     FBM_AVERAGE_SALE_PRICE = "fbmaveragesaleprice"
     AVERAGE_SALE_PRICE = "averagesaleprice"
     FBA_EXPENSES = "fbaexpenses"
     FBM_EXPENSES = "fbmexpenses"
-    EXPENSES = "expenses"
+    GROSS_EXPENSES = "grossexpenses"
+    NET_EXPENSES = "netexpenses"
+    MISC_EXPENSES = "miscexpense"
     FBA_PAYOUT_PERCENTAGE = "fbapayoutpercentage"
     FBM_PAYOUT_PERCENTAGE = "fbmpayoutpercentage"
     PAYOUT_PERCENTAGE = "payoutpercentage"

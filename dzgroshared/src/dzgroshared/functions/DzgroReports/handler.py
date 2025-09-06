@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.models.collections.dzgro_reports import DzgroReport, DzgroReportType
-from dzgroshared.models.enums import ENVIRONMENT, CollateType, CollateTypeTag, S3Bucket
+from dzgroshared.models.enums import ENVIRONMENT, CollateType, QueryTag, S3Bucket
 from dzgroshared.models.sqs import SQSEvent
 from dzgroshared.models.collections.queue_messages import DzgroReportQueueMessage
 from dzgroshared.client import DzgroSharedClient

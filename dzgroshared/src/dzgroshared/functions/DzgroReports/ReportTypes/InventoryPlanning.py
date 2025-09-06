@@ -1,6 +1,6 @@
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.collections.dzgro_reports import DzgroInventoryPlanningRequest, DzgroReportDates
-from dzgroshared.models.enums import CollateTypeTag, CollectionType, DzgroInventoryPlanningRequestConfiguration, Operator
+from dzgroshared.models.enums import QueryTag, CollectionType, DzgroInventoryPlanningRequestConfiguration, Operator
 from dzgroshared.db.PipelineProcessor import LookUpPipelineMatchExpression, PipelineProcessor
 from dzgroshared.db.collections.pipelines.query_results import InventoryGroups
 from dzgroshared.models.model import PyObjectId

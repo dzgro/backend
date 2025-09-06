@@ -13,6 +13,7 @@ from dzgroshared.models.enums import AdAssetType, AmazonAccountType, AmazonDaily
 from dzgroshared.models.extras.amazon_daily_report import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonParentReport, MarketplaceObjectForReport, AmazonSpapiReport
 from dzgroshared.utils import date_util
 from dzgroshared.models.sqs import SendMessageRequest
+from pandas import date_range
 
 class AmazonReportManager:
     client: DzgroSharedClient
@@ -104,9 +105,12 @@ class AmazonReportManager:
                 await self.client.db.adv_ads.refreshAll()
             elif self.message.step==AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS:
                 from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
-                self.message.date = await AnalyticsProcessor(self.client,self.report.dates).executeDate(self.context, self.message.date)
+                await AnalyticsProcessor(self.client,self.report.dates).execute()
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_QUERIES:
-                await self.client.db.queries.buildQueries(self.report.dates)
+                from dzgroshared.db.extras import Analytics
+                pipeline = Analytics.getQueriesPipeline(self.client.uid, self.client.marketplace, self.report.dates)
+                await self.client.db.query_results.deleteQueryResults()
+                await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
             elif self.message.step==AmazonDailyReportAggregationStep.MARK_COMPLETION:
                 await self.client.db.amazon_daily_reports.deleteChildReports(self.message.index)
                 await self.client.db.amazon_daily_reports.markParentAsCompleted(self.message.index)

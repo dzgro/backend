@@ -1,12 +1,12 @@
 from pydantic import BaseModel,model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.model import ItemId, StartEndDate
-from dzgroshared.models.enums import CollateTypeTag
+from dzgroshared.models.enums import QueryTag
 from typing import List, Union, Optional
 
 
 class Query(ItemId):
-    tag: CollateTypeTag
+    tag: QueryTag
     curr: StartEndDate
     pre: StartEndDate
     disabled: bool

@@ -3,7 +3,7 @@ from typing import Literal, Any
 from bson import ObjectId
 from dzgroshared.models.model import PyObjectId, SATKey
 from dzgroshared.models.enums import Operator, CollectionType
-from .Methods import AddCalculations, AddCurrPreGrowth, AddPercentKeys, CollateCurrPreGrowth, CollateSATs, ConvertDataArrayToDataObject, GetAsinQueries, GetCalculatedAnalyticsKeys, OpenSATs, BreakDataToCurrPreByDates, GetMonths, GroupAnalyticKeys, CollateListOfObjectsAsObject, TransformAnalyticsKeys
+from .Methods import AddCalculations, AddCurrPreGrowth, AddPercentKeys, CollateCurrPreGrowth, CollateSATs, ConvertDataArrayToDataObject, GetAsinQueries, GetCalculatedAnalyticsKeys, OpenSATs, BreakDataToCurrPreByDates, GroupAnalyticKeys, CollateListOfObjectsAsObject, TransformAnalyticsKeys
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 
@@ -177,8 +177,6 @@ class PipelineProcessor:
     def getAsinQueries(self):
         return GetAsinQueries.getAsinQueries(self.marketplace)
     
-    def getMonths(self, month: str|None=None):
-        return GetMonths.execute(month)
     
     def addPercentKeys(self):
         return AddPercentKeys.execute(False)

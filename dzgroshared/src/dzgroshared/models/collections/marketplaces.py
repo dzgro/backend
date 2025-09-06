@@ -83,4 +83,4 @@ class Marketplace(ItemIdWithDate):
     profileid: int
     status: MarketplaceStatus
     storename: str|SkipJsonSchema[None]=None
-    dates: StartEndDate|SkipJsonSchema[None]=None
+    dates: StartEndDate

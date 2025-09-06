@@ -1,8 +1,9 @@
+from typing import List, Optional
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.model import ItemId, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId
 from dzgroshared.models.collections.products import Product, ProductCategory
-from dzgroshared.models.enums import CollateType
+from dzgroshared.models.enums import CollateType, AnalyticGroupMetricLabel, QueryTag
 
 class ListingRequest(BaseModel):
     queryId: str
@@ -38,50 +39,46 @@ class CategoryQueryResultItem(ProductCategory):
         data['moreCount'] = data['count'] - len(data['asins'])
         return data
     
-class QueryResultKeyDetail(BaseModel):
-    curr: str
-    pre: str
-    growth: str|SkipJsonSchema[None]=None
-    growing: bool|SkipJsonSchema[None]=None
 
-    @model_validator(mode="before")
-    def setdefaults(cls, data):
-        if 'curr' not in data: data['curr'] = "-"
-        if 'pre' not in data: data['pre'] = "-"
-        return data
-class QueryTableResult(ItemId):
-    data: QueryResultKeyDetail
-
-class QueryResultItem(BaseModel):
+class PerformancePeriodItem(BaseModel):
     label: str
-    data: QueryResultKeyDetail
+    value: str
+    valueString: str
+    growth: str
+    growing: bool
+    items: Optional[List["PerformancePeriodItem"]] = None  # recursive reference
 
-    @model_validator(mode="before")
-    def setdefaults(cls, data):
-        if 'data' not in data: data['data'] = {}
-        return data
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "ignore"
+PerformancePeriodItem.model_rebuild()  # required for recursive models in Pydantic v2
 
-class QueryResultGroup(BaseModel):
-    label: str
-    items: list[QueryResultItem]
+class PerformancePeriodGroup(BaseModel):
+    label: AnalyticGroupMetricLabel
+    items: list[PerformancePeriodItem]
 
-class QueryResultChildren(ProductCategory):
+class PerformancePeriodData(BaseModel):
+    headers: list[AnalyticGroupMetricLabel]
+    items: list[PerformancePeriodGroup]
+
+class PerformanceResultChildren(ProductCategory):
     count: int
     skus: list[Product] = []
 
-class QueryResultParent(QueryResultChildren, Product):
+class QueryResultParent(PerformanceResultChildren, Product):
     count: int
     skus: list[Product] = []
 
-class QueryResultAsin(QueryResultChildren, Product):
+class QueryResultAsin(PerformanceResultChildren, Product):
     count: int|SkipJsonSchema[None]=None
 
 class QueryResult(BaseModel):
-    data: list[QueryResultGroup]
-    category: QueryResultChildren|SkipJsonSchema[None] = None
+    data: list[PerformancePeriodGroup]
+    category: PerformanceResultChildren|SkipJsonSchema[None] = None
     parent: QueryResultParent|SkipJsonSchema[None] = None
     asin: QueryResultAsin|SkipJsonSchema[None] = None
-    sku: Product|SkipJsonSchema[None] = None    
+    sku: Product|SkipJsonSchema[None] = None   
+     
 class QueryRequest(BaseModel):
     queryId: str
     collateType: CollateType
@@ -91,3 +88,6 @@ class QueryRequest(BaseModel):
     filters: list[AnalyticValueFilterItem] = []
     paginator: Paginator = Paginator(skip=0, limit=10)
     sort: Sort = Sort(field='revenue', order=-1)
+
+class ComparisonTableResult(ItemId):
+    data: PerformancePeriodGroup

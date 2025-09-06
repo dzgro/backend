@@ -2,18 +2,18 @@ from fastapi import APIRouter, Request
 from api.Util import RequestHelper
 from dzgroshared.models.extras.ad_structure import StructureScoreResponse
 from dzgroshared.models.collections.health import AmazonHealthReportConverted
-from dzgroshared.models.collections.analytics import PeriodDataRequest, MonthData, MonthWithDates, MonthlyCarousel, StateData
+from dzgroshared.models.collections.analytics import MonthDataRequest, PeriodDataRequest, MonthData, Month, MonthlyCarousel, SingleAnalyticsMetricTableResponseItem, SingleMetricPeriodDataRequest, StateData, ComparisonPeriodDataRequest
 from dzgroshared.models.model import AnalyticKeyGroup, AnalyticsPeriodData, ChartData, Count 
 from dzgroshared.models.collections.queries import Query, QueryList
-from dzgroshared.models.collections.query_results import QueryRequest, QueryResult, QueryResultGroup, QueryTableResult
+from dzgroshared.models.collections.query_results import PerformancePeriodData, QueryRequest, QueryResult, PerformancePeriodGroup,ComparisonTableResult
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
-@router.get("/health", response_model=AmazonHealthReportConverted, response_model_exclude_none=True)
+@router.get("/health/seller", response_model=AmazonHealthReportConverted, response_model_exclude_none=True)
 async def getHealth(request: Request):
     return await RequestHelper(request).client.db.health.getHealth()
 
-@router.get("/ad-health", response_model=StructureScoreResponse, response_model_exclude_none=True)
+@router.get("/health/ad", response_model=StructureScoreResponse, response_model_exclude_none=True)
 async def getAdStructureHealth(request: Request):
     return await RequestHelper(request).client.db.ad_structure.getAdvertismentStructureScore()
 
@@ -21,25 +21,25 @@ async def getAdStructureHealth(request: Request):
 async def getPeriodData(request: Request, req: PeriodDataRequest):
     return await RequestHelper(request).client.db.analytics.getPeriodData(req)
 
-@router.post("/chart/{key}", response_model=list[ChartData], response_model_exclude_none=True)
-async def getChart(request: Request,key:str, req: PeriodDataRequest):
-    return await RequestHelper(request).client.db.analytics.getChartData(key, req)
+@router.post("/chart", response_model=list[ChartData], response_model_exclude_none=True)
+async def getChart(request: Request,req: SingleMetricPeriodDataRequest):
+    return await RequestHelper(request).client.db.analytics.getChartData(req)
 
-@router.post("/query-table/{key}", response_model=list[QueryTableResult], response_model_exclude_none=True, response_model_by_alias=False)
-async def getQueryTable(request: Request, key:str, req: PeriodDataRequest):
-    return await RequestHelper(request).client.db.query_results.getQueryTable(key, req)
+@router.post("/performance/table", response_model=list[SingleAnalyticsMetricTableResponseItem], response_model_exclude_none=True, response_model_by_alias=False)
+async def getQueryTable(request: Request, req: SingleMetricPeriodDataRequest):
+    return await RequestHelper(request).client.db.queries.getQueryTable(req)
 
-@router.get('/months/list', response_model=list[MonthWithDates], response_model_exclude_none=True, response_model_by_alias=False)
+@router.get('/months/list', response_model=list[Month], response_model_exclude_none=True, response_model_by_alias=False)
 async def listMonths(request: Request):
     return await RequestHelper(request).client.db.analytics.getMonths()
 
-@router.post("/months", response_model=list[MonthData], response_model_exclude_none=True)
-async def getMonthsData(request: Request, req: PeriodDataRequest):
+@router.post("/months/all", response_model=list[MonthData], response_model_exclude_none=True)
+async def getAllMonthsData(request: Request, req: PeriodDataRequest):
     return await RequestHelper(request).client.db.analytics.getMonthlyDataTable(req)
 
-@router.post("/months/{month}", response_model=MonthlyCarousel, response_model_exclude_none=True)
-async def getMonthCarousel(request: Request, month: str, req: PeriodDataRequest):
-    return await RequestHelper(request).client.db.analytics.getMonthlyCarousel(req, month)
+@router.post("/months", response_model=MonthlyCarousel, response_model_exclude_none=True)
+async def getMonthData(request: Request, req: MonthDataRequest):
+    return await RequestHelper(request).client.db.analytics.getMonthData(req)
 
 @router.post("/states/{month}", response_model=list[StateData], response_model_exclude_none=True)
 async def getStateDataByMonth(request: Request, month:str, req: PeriodDataRequest):
@@ -47,15 +47,17 @@ async def getStateDataByMonth(request: Request, month:str, req: PeriodDataReques
 
 @router.get('/keys', response_model=list[AnalyticKeyGroup], response_model_exclude_none=True, response_model_by_alias=False)
 async def getAnalyticKeyGroups(request: Request):
-    return await RequestHelper(request).client.db.calculation_keys.getGroups()
+    RequestHelper(request)
+    from dzgroshared.models.extras import Analytics
+    return Analytics.getAnalyticsGroups()
 
 @router.get("/queries", response_model=QueryList, response_model_exclude_none=True, response_model_by_alias=False)
 async def listQueries(request: Request):
     return await RequestHelper(request).client.db.queries.getQueries()
 
-@router.post("/query-performance/{queryId}", response_model=list[QueryResultGroup], response_model_exclude_none=True, response_model_by_alias=False)
-async def getQueryPerformance(request: Request, queryId:str, req: PeriodDataRequest):
-    return await RequestHelper(request).client.db.query_results.getPerformanceByQuery(queryId, req)
+@router.post("/query/performance", response_model=PerformancePeriodData, response_model_exclude_none=True, response_model_by_alias=False)
+async def getQueryPerformance(request: Request, req: ComparisonPeriodDataRequest):
+    return await RequestHelper(request).client.db.query_results.getPerformanceforPeriod(req)
 
 @router.post("/queries", response_model=list[QueryResult], response_model_exclude_none=True, response_model_by_alias=False)
 async def getPerformance(request: Request, body: QueryRequest):
