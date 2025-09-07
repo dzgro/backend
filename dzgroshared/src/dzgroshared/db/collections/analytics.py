@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
+from typing import Literal
 from bson import ObjectId
 from dzgroshared.models.enums import CollectionType
-from dzgroshared.models.collections.analytics import Month, MonthDataRequest, PeriodDataRequest, SingleMetricPeriodDataRequest
-from dzgroshared.db.collections.pipelines import Get30DaysGraph, GetPeriodData, GetStateDataByMonth, GetMonthCarousel, GetListParams
+from dzgroshared.models.collections.analytics import Month, MonthDataRequest, PeriodDataRequest, SingleMetricPeriodDataRequest, StateDetailedDataByStateRequest
+from dzgroshared.db.collections.pipelines import Get30DaysGraph, GetPeriodData, GetMonthCarousel, GetListParams
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.extras import Analytics
@@ -41,16 +42,36 @@ class DashboardHelper:
     async def getPeriodData(self, req: PeriodDataRequest):
         pipeline = GetPeriodData.pipeline(self.db.pp, req)
         data = await self.db.aggregate(pipeline)
-        return Analytics.transformData('Period',data, req)
+        return {"data": Analytics.transformData('Period',data, req)}
     
     async def getChartData(self, req: SingleMetricPeriodDataRequest):
         pipeline = Get30DaysGraph.pipeline(self.uid, self.marketplace, req)
         return await self.db.aggregate(pipeline)
     
     async def getMonthlyDataTable(self, req: PeriodDataRequest):
-        # pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
-        # return await self.db.aggregate(pipeline)
-        pass
+        letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'startdate': '$startdate', 'enddate': '$enddate', 'collatetype': 'marketplace' }
+        if req.value: letdict['value'] = req.value
+        matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', self.uid ] }, { '$eq': [ '$marketplace', self.marketplace ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$gte': [ '$date', '$$startdate' ] }, { '$lte': [ '$date', '$$enddate' ] }] } }
+        if req.value: matchDict['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
+        pipeline = [
+            { '$match': { '_id': self.marketplace, 'uid': self.uid } },
+            { '$set': { 'month': { '$let': { 'vars': { 'start': { '$dateTrunc': { 'date': '$dates.startdate', 'unit': 'month' } }, 'end': { '$dateTrunc': { 'date': '$dates.enddate', 'unit': 'month' } } }, 'in': { '$map': { 'input': { '$range': [ 0, { '$add': [ { '$dateDiff': { 'startDate': '$$start', 'endDate': '$$end', 'unit': 'month' } }, 1 ] } ] }, 'as': 'i', 'in': { '$let': { 'vars': { 'curMonthStart': { '$dateAdd': { 'startDate': '$$start', 'unit': 'month', 'amount': '$$i' } }, 'nextMonthStart': { '$dateAdd': { 'startDate': '$$start', 'unit': 'month', 'amount': { '$add': [ '$$i', 1 ] } } } }, 'in': { '$let': { 'vars': { 'month': { '$dateToString': { 'date': '$$curMonthStart', 'format': '%b %Y' } }, 'startdate': { '$cond': [ { '$eq': [ '$$i', 0 ] }, '$dates.startdate', '$$curMonthStart' ] }, 'enddate': { '$cond': [ { '$eq': [ '$$nextMonthStart', { '$dateAdd': { 'startDate': '$$end', 'unit': 'month', 'amount': 1 } } ] }, '$dates.enddate', { '$dateAdd': { 'startDate': '$$nextMonthStart', 'unit': 'day', 'amount': -1 } } ] } }, 'in': { 'month': '$$month', 'startdate': '$$startdate', 'enddate': '$$enddate', 'period': { '$concat': [ { '$dateToString': { 'date': '$$startdate', 'format': '%d %b' } }, ' - ', { '$dateToString': { 'date': '$$enddate', 'format': '%d %b' } } ] } } } } } } } } } } }},
+            { '$unwind': { 'path': '$month' } }, 
+            { '$replaceWith': '$month' }, 
+            { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict },{"$replaceWith": "$data"}], 'as': 'data' } }, 
+            self.db.pp.collateData(),
+            {"$sort": { "startdate": 1 }},
+            {"$replaceRoot": { "newRoot": { "month": "$month", "period": "$period", "data": "$data" } }}
+        ]
+        pipeline.append(Analytics.addMissingFields("data"))
+        pipeline.extend(Analytics.addDerivedMetrics("data"))
+        pipeline.append(Analytics.getProjectionStage('Month', req.collatetype))
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        data = await self.db.aggregate(pipeline)
+        months = [{"month": x['month'], "period": x['period']} for x in data]
+        data = Analytics.transformData('Month',data, req)
+        return {"columns": months, "rows": data[0]['items']}
     
     def getPipelineForDataBetweenTwoDates(self, req: PeriodDataRequest, startdate: datetime, enddate: datetime):
         letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
@@ -60,8 +81,9 @@ class DashboardHelper:
         pipeline = [
             { '$match': { '_id': self.marketplace, 'uid': self.uid } },
             { '$set': { 'dates': { 'startdate': startdate, 'enddate': enddate } } }, 
-            { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict }, { '$project': { 'data': 1, '_id': 0 } } ], 'as': 'data' } }, 
-            { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ { 'date': '$date', 'data': { '$first': '$data.data' } } ] } } },
+            { '$lookup': { 'from': CollectionType.DATE_ANALYTICS.value, 'let': letdict, 'pipeline': [ { '$match': matchDict }, { "$replaceRoot": { "newRoot": "$data" } } ], 'as': 'data' } }, 
+            self.db.pp.collateData(),
+            { '$project': { 'data':1, "_id": 0 } },
         ]
         missingkeys = Analytics.addMissingFields("data")
         derivedmetrics = Analytics.addDerivedMetrics("data")
@@ -69,30 +91,101 @@ class DashboardHelper:
         pipeline.extend(derivedmetrics)
         return pipeline
     
-
     
     async def getMonthData(self, req: MonthDataRequest):
         month = next((Month.model_validate(x) for x in (await self.getMonths()) if x['month']==req.month), None)
         if not month: return ValueError("Invalid Month")
         pipeline = self.getPipelineForDataBetweenTwoDates(req, month.startdate, month.enddate)
-        pipeline.append(AnalyticsModel.getProjectionStage('Month', req.collatetype))
-        pipeline.append({"$project": {"data": 1}})
         from dzgroshared.utils import mongo_pipeline_print
         mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.db.aggregate(pipeline)
-        return Analytics.transformData('Month',data, req)
+        monthMeterGroups = Analytics.transformData('Month Meters',data, req)
+        monthBars = Analytics.transformData('Month Bars',data, req)
+        monthdata = Analytics.transformData('Month Data',data, req)
+        return {
+            "month": req.month,
+            "meterGroups": monthMeterGroups[0]['data'][0] if len(monthMeterGroups)>0 and 'data' in monthMeterGroups[0] and len(monthMeterGroups[0]['data'])>0 else [],
+            "bars": monthBars[0]['data'][0] if len(monthBars)>0 and 'data' in monthBars[0] and len(monthBars[0]['data'])>0 else [],
+            "data": monthdata[0]['data'][0] if len(monthdata)>0 and 'data' in monthdata[0] and len(monthdata[0]['data'])>0 else [],
+        }
+    
+    async def getStateWiseData(self, req: MonthDataRequest, schemaType: Analytics.SchemaType):
+        month = next((Month.model_validate(x) for x in (await self.getMonths()) if x['month']==req.month), None)
+        if not month: raise ValueError("Invalid Month")
+        letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
+        if req.value: letdict['value'] = req.value
+        matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', self.uid ] }, { '$eq': [ '$marketplace', self.marketplace ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$gte': [ '$date', month.startdate ] }, { '$lte': [ '$date', month.enddate ] } ] } }
+        if req.value: matchDict['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
+        pipeline = [
+            { '$match': { '_id': self.marketplace, 'uid': self.uid } },
+            { '$set': { 'dates': { 'startdate': month.startdate, 'enddate': month.enddate } } }, 
+            { '$lookup': { 'from': CollectionType.STATE_ANALYTICS.value, 'let': letdict, 'pipeline': [ { '$match': matchDict }, { "$group": { "_id": "$state", "data": { "$push": "$data" } } } ], 'as': 'data' } }, 
+            {"$unwind":"$data"},
+            {"$replaceWith":{ "state": "$data._id", "data": "$data.data" }},
+            self.db.pp.collateData()
+        ]
+        missingkeys = Analytics.addMissingFields("data")
+        derivedmetrics = Analytics.addDerivedMetrics("data")
+        pipeline.append(missingkeys)
+        pipeline.extend(derivedmetrics)
+        pipeline.append(Analytics.getProjectionStage(schemaType, req.collatetype))
+        pipeline.append({"$sort": { "data.netrevenue": -1 }})
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        data = await self.db.aggregate(pipeline)
+        return Analytics.transformData(schemaType,data, req)
+
         
     
-    async def getStateDataForMonths(self, req: PeriodDataRequest):
-        # pipeline = GetMonthData.pipeline(self.db.pp, req.collatetype, req.value)
-        # return await self.db.aggregate(pipeline)
-        pass
+    async def getStateDataDetailedForMonth(self, req: MonthDataRequest):
+        rows = await self.getStateWiseData(req, 'State All')
+        columns = Analytics.GroupBySchema['State All'][0].items
+        return {"columns": columns, "rows": rows}
     
-    def getStateDataByMonth(self, req: PeriodDataRequest, month: str):
-        pipeline = GetStateDataByMonth.pipeline(self.db.pp, req.collatetype, month, req.value)
-        print(pipeline)
-        return self.db.aggregate(pipeline)
+    async def getStateDataLiteByMonth(self, req: MonthDataRequest):
+        data = await self.getStateWiseData(req, 'State Lite')
+        return {"data": [{"state": item['state'], 'data': item['data'][0]['items'] if len(item['data']) > 0 and 'items' in item['data'][0] else []} for item in data]}
+    
+    async def getStateDataDetailedByMonth(self, req: StateDetailedDataByStateRequest):
+        letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'startdate': '$startdate', 'enddate': '$enddate', 'collatetype': 'marketplace', 'state': req.state }
+        if req.value: letdict['value'] = req.value
+        matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', self.uid ] }, { '$eq': [ '$marketplace', self.marketplace ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$gte': [ '$date', '$$startdate' ] }, { '$lte': [ '$date', '$$enddate' ] }, { '$eq': [ '$state', '$$state' ] } ] } }
+        if req.value: matchDict['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
+        pipeline = [
+            { '$match': { '_id': self.marketplace, 'uid': self.uid } },
+            { '$set': { 'month': { '$let': { 'vars': { 'start': { '$dateTrunc': { 'date': '$dates.startdate', 'unit': 'month' } }, 'end': { '$dateTrunc': { 'date': '$dates.enddate', 'unit': 'month' } } }, 'in': { '$map': { 'input': { '$range': [ 0, { '$add': [ { '$dateDiff': { 'startDate': '$$start', 'endDate': '$$end', 'unit': 'month' } }, 1 ] } ] }, 'as': 'i', 'in': { '$let': { 'vars': { 'curMonthStart': { '$dateAdd': { 'startDate': '$$start', 'unit': 'month', 'amount': '$$i' } }, 'nextMonthStart': { '$dateAdd': { 'startDate': '$$start', 'unit': 'month', 'amount': { '$add': [ '$$i', 1 ] } } } }, 'in': { '$let': { 'vars': { 'month': { '$dateToString': { 'date': '$$curMonthStart', 'format': '%b %Y' } }, 'startdate': { '$cond': [ { '$eq': [ '$$i', 0 ] }, '$dates.startdate', '$$curMonthStart' ] }, 'enddate': { '$cond': [ { '$eq': [ '$$nextMonthStart', { '$dateAdd': { 'startDate': '$$end', 'unit': 'month', 'amount': 1 } } ] }, '$dates.enddate', { '$dateAdd': { 'startDate': '$$nextMonthStart', 'unit': 'day', 'amount': -1 } } ] } }, 'in': { 'month': '$$month', 'startdate': '$$startdate', 'enddate': '$$enddate', 'period': { '$concat': [ { '$dateToString': { 'date': '$$startdate', 'format': '%d %b' } }, ' - ', { '$dateToString': { 'date': '$$enddate', 'format': '%d %b' } } ] } } } } } } } } } } }},
+            { '$unwind': { 'path': '$month' } }, 
+            { '$replaceWith': '$month' }, 
+            { '$lookup': { 'from': 'state_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict }, { '$group': { '_id': '$state', 'data': { '$push': '$data' } } } ], 'as': 'data' } }, 
+            { '$unwind': { 'path': '$data' } }, 
+            { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { 'data': '$data.data' } ] } } },
+            self.db.pp.collateData(),
+            {"$sort": { "startdate": 1 }},
+            {"$replaceRoot": { "newRoot": { "month": "$month", "period": "$period", "data": "$data" } }}
+        ]
+        pipeline.append(Analytics.addMissingFields("data"))
+        pipeline.extend(Analytics.addDerivedMetrics("data"))
+        pipeline.append(Analytics.getProjectionStage('State Detail', req.collatetype))
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        data = await self.db.aggregate(pipeline)
+        months = [{"month": x['month'], "period": x['period']} for x in data]
+        data = Analytics.transformData('State Detail',data, req)
+        return {"columns": months, "rows": data[0]['items']}
         
+    
+    # async def getAllStateWithMonths(self, req: MonthDataRequest):
+    #     month = next((Month.model_validate(x) for x in (await self.getMonths()) if x['month']==req.month), None)
+    #     if not month: return ValueError("Invalid Month")
+    #     pipeline = self.getPipelineForStateDataBetweenTwoDates(req, month.startdate, month.enddate)
+    #     pipeline.append(Analytics.getProjectionStage('State Lite', req.collatetype))
+    #     pipeline.append(Analytics.getProjectionStage('State Lite', req.collatetype))
+    #     from dzgroshared.utils import mongo_pipeline_print
+    #     mongo_pipeline_print.copy_pipeline(pipeline)
+    #     data = await self.db.aggregate(pipeline)
+    #     data = Analytics.transformData('State Lite',data, req)
+    #     return {"data": [{"state": item['state'], 'data': item['data'][0]['items'] if len(item['data']) > 0 and 'items' in item['data'][0] else []} for item in data]}
+
     async def getMonths(self):
         def last_day_of_month(year: int, month: int) -> int:
             """Return the last day number (28–31) of the given month."""

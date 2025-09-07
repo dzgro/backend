@@ -2,11 +2,10 @@ from typing import Literal
 from dzgroshared.models.enums import AnalyticsMetric, AnalyticsMetricOperation, CollateType, AnalyticGroupMetricLabel
 from dzgroshared.models.model import AnalyticKeyGroup, AnalyticKeylabelValue, LabelValue, MetricCalculation, MetricDetail, MetricGroup, MetricItem
 
-SchemaType = Literal['Period','Comparison', 'Month']
-
-
 METRIC_CALCULATIONS: list[MetricCalculation] = [
     MetricCalculation( metric=AnalyticsMetric.REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_REVENUE, AnalyticsMetric.FBA_REVENUE]),
+    MetricCalculation( metric=AnalyticsMetric.FBA_REVENUE_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBA_REVENUE, AnalyticsMetric.REVENUE], level=1),
+    MetricCalculation( metric=AnalyticsMetric.FBM_REVENUE_PERCENTAGE, operation=AnalyticsMetricOperation.DIVIDE, metrics=[AnalyticsMetric.FBM_REVENUE, AnalyticsMetric.REVENUE], level=1),
     MetricCalculation( metric=AnalyticsMetric.RETURN_VALUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_RETURN_VALUE, AnalyticsMetric.FBA_RETURN_VALUE] ),
     MetricCalculation( metric=AnalyticsMetric.FBM_NET_REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBM_REVENUE, AnalyticsMetric.FBM_RETURN_VALUE] ),
     MetricCalculation( metric=AnalyticsMetric.FBA_NET_REVENUE, operation=AnalyticsMetricOperation.SUM, metrics=[AnalyticsMetric.FBA_REVENUE, AnalyticsMetric.FBA_RETURN_VALUE] ),
@@ -64,8 +63,13 @@ METRIC_CALCULATIONS: list[MetricCalculation] = [
 ]
 
 
-MetricDetails: list[MetricDetail] = [
+METRIC_DETAILS: list[MetricDetail] = [
+    MetricDetail( metric=AnalyticsMetric.TOTAL, ispercentage=False, label="Total Revenue"),
     MetricDetail( metric=AnalyticsMetric.NET_REVENUE, ispercentage=False, label="Net Revenue", description="Total value of orders after returns including tax"),
+    MetricDetail( metric=AnalyticsMetric.FBA, ispercentage=False, label="FBA/Flex++", description="Amazon Fulfillment via FBA or Flex or others similar"),
+    MetricDetail( metric=AnalyticsMetric.FBM, ispercentage=False, label="Merchant Fulfilled", description="Easy Ship or Self Ship"),
+    MetricDetail( metric=AnalyticsMetric.FBA_REVENUE_PERCENTAGE, ispercentage=False, label="FBA Revenue %", description="FBA Revenue as a percentage of total revenue"),
+    MetricDetail( metric=AnalyticsMetric.FBM_REVENUE_PERCENTAGE, ispercentage=False, label="FBM Revenue %", description="FBM Revenue as a percentage of total revenue"),
     MetricDetail( metric=AnalyticsMetric.FBM_NET_REVENUE, ispercentage=False, label="FBM Net Revenue", description="Total value of FBM orders after returns including tax"),
     MetricDetail( metric=AnalyticsMetric.FBA_NET_REVENUE, ispercentage=False, label="FBA Net Revenue", description="Total value of FBA orders after returns including tax"),
     MetricDetail( metric=AnalyticsMetric.REVENUE, ispercentage=False, label="Gross Revenue", description="Total value of purchases including tax" ),
@@ -157,38 +161,339 @@ MetricDetails: list[MetricDetail] = [
     MetricDetail( metric=AnalyticsMetric.GROSS_EXPENSES, ispercentage=False, label="Gross Profit", description="Total revenue minus cost of goods sold"),
 ]
 
-def getMetricGroupsBySchemaType(schemaType: SchemaType, collatetype: CollateType) -> list[MetricGroup]:
-    groups = PERIOD_METRICS if schemaType=='Period' else COMPARISON_METRICS if schemaType=='Comparison' else MONTH_CAROUSEL
-    if collatetype==CollateType.SKU:
-        groups = [g for g in PERIOD_METRICS if g.metric!=AnalyticGroupMetricLabel.TRAFFIC]
-    return groups
 
+PERCENT_FIELDS = [d.metric.value for d in METRIC_DETAILS if d.ispercentage]
+NON_PERCENT_FIELDS = [d.metric.value for d in METRIC_DETAILS if not d.ispercentage]
 
-def getSchema(schemaType: SchemaType, collatetype: CollateType) -> list[dict]:
-    groups = getMetricGroupsBySchemaType(schemaType, collatetype)
-    return [s.model_dump(mode="json") for s in groups]
-    
-
-PERCENT_FIELDS = [d.metric.value for d in MetricDetails if d.ispercentage]
-NON_PERCENT_FIELDS = [d.metric.value for d in MetricDetails if not d.ispercentage]
-
-MONTH_CAROUSEL: list[MetricGroup] = [
+STATE_LITE_METRICS: list[MetricGroup] = [
     MetricGroup(
-        metric=AnalyticGroupMetricLabel.SALES, items = [
+        metric=AnalyticGroupMetricLabel.STATE_LITE, items = [
+                    MetricItem(metric=AnalyticsMetric.NET_REVENUE),
+                    MetricItem(metric=AnalyticsMetric.FBA_REVENUE_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.NET_ORDERS),
+                    MetricItem(metric=AnalyticsMetric.NET_QUANTITY),
+                    MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS)
+        ])
+    ]
+
+STATE_DETAILED_METRICS: list[MetricGroup] = [
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.STATE_DETAILED, items = [
+                    MetricItem(metric=AnalyticsMetric.NET_REVENUE, items=[
+                        MetricItem(metric=AnalyticsMetric.REVENUE),
+                        MetricItem(metric=AnalyticsMetric.RETURN_VALUE),
+                        MetricItem(metric=AnalyticsMetric.FBA, items=[
+                            MetricItem(metric=AnalyticsMetric.FBA_REVENUE),
+                            MetricItem(metric=AnalyticsMetric.FBA_RETURN_VALUE),
+                            MetricItem(metric=AnalyticsMetric.FBA_REVENUE_PERCENTAGE)
+                        ]),
+                        MetricItem(metric=AnalyticsMetric.FBM, items=[
+                            MetricItem(metric=AnalyticsMetric.FBM_REVENUE),
+                            MetricItem(metric=AnalyticsMetric.FBM_RETURN_VALUE),
+                            MetricItem(metric=AnalyticsMetric.FBM_REVENUE_PERCENTAGE)
+                        ]),
+                    ]),
+                    MetricItem(metric=AnalyticsMetric.NET_ORDERS, items=[
+                        MetricItem(metric=AnalyticsMetric.ORDERS),
+                        MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS),
+                        MetricItem(metric=AnalyticsMetric.FBA, items=[
+                            MetricItem(metric=AnalyticsMetric.FBA_NET_ORDERS),
+                            MetricItem(metric=AnalyticsMetric.FBA_ORDERS),
+                            MetricItem(metric=AnalyticsMetric.FBA_CANCELLED_ORDERS)
+                        ]),
+                        MetricItem(metric=AnalyticsMetric.FBM, items=[
+                            MetricItem(metric=AnalyticsMetric.FBM_NET_ORDERS),
+                            MetricItem(metric=AnalyticsMetric.FBM_ORDERS),
+                            MetricItem(metric=AnalyticsMetric.FBM_CANCELLED_ORDERS)
+                        ])
+                    ]),
+                    MetricItem(metric=AnalyticsMetric.NET_QUANTITY, items=[
+                        MetricItem(metric=AnalyticsMetric.QUANTITY),
+                        MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY),
+                        MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE),
+                        MetricItem(metric=AnalyticsMetric.FBA, items=[
+                            MetricItem(metric=AnalyticsMetric.FBA_NET_QUANTITY),
+                            MetricItem(metric=AnalyticsMetric.FBA_QUANTITY),
+                            MetricItem(metric=AnalyticsMetric.FBA_RETURN_QUANTITY),
+                            MetricItem(metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE)
+                        ]),
+                        MetricItem(metric=AnalyticsMetric.FBM, items=[
+                            MetricItem(metric=AnalyticsMetric.FBM_NET_QUANTITY),
+                            MetricItem(metric=AnalyticsMetric.FBM_QUANTITY),
+                            MetricItem(metric=AnalyticsMetric.FBM_RETURN_QUANTITY),
+                            MetricItem(metric=AnalyticsMetric.FBM_RETURN_PERCENTAGE)
+                        ])
+                    ]),
+                    MetricItem(metric=AnalyticsMetric.GROSS_EXPENSES, items=[
+                        MetricItem(metric=AnalyticsMetric.FEES),
+                        MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES),
+                        MetricItem(metric=AnalyticsMetric.FBA, items=[
+                            MetricItem(metric=AnalyticsMetric.FBA_FEES),
+                            MetricItem(metric=AnalyticsMetric.FBA_NON_FEES_EXPENSES),
+                        ]),
+                        MetricItem(metric=AnalyticsMetric.FBM, items=[
+                            MetricItem(metric=AnalyticsMetric.FBM_FEES),
+                            MetricItem(metric=AnalyticsMetric.FBM_NON_FEES_EXPENSES),
+                        ])
+                    ]),
+                    MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS, items=[
+                        MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE),
+                        MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT),
+                        MetricItem(metric=AnalyticsMetric.FBA, items=[
+                            MetricItem(metric=AnalyticsMetric.FBA_NET_PROCEEDS),
+                            MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PERCENTAGE),
+                            MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PER_UNIT),
+                        ]),
+                        MetricItem(metric=AnalyticsMetric.FBM, items=[
+                            MetricItem(metric=AnalyticsMetric.FBM_NET_PROCEEDS),
+                            MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PERCENTAGE),
+                            MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PER_UNIT),
+                        ])
+                    ]),
+        ])
+    ]
+
+ALL_STATE_METRICS: list[MetricGroup] = [
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.STATE_DETAILED, items = [
+            MetricItem(metric=AnalyticsMetric.REVENUE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_REVENUE),
+                MetricItem(metric=AnalyticsMetric.FBM_REVENUE),
+                MetricItem(metric=AnalyticsMetric.REVENUE, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.RETURN_VALUE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_RETURN_VALUE),
+                MetricItem(metric=AnalyticsMetric.FBM_RETURN_VALUE),
+                MetricItem(metric=AnalyticsMetric.RETURN_VALUE, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NET_REVENUE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_REVENUE),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_REVENUE),
+                MetricItem(metric=AnalyticsMetric.NET_REVENUE, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.ORDERS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_ORDERS),
+                MetricItem(metric=AnalyticsMetric.FBM_ORDERS),
+                MetricItem(metric=AnalyticsMetric.ORDERS, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_CANCELLED_ORDERS),
+                MetricItem(metric=AnalyticsMetric.FBM_CANCELLED_ORDERS),
+                MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NET_ORDERS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_ORDERS),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_ORDERS),
+                MetricItem(metric=AnalyticsMetric.NET_ORDERS, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.QUANTITY, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.FBM_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.QUANTITY, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_RETURN_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.FBM_RETURN_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NET_QUANTITY, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.NET_QUANTITY, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.FBM_RETURN_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_AVERAGE_SALE_PRICE),
+                MetricItem(metric=AnalyticsMetric.FBM_AVERAGE_SALE_PRICE),
+                MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.FEES, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_FEES),
+                MetricItem(metric=AnalyticsMetric.FBM_FEES),
+                MetricItem(metric=AnalyticsMetric.FEES, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NON_FEES_EXPENSES),
+                MetricItem(metric=AnalyticsMetric.FBM_NON_FEES_EXPENSES),
+                MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.GROSS_EXPENSES, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_EXPENSES),
+                MetricItem(metric=AnalyticsMetric.FBM_EXPENSES),
+                MetricItem(metric=AnalyticsMetric.GROSS_EXPENSES, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_PROCEEDS),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_PROCEEDS),
+                MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE, label="Total"),
+            ]),
+            MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PER_UNIT),
+                MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PER_UNIT),
+                MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT, label="Total"),
+            ]),
+        ])
+    ]
+
+MONTH_METRICS: list[MetricGroup] = [
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.SALES, items=[
+            MetricItem(metric=AnalyticsMetric.REVENUE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_REVENUE),
+                MetricItem(metric=AnalyticsMetric.FBM_REVENUE),
+            ]),
+            MetricItem(metric=AnalyticsMetric.RETURN_VALUE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_RETURN_VALUE),
+                MetricItem(metric=AnalyticsMetric.FBM_RETURN_VALUE),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NET_REVENUE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_REVENUE),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_REVENUE),
+            ]),
+            MetricItem(metric=AnalyticsMetric.ORDERS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_ORDERS),
+                MetricItem(metric=AnalyticsMetric.FBM_ORDERS),
+            ]),
+            MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_CANCELLED_ORDERS),
+                MetricItem(metric=AnalyticsMetric.FBM_CANCELLED_ORDERS),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NET_ORDERS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_ORDERS),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_ORDERS),
+            ]),
+            MetricItem(metric=AnalyticsMetric.QUANTITY, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.FBM_QUANTITY),
+            ]),
+            MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_RETURN_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.FBM_RETURN_QUANTITY),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NET_QUANTITY, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_QUANTITY),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_QUANTITY),
+            ]),
+            MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.FBM_RETURN_PERCENTAGE),
+            ]),
+            MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_AVERAGE_SALE_PRICE),
+                MetricItem(metric=AnalyticsMetric.FBM_AVERAGE_SALE_PRICE),
+            ]),
+            MetricItem(metric=AnalyticsMetric.FEES, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_FEES),
+                MetricItem(metric=AnalyticsMetric.FBM_FEES),
+            ]),
+            MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NON_FEES_EXPENSES),
+                MetricItem(metric=AnalyticsMetric.FBM_NON_FEES_EXPENSES),
+            ]),
+            MetricItem(metric=AnalyticsMetric.GROSS_EXPENSES, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_EXPENSES),
+                MetricItem(metric=AnalyticsMetric.FBM_EXPENSES),
+            ]),
+            MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_NET_PROCEEDS),
+                MetricItem(metric=AnalyticsMetric.FBM_NET_PROCEEDS),
+            ]),
+            MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PERCENTAGE),
+            ]),
+            MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT, items=[
+                MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PER_UNIT),
+                MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PER_UNIT),
+            ]),
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.ADVERTISEMENT, items = [
+            MetricItem(metric=AnalyticsMetric.IMPRESSIONS),
+            MetricItem(metric=AnalyticsMetric.CLICKS),
+            MetricItem(metric=AnalyticsMetric.CTR),
+            MetricItem(metric=AnalyticsMetric.SPEND),
+            MetricItem(metric=AnalyticsMetric.CPC),
+            MetricItem(metric=AnalyticsMetric.AD_UNITS),
+            MetricItem(metric=AnalyticsMetric.AD_ORDERS),
+            MetricItem(metric=AnalyticsMetric.CVR),
+            MetricItem(metric=AnalyticsMetric.AD_SALES),
+            MetricItem(metric=AnalyticsMetric.ACOS),
+            MetricItem(metric=AnalyticsMetric.ROAS),
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.TRAFFIC, items = [
+            MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
+            MetricItem(metric=AnalyticsMetric.BUY_BOX_PERCENTAGE),
+            MetricItem(metric=AnalyticsMetric.SESSIONS, items=[
+                MetricItem(metric=AnalyticsMetric.BROWSER_SESSIONS),
+                MetricItem(metric=AnalyticsMetric.BROWSER_SESSIONS_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.MOBILE_APP_SESSIONS),
+                MetricItem(metric=AnalyticsMetric.MOBILE_APP_SESSIONS_PERCENTAGE)
+            ]),
+            MetricItem(metric=AnalyticsMetric.PAGE_VIEWS, items=[
+                MetricItem(metric=AnalyticsMetric.BROWSER_PAGE_VIEWS),
+                MetricItem(metric=AnalyticsMetric.BROWSER_PAGE_VIEWS_PERCENTAGE),
+                MetricItem(metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS),
+                MetricItem(metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS_PERCENTAGE)
+            ])
+        ])
+]
+
+MONTH_METER_GROUPS: list[MetricGroup] = [
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.MONTH_SESSIONS_METER_GROUPS, items = [
                     MetricItem(metric=AnalyticsMetric.BROWSER_PAGE_VIEWS_PERCENTAGE),
-                    MetricItem(metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.MOBILE_APP_PAGE_VIEWS_PERCENTAGE)
+    ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.MONTH_PAGE_VIEWS_METER_GROUPS, items = [
                     MetricItem(metric=AnalyticsMetric.BROWSER_SESSIONS_PERCENTAGE),
                     MetricItem(metric=AnalyticsMetric.MOBILE_APP_SESSIONS_PERCENTAGE),
-                    MetricItem(metric=AnalyticsMetric.FBA_REVENUE),
-                    MetricItem(metric=AnalyticsMetric.FBM_REVENUE),
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.MONTH_CHANNEL_SALES_METER_GROUPS, items = [
+                    MetricItem(metric=AnalyticsMetric.FBA_REVENUE_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.FBM_REVENUE_PERCENTAGE),
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.MONTH_CHANNEL_PROCEEDS_METER_GROUPS, items = [
                     MetricItem(metric=AnalyticsMetric.FBA_NET_PROCEEDS),
                     MetricItem(metric=AnalyticsMetric.FBM_NET_PROCEEDS),
+        ])
+    ]
+
+MONTH_BARS: MetricGroup = MetricGroup(
+        metric=AnalyticGroupMetricLabel.MONTH_BARS, items = [
                     MetricItem(metric=AnalyticsMetric.TACOS),
                     MetricItem(metric=AnalyticsMetric.ACOS),
                     MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE),
-                    MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE)
+                    MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.BUY_BOX_PERCENTAGE),
         ])
-    ]
+
+MONTH_DATA = MetricGroup(
+        metric=AnalyticGroupMetricLabel.MONTH_DATA, items = [
+                    MetricItem(metric=AnalyticsMetric.NET_REVENUE),
+                    MetricItem(metric=AnalyticsMetric.ORDERS),
+                    MetricItem(metric=AnalyticsMetric.QUANTITY),
+                    MetricItem(metric=AnalyticsMetric.NET_PROCEEDS),
+                    MetricItem(metric=AnalyticsMetric.SPEND),
+                    MetricItem(metric=AnalyticsMetric.AD_SALES),
+                    MetricItem(metric=AnalyticsMetric.AD_UNITS),
+                    MetricItem(metric=AnalyticsMetric.ROAS),
+        ])
 
 PERIOD_METRICS: list[MetricGroup] = [
     MetricGroup(
@@ -319,45 +624,6 @@ COMPARISON_METRICS: list[MetricGroup] = [
                     MetricItem(metric=AnalyticsMetric.ROAS)
         ])
 ]
-
-def getAllMetricsInGroup(groups: list[MetricGroup]) -> list[AnalyticsMetric]:
-    metrics: list[AnalyticsMetric] = []
-    for group in groups:
-        for item in group.items:
-            metrics.append(item.metric)
-            for subitem in (item.items or []):
-                metrics.append(subitem.metric)
-                for subsubitem in (subitem.items or []):
-                    metrics.append(subsubitem.metric)
-    return metrics
-
-def getMetricGroupsProjection(schemaType: SchemaType, collateType: CollateType):
-    groups = getMetricGroupsBySchemaType(schemaType, collateType)
-    metrics = getAllMetricsInGroup(groups)
-    return [metric.value for metric in metrics]
-
-def getProjectionStage(schemaType: SchemaType, collateType: CollateType):
-    projection = getMetricGroupsProjection(schemaType, collateType)
-    return { '$set': { 'data': { '$arrayToObject': { '$reduce': { 'input': { '$objectToArray': '$data' }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$cond': { 'if': { '$in': [ '$$this.k', projection ] }, 'then': [ '$$this' ], 'else': [] } } ] } } } } } }
-
-def getAnalyticsGroups():
-    data: list[AnalyticKeyGroup] = []
-    for val in AnalyticGroupMetricLabel.values():
-        keys: list[AnalyticsMetric] = []
-        periodGroup = next((g for g in PERIOD_METRICS if g.metric==val), None)
-        comparisonGroup = next((g for g in COMPARISON_METRICS if g.metric==val), None)
-        if periodGroup:
-            keys.extend(getAllMetricsInGroup([periodGroup]))
-        if comparisonGroup:
-            keys.extend(getAllMetricsInGroup([comparisonGroup]))
-        keys = list(set(keys))
-        metrics: list[AnalyticKeylabelValue] = []
-        for k in keys:
-            label = next((d.label for d in MetricDetails if d.metric==k), None)
-            if label:
-                metrics.append(AnalyticKeylabelValue(label=label, value=k))
-        data.append(AnalyticKeyGroup(label=val, items=metrics))
-    return data
 
 
 

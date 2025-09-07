@@ -1,18 +1,48 @@
 from typing import Literal
 from bson import ObjectId
 from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, PeriodDataRequest
-from dzgroshared.models.enums import AnalyticsMetric, AnalyticsMetricOperation, CollateType, CollectionType, CountryCode
-from dzgroshared.models.model import StartEndDate
-from dzgroshared.models.extras import Analytics
+from dzgroshared.models.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsMetricOperation, CollateType, CollectionType, CountryCode
+from dzgroshared.models.model import AnalyticKeyGroup, AnalyticKeylabelValue, MetricGroup, MetricItem, StartEndDate
+from dzgroshared.models.extras.Analytics import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS
+SchemaType = Literal['Period','Comparison', 'Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month']
+
+GroupBySchema: dict[SchemaType, list[MetricGroup]] = {
+    'Period': PERIOD_METRICS,
+    'Comparison': COMPARISON_METRICS,
+    'Month Meters': MONTH_METER_GROUPS,
+    'Month Bars': [MONTH_BARS],
+    'Month Data': [MONTH_DATA],
+    'Month': MONTH_METRICS,
+    'State Lite': STATE_LITE_METRICS,
+    'State Detail': STATE_DETAILED_METRICS,
+    'State All': ALL_STATE_METRICS,
+}
 
 
-def transformData(schemaType: Analytics.SchemaType, data: list[dict], req: PeriodDataRequest):
-    schema = Analytics.getSchema(schemaType, req.collatetype)
-    return [{**d, "data": [transformPeriodData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
+def getSchema(schemaType: SchemaType, collatetype: CollateType) -> list[dict]:
+    groups = getMetricGroupsBySchemaType(schemaType, collatetype)
+    return [s.model_dump(mode="json") for s in groups]
+
+def transformData(schemaType: SchemaType, data: list[dict], req: PeriodDataRequest):
+    schema = getSchema(schemaType, req.collatetype)
+    if schemaType=='Comparison':
+        return [{**d, "data": [transformComparisonData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
+    elif schemaType == 'State Detail':
+        return [transformStateData(s, data, req.countrycode, 1) for s in schema]
+    elif schemaType == 'State All':
+        return transformStateAllData(GroupBySchema[schemaType], data, req.countrycode)
+    elif schemaType == 'Month':
+        return transformMonthData(GroupBySchema[schemaType], data, req.countrycode)
+    else: return [{**d, "data": [transformPeriodData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
 
 
-percent_fields = [d.metric.value for d in Analytics.MetricDetails if d.ispercentage]
-non_percent_fields = [d.metric.value for d in Analytics.MetricDetails if not d.ispercentage]
+def getMetricGroupsBySchemaType(schemaType: SchemaType, collatetype: CollateType) -> list[MetricGroup]:
+    groups = GroupBySchema[schemaType]
+    if collatetype==CollateType.SKU: return [g for g in groups if g.metric!=AnalyticGroupMetricLabel.TRAFFIC]
+    return groups
+
+percent_fields = [d.metric.value for d in METRIC_DETAILS if d.ispercentage]
+non_percent_fields = [d.metric.value for d in METRIC_DETAILS if not d.ispercentage]
 
 def addMissingFields(data_key: str = "data"):
     return { "$addFields": {f"{data_key}.{key.value}": {"$round": [{ "$ifNull": [f"${data_key}.{key.value}", 0] },2]} for key in AnalyticsMetric.values()} }
@@ -46,13 +76,13 @@ def transformPeriodData(schema: dict, data: dict, countrycode: CountryCode, leve
     if level > 1 and "metric" in schema:
         key = AnalyticsMetric(schema['metric'])
         value = data.get(key.value, None)
-        detail = next((d for d in Analytics.MetricDetails if d.metric == key), None)
+        detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
         if detail:
             result['label'] = detail.label
             result['description'] = detail.description
         else: 
             result['label'] = schema['metric']
-        result["value"] = value
+        result["value"] = round(value,2) if isinstance(value, float) else value
         result["valueString"] = format_number(value, key, countrycode)
     if schema.get("items"):
         result["items"] = [
@@ -67,13 +97,13 @@ def transformComparisonData(schema: dict, data: dict, countrycode: CountryCode, 
         if level > 1 and "metric" in schema:
             key = AnalyticsMetric(schema['metric'])
             value = data.get(key.value, {})
-            detail = next((d for d in Analytics.MetricDetails if d.metric == key), None)
+            detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
             if detail:
                 result['label'] = detail.label
                 result['description'] = detail.description
                 for k,v in value.items():
                     result[k] = {
-                        "value": v,
+                        "value": round(v,2) if isinstance(v, float) else v,
                         "valueString": format_number(v, key, countrycode, k=='growth'),
                     }
                 result['value'] =  f'{result['curr']['value']} vs {result['pre']['value']}'
@@ -102,6 +132,84 @@ def transformCurrPreData(data: list[dict], countrycode: CountryCode):
         item.update(newData)
     return data
 
+def transformStateData(schema: dict, data: list[dict], countrycode: CountryCode, level=1):
+    result: dict = {"label": schema['metric'], "values": []}
+    if level > 1 and "metric" in schema:
+        key = AnalyticsMetric(schema['metric'])
+        for item in data:
+            value = item['data'].get(key.value, None)
+            detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
+            if detail:
+                result['label'] = detail.label
+                result['description'] = detail.description
+            else: 
+                result['label'] = schema['metric']
+            result['values'].append({
+                "value": round(value,2) if isinstance(value, float) else value,
+                "valueString": format_number(value, key, countrycode)
+            })
+    if schema.get("items"):
+        result["items"] = [
+            transformStateData(item, data, countrycode, level + 1)
+            for item in schema["items"]
+        ]
+    return result
+
+def transformStateAllData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
+    metrics: list[AnalyticsMetric] = []
+    for s in schema:
+        for ss in (s.items or []):
+            if not s.items: # single level
+                metrics.append(ss.metric)
+                continue
+            for sss in (ss.items or []):
+                metrics.append(sss.metric)
+    result: list[dict] = []
+    for metric in metrics:
+        for item in data:
+            value = item['data'].get(metric.value, None)
+            index = next((i for i, d in enumerate(result) if d['state']==item['state']), None)
+            if index is None:
+                result.append({"state": item['state'], 'values': []})
+                index = len(result)-1
+            result[index]['values'].append({
+                "value": round(value,2) if isinstance(value, float) else value,
+                "valueString": format_number(value, metric, countrycode)
+            })
+    return result
+
+def transformMonthData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
+
+    def getResultItem(metric: MetricItem):
+        try:
+            result = {}
+            detail = next((d for d in METRIC_DETAILS if d.metric == metric.metric), None)
+            if detail:
+                result: dict = {"label": metric.label or detail.label, "values": [], "description": detail.description}
+                for item in data:
+                    value = item['data'].get(metric.metric.value, None)
+                    result['values'].append({
+                        "value": round(value,2) if isinstance(value, float) else value,
+                        "valueString": format_number(value, metric.metric, countrycode)
+                    })
+            return result
+        except Exception as e:
+            print(e)
+            raise e
+
+    result: list[dict] = []
+    for s in schema:
+        resultItem: dict = {"label": s.metric.value, "items": []}
+        for ss in (s.items or []):
+            subItem = getResultItem(ss)
+            if ss.items:
+                subItem["items"] = [getResultItem(sss) for sss in (ss.items or [])]
+            resultItem["items"].append(subItem)
+        result.append(resultItem)
+    return result
+
+
+
 def addDerivedMetrics(data_key: str = "data"):
     level1: dict = {}
     level2: dict = {}
@@ -109,7 +217,7 @@ def addDerivedMetrics(data_key: str = "data"):
     level4: dict = {}
     level5: dict = {}
     dk = f"${data_key}."
-    for item in Analytics.METRIC_CALCULATIONS:
+    for item in METRIC_CALCULATIONS:
         result: dict = {}
         if item.operation == AnalyticsMetricOperation.SUM:
             result = { "$sum": [f"{dk}{m.value}" for m in item.metrics] }
@@ -146,12 +254,12 @@ def getQueriesPipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
         pipeline.append({ '$lookup': { 'from': 'date_analytics', 'let': { 'currdates': '$currdates','predates': '$predates', 'collatetype': "$collatetype", 'dates': {"$setUnion": {"$concatArrays": ["$currdates","$predates"]}} }, 'pipeline': [ { '$match': { '$expr': { '$and': [ {"$eq": ["$uid", uid]},{"$eq": ["$marketplace", marketplace]},{"$eq": ["$collatetype", "$$collatetype"]},{ '$in': [ '$date', '$$dates' ] } ] } } }, { '$group': { '_id': { 'collatetype': '$collatetype', 'value': '$value', 'parent': '$parent' }, 'data': { '$push': '$$ROOT' } } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { '$reduce': { 'input': '$data', 'initialValue': { 'curr': [], 'pre': [] }, 'in': { '$mergeObjects': [ '$$value', { '$cond': { 'if': { '$in': [ '$$this.date', "$$currdates" ] }, 'then': { 'curr': { '$concatArrays': [ '$$value.curr', [ '$$this.data' ] ] } }, 'else': { '$cond': { 'if': { '$in': [ '$$this.date', "$$predates" ] }, 'then': { 'pre': { '$concatArrays': [ '$$value.pre', [ '$$this.data' ] ] } }, 'else': {} } } } } ] } } } ] } } }, { '$set': { 'curr': { '$reduce': { 'input': '$curr', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } }, 'pre': { '$reduce': { 'input': '$pre', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } } } } ], 'as': 'data' } })
         pipeline.extend([{ '$unwind': { 'path': '$data', 'preserveNullAndEmptyArrays': False } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$data', { 'queryid': '$_id' } ] } } }])
         from dzgroshared.db.extras import Analytics
-        pipeline.append(Analytics.addMissingFields('curr'))
-        pipeline.extend(Analytics.addDerivedMetrics('curr'))
-        pipeline.append(Analytics.addMissingFields('pre'))
-        pipeline.extend(Analytics.addDerivedMetrics('pre'))
-        pipeline.append(Analytics.addGrowth())
-        pipeline.append(Analytics.create_comparison_data())
+        pipeline.append(addMissingFields('curr'))
+        pipeline.extend(addDerivedMetrics('curr'))
+        pipeline.append(addMissingFields('pre'))
+        pipeline.extend(addDerivedMetrics('pre'))
+        pipeline.append(addGrowth())
+        pipeline.append(create_comparison_data())
         pipeline.append({"$set": {"uid": uid, "marketplace": marketplace}})
         pipeline.extend([{"$project": {"curr": 0, "pre": 0,'growth':0}}, {"$merge": {"into":CollectionType.QUERY_RESULTS.value, "whenMatched": "merge", "whenNotMatched": "insert"}}])
         from dzgroshared.utils import mongo_pipeline_print
@@ -159,7 +267,47 @@ def getQueriesPipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
         return pipeline
 
 
+def getAllMetricsInGroup(groups: list[MetricGroup]) -> list[AnalyticsMetric]:
+    metrics: list[AnalyticsMetric] = []
+    for group in groups:
+        for item in group.items:
+            metrics.append(item.metric)
+            for subitem in (item.items or []):
+                metrics.append(subitem.metric)
+                for subsubitem in (subitem.items or []):
+                    metrics.append(subsubitem.metric)
+    return metrics
+
+def getMetricGroupsProjection(schemaType: SchemaType, collateType: CollateType):
+    groups = getMetricGroupsBySchemaType(schemaType, collateType)
+    metrics = getAllMetricsInGroup(groups)
+    return [metric.value for metric in metrics]
+
+def getProjectionStage(schemaType: SchemaType, collateType: CollateType):
+    projection = getMetricGroupsProjection(schemaType, collateType)
+    return { '$set': { 'data': { '$arrayToObject': { '$reduce': { 'input': { '$objectToArray': '$data' }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', { '$cond': { 'if': { '$in': [ '$$this.k', projection ] }, 'then': [ '$$this' ], 'else': [] } } ] } } } } } }
+
+def getAnalyticsGroups():
+    data: list[AnalyticKeyGroup] = []
+    for val in AnalyticGroupMetricLabel.values():
+        keys: list[AnalyticsMetric] = []
+        periodGroup = next((g for g in PERIOD_METRICS if g.metric==val), None)
+        comparisonGroup = next((g for g in COMPARISON_METRICS if g.metric==val), None)
+        if periodGroup:
+            keys.extend(getAllMetricsInGroup([periodGroup]))
+        if comparisonGroup:
+            keys.extend(getAllMetricsInGroup([comparisonGroup]))
+        keys = list(set(keys))
+        metrics: list[AnalyticKeylabelValue] = []
+        for k in keys:
+            label = next((d.label for d in METRIC_DETAILS if d.metric==k), None)
+            if label:
+                metrics.append(AnalyticKeylabelValue(label=label, value=k))
+        data.append(AnalyticKeyGroup(label=val, items=metrics))
+    return data
+
+
 # for x in AnalyticsMetric.values():
-#     if x not in [c.metric for c in Analytics.MetricDetails]:
+#     if x not in [c.metric for c in MetricDetails]:
 #         print(x.value)
 # print("Done")

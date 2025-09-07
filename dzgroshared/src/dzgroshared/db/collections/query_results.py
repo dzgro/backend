@@ -73,8 +73,7 @@ class QueryResultsHelper:
         filterDict = {"collatetype": req.collatetype.value, "queryid": ObjectId(req.queryId)}
         if req.value: filterDict.update({"value": req.value})
         from dzgroshared.db.extras import Analytics
-        from dzgroshared.models.extras import Analytics as AnalyticsModel
-        pipeline = [self.db.pp.matchMarketplace(filterDict), AnalyticsModel.getProjectionStage('Comparison', req.collatetype)]
+        pipeline = [self.db.pp.matchMarketplace(filterDict), Analytics.getProjectionStage('Comparison', req.collatetype)]
         from dzgroshared.utils import mongo_pipeline_print
         mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.db.aggregate(pipeline)

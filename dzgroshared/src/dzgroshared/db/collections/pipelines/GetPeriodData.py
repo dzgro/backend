@@ -391,12 +391,11 @@ def pipeline(pp: PipelineProcessor, req: PeriodDataRequest):
     }
 ]
     from dzgroshared.db.extras import Analytics
-    from dzgroshared.models.extras import Analytics as AnalyticsModel
     missingkeys = Analytics.addMissingFields("data")
     derivedmetrics = Analytics.addDerivedMetrics("data")
     pipeline.append(missingkeys)
     pipeline.extend(derivedmetrics)
-    pipeline.append(AnalyticsModel.getProjectionStage('Period', req.collatetype))
+    pipeline.append(Analytics.getProjectionStage('Period', req.collatetype))
     from dzgroshared.utils import mongo_pipeline_print
     mongo_pipeline_print.copy_pipeline(pipeline)
     return pipeline

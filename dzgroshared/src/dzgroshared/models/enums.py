@@ -572,6 +572,15 @@ class AnalyticGroupMetricLabel(str, Enum):
     PROCEEDS = "Proceeds"
     ADVERTISEMENT = "Advertisement"
     TRAFFIC = "Traffic"
+    MONTH_SESSIONS_METER_GROUPS = "Session by Device"
+    MONTH_PAGE_VIEWS_METER_GROUPS = "Page View by Device"
+    MONTH_CHANNEL_SALES_METER_GROUPS = "Revenue by Channel"
+    MONTH_CHANNEL_PROCEEDS_METER_GROUPS = "Gross Proceeds by Channel"
+    MONTH_BARS = "Month Bars"
+    MONTH_DATA = "Month Data"
+    STATE_LITE = "State Lite"
+    STATE_DETAILED = "State Detailed"
+    MONTH_DETAILED = "Month Detailed"    
 
     @staticmethod
     def values():
@@ -584,15 +593,20 @@ class AnalyticsMetricOperation(str, Enum):
     MULTIPLY = "MULTIPLY"
 
 class AnalyticsMetric(str, Enum):
+    FBM = "fbm"
+    FBA = "fba"
     FBM_REVENUE = "fbmrevenue"
     FBA_REVENUE = "fbarevenue"
     REVENUE = "revenue"
+    TOTAL = "total"
     PRE_TAX_REVENUE = "pretaxrevenue"
     FBA_TAX = "fbatax"
     FBM_TAX = "fbmtax"
     TAX = "tax"
     FBA_NET_REVENUE = "fbanetrevenue"
     FBM_NET_REVENUE = "fbmnetrevenue"
+    FBA_REVENUE_PERCENTAGE = "fbarevenuepercentage"
+    FBM_REVENUE_PERCENTAGE = "fbmrevenuepercentage"
     NET_REVENUE = "netrevenue"
     FBM_ORDERS = "fbmorders"
     FBA_ORDERS = "fbaorders"

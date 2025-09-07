@@ -1,9 +1,9 @@
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
-from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, MonthDataRequest, PeriodDataRequest, SingleMetricPeriodDataRequest
+import inspect
 from dzgroshared.models.enums import ENVIRONMENT, AnalyticsMetric, CollateType, CountryCode, QueueName
-from dzgroshared.models.model import AnalyticsPeriodData, DataCollections, MockLambdaContext, PyObjectId, StartEndDate
+from dzgroshared.models.model import DataCollections, MockLambdaContext, PyObjectId, StartEndDate
 
 
 client = DzgroSharedClient(ENVIRONMENT.LOCAL)
@@ -20,9 +20,9 @@ countrycode = CountryCode.INDIA
 
 
 async def buildStateDateAnalyticsAndQueries():
-    from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
-    processor = AnalyticsProcessor(client, date_range)
-    await processor.execute()
+    # from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
+    # processor = AnalyticsProcessor(client, date_range)
+    # await processor.execute()
     from dzgroshared.db.extras import Analytics
     pipeline = Analytics.getQueriesPipeline(client.uid, client.marketplace, date_range)
     await client.db.query_results.deleteQueryResults()
@@ -30,9 +30,47 @@ async def buildStateDateAnalyticsAndQueries():
     print("Done")
 
 async def testapi():
-    req = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
-    data = await client.db.analytics.getMonthData(req)
-    print("Done")
+
+    def showStatus(frame, SUCCESS: bool=True):
+        if not frame: raise ValueError("Frame is required")
+        print(f"{'Success' if SUCCESS else 'Failed'}: {frame.f_code.co_name.replace('_'," ").title()}")
+
+    async def get_state_data_lite_by_month():
+        from dzgroshared.models.collections.analytics import MonthDataRequest, StateMonthDataResponse
+        req = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
+        data = await client.db.analytics.getStateDataLiteByMonth(req)
+        StateMonthDataResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_data_for_state_by_month():
+        from dzgroshared.models.collections.analytics import StateDetailedDataByStateRequest, StateDetailedDataByStateResponse
+        req = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, state="Karnataka")
+        data = await client.db.analytics.getStateDataDetailedByMonth(req)
+        StateDetailedDataByStateResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_state_data_for_month():
+        from dzgroshared.models.collections.analytics import MonthDataRequest, AllStateData
+        req = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
+        data = await client.db.analytics.getStateDataDetailedForMonth(req)
+        AllStateData.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_month_data():
+        from dzgroshared.models.collections.analytics import PeriodDataRequest, MathTableResponse
+        req = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode)
+        data = await client.db.analytics.getMonthlyDataTable(req)
+        MathTableResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    try:    
+        await get_state_data_lite_by_month()
+        await get_data_for_state_by_month()
+        await get_state_data_for_month()
+        await get_month_data()
+        print("Done")
+    except Exception as e:
+        print(f"Error occurred: {e}")
 
 async def deleteData():
     for collection in DataCollections:
@@ -78,6 +116,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(testapi())
+    asyncio.run(buildStateDateAnalyticsAndQueries())
 except Exception as e:
     print(f"Error occurred: {e}")

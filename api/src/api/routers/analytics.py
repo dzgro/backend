@@ -2,9 +2,9 @@ from fastapi import APIRouter, Request
 from api.Util import RequestHelper
 from dzgroshared.models.extras.ad_structure import StructureScoreResponse
 from dzgroshared.models.collections.health import AmazonHealthReportConverted
-from dzgroshared.models.collections.analytics import MonthDataRequest, PeriodDataRequest, MonthData, Month, MonthlyCarousel, SingleAnalyticsMetricTableResponseItem, SingleMetricPeriodDataRequest, StateData, ComparisonPeriodDataRequest
-from dzgroshared.models.model import AnalyticKeyGroup, AnalyticsPeriodData, ChartData, Count 
-from dzgroshared.models.collections.queries import Query, QueryList
+from dzgroshared.models.collections.analytics import MonthDataRequest, PeriodDataRequest, Month, MonthDataResponse, SingleAnalyticsMetricTableResponseItem, SingleMetricPeriodDataRequest, ComparisonPeriodDataRequest, PeriodDataResponse, ChartData, StateDetailedDataByStateRequest, StateDetailedDataByStateResponse, StateMonthDataResponse
+from dzgroshared.models.model import AnalyticKeyGroup, Count 
+from dzgroshared.models.collections.queries import QueryList
 from dzgroshared.models.collections.query_results import PerformancePeriodData, QueryRequest, QueryResult, PerformancePeriodGroup,ComparisonTableResult
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -17,7 +17,7 @@ async def getHealth(request: Request):
 async def getAdStructureHealth(request: Request):
     return await RequestHelper(request).client.db.ad_structure.getAdvertismentStructureScore()
 
-@router.post("/periods", response_model=list[AnalyticsPeriodData], response_model_exclude_none=True)
+@router.post("/periods", response_model=PeriodDataResponse, response_model_exclude_none=True)
 async def getPeriodData(request: Request, req: PeriodDataRequest):
     return await RequestHelper(request).client.db.analytics.getPeriodData(req)
 
@@ -33,22 +33,26 @@ async def getQueryTable(request: Request, req: SingleMetricPeriodDataRequest):
 async def listMonths(request: Request):
     return await RequestHelper(request).client.db.analytics.getMonths()
 
-@router.post("/months/all", response_model=list[MonthData], response_model_exclude_none=True)
+@router.post("/months/all", response_model=list[dict], response_model_exclude_none=True)
 async def getAllMonthsData(request: Request, req: PeriodDataRequest):
     return await RequestHelper(request).client.db.analytics.getMonthlyDataTable(req)
 
-@router.post("/months", response_model=MonthlyCarousel, response_model_exclude_none=True)
+@router.post("/months", response_model=MonthDataResponse, response_model_exclude_none=True)
 async def getMonthData(request: Request, req: MonthDataRequest):
     return await RequestHelper(request).client.db.analytics.getMonthData(req)
 
-@router.post("/states/{month}", response_model=list[StateData], response_model_exclude_none=True)
-async def getStateDataByMonth(request: Request, month:str, req: PeriodDataRequest):
-    return await RequestHelper(request).client.db.analytics.getStateDataByMonth(req, month)
+@router.post("/states/detailed", response_model=StateDetailedDataByStateResponse, response_model_exclude_none=True)
+async def getStateDataDetailedByMonth(request: Request, req: StateDetailedDataByStateRequest):
+    return await RequestHelper(request).client.db.analytics.getStateDataDetailedByMonth(req)
+
+@router.post("/states/lite", response_model=StateMonthDataResponse, response_model_exclude_none=True)
+async def getStateDataLiteByMonth(request: Request, req: MonthDataRequest):
+    return await RequestHelper(request).client.db.analytics.getStateDataLiteByMonth(req)
 
 @router.get('/keys', response_model=list[AnalyticKeyGroup], response_model_exclude_none=True, response_model_by_alias=False)
 async def getAnalyticKeyGroups(request: Request):
     RequestHelper(request)
-    from dzgroshared.models.extras import Analytics
+    from dzgroshared.db.extras import Analytics
     return Analytics.getAnalyticsGroups()
 
 @router.get("/queries", response_model=QueryList, response_model_exclude_none=True, response_model_by_alias=False)
