@@ -30,44 +30,65 @@ async def buildStateDateAnalyticsAndQueries():
     print("Done")
 
 async def testapi():
+    from dzgroshared.models.collections.analytics import PeriodDataResponse, PeriodDataRequest, ComparisonPeriodDataRequest,PerformancePeriodDataResponse,MonthDataRequest, StateMonthDataResponse,StateDetailedDataByStateRequest, StateDetailedDataResponse, AllStateData,MonthTableResponse, MonthDataResponse,MonthDateTableResponse
+    periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode)
+    comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, queryId=queryId)
+    monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
+    stateDetailsReq = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, state="Karnataka")
 
     def showStatus(frame, SUCCESS: bool=True):
         if not frame: raise ValueError("Frame is required")
         print(f"{'Success' if SUCCESS else 'Failed'}: {frame.f_code.co_name.replace('_'," ").title()}")
 
+    async def get_period_data():
+        data = await client.db.analytics.getPeriodData(periodreq)
+        PeriodDataResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_period_data_comparison():
+        data = await client.db.query_results.getPerformanceforPeriod(comparisonreq)
+        PerformancePeriodDataResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
     async def get_state_data_lite_by_month():
-        from dzgroshared.models.collections.analytics import MonthDataRequest, StateMonthDataResponse
-        req = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
-        data = await client.db.analytics.getStateDataLiteByMonth(req)
+        data = await client.db.analytics.getStateDataLiteByMonth(monthreq)
         StateMonthDataResponse.model_validate(data)
         showStatus( inspect.currentframe())
 
-    async def get_data_for_state_by_month():
-        from dzgroshared.models.collections.analytics import StateDetailedDataByStateRequest, StateDetailedDataByStateResponse
-        req = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, state="Karnataka")
-        data = await client.db.analytics.getStateDataDetailedByMonth(req)
-        StateDetailedDataByStateResponse.model_validate(data)
+    async def get_data_for_state():
+        data = await client.db.analytics.getStateDataDetailed(stateDetailsReq)
+        StateDetailedDataResponse.model_validate(data)
         showStatus( inspect.currentframe())
 
     async def get_state_data_for_month():
-        from dzgroshared.models.collections.analytics import MonthDataRequest, AllStateData
-        req = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
-        data = await client.db.analytics.getStateDataDetailedForMonth(req)
+        data = await client.db.analytics.getStateDataDetailedForMonth(monthreq)
         AllStateData.model_validate(data)
         showStatus( inspect.currentframe())
 
     async def get_month_data():
-        from dzgroshared.models.collections.analytics import PeriodDataRequest, MathTableResponse
-        req = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode)
-        data = await client.db.analytics.getMonthlyDataTable(req)
-        MathTableResponse.model_validate(data)
+        data = await client.db.analytics.getMonthlyDataTable(periodreq)
+        MonthTableResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_month_dates_data():
+        data = await client.db.analytics.getMonthDatesDataTable(monthreq)
+        MonthDateTableResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_month_lite_data():
+        data = await client.db.analytics.getMonthLiteData(monthreq)
+        MonthDataResponse.model_validate(data)
         showStatus( inspect.currentframe())
 
     try:    
-        await get_state_data_lite_by_month()
-        await get_data_for_state_by_month()
-        await get_state_data_for_month()
-        await get_month_data()
+        # await get_state_data_lite_by_month()
+        # await get_data_for_state()
+        # await get_state_data_for_month()
+        # await get_month_data()
+        await get_month_dates_data()
+        # await get_month_lite_data()
+        # await get_period_data()
+        # await get_period_data_comparison()
         print("Done")
     except Exception as e:
         print(f"Error occurred: {e}")
@@ -116,6 +137,6 @@ async def estimate_db_reclaimable_space():
 
 import asyncio
 try:    
-    asyncio.run(buildStateDateAnalyticsAndQueries())
+    asyncio.run(testapi())
 except Exception as e:
     print(f"Error occurred: {e}")

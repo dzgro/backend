@@ -593,8 +593,10 @@ class AnalyticsMetricOperation(str, Enum):
     MULTIPLY = "MULTIPLY"
 
 class AnalyticsMetric(str, Enum):
-    FBM = "fbm"
-    FBA = "fba"
+    FBM = "Merchant Fulfilled"
+    FBA = "FBA/Flex++"
+    BROWSER = "Browser"
+    MOBILE_APP = "Mobile App"
     FBM_REVENUE = "fbmrevenue"
     FBA_REVENUE = "fbarevenue"
     REVENUE = "revenue"

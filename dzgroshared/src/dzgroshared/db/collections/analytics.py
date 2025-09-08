@@ -60,7 +60,7 @@ class DashboardHelper:
             { '$replaceWith': '$month' }, 
             { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict },{"$replaceWith": "$data"}], 'as': 'data' } }, 
             self.db.pp.collateData(),
-            {"$sort": { "startdate": 1 }},
+            {"$sort": { "startdate": -1 }},
             {"$replaceRoot": { "newRoot": { "month": "$month", "period": "$period", "data": "$data" } }}
         ]
         pipeline.append(Analytics.addMissingFields("data"))
@@ -71,8 +71,31 @@ class DashboardHelper:
         data = await self.db.aggregate(pipeline)
         months = [{"month": x['month'], "period": x['period']} for x in data]
         data = Analytics.transformData('Month',data, req)
-        return {"columns": months, "rows": data[0]['items']}
+        return {"columns": months, "rows": data}
     
+    async def getMonthDatesDataTable(self, req: MonthDataRequest):
+        month = next((Month.model_validate(x) for x in (await self.getMonths()) if x['month']==req.month), None)
+        if not month: return ValueError("Invalid Month")
+        matchdict = { 'uid': self.uid, 'marketplace': self.marketplace, 'collatetype': req.collatetype, 'date': {'$gte': month.startdate, '$lte': month.enddate} }
+        if req.value: matchdict['value'] = req.value
+        pipeline = [
+            { '$match': matchdict},
+            { '$sort': { 'date':1} },
+            { '$set': { 'date':{'$dateToString': { 'format': '%d-%b', 'date': '$date' }}} },
+            { '$project': { 'date':1,'data':1, '_id':0} },
+        ]
+        missingkeys = Analytics.addMissingFields("data")
+        derivedmetrics = Analytics.addDerivedMetrics("data")
+        pipeline.append(missingkeys)
+        pipeline.extend(derivedmetrics)
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        data = await self.client.db.date_analytics.db.aggregate(pipeline)
+        dates = [x['date'] for x in data]
+        data = Analytics.transformData('Month',data, req)
+        columns = Analytics.convertSchematoMultiLevelColumns('Month')
+        return {"columns": columns, "rows": data}
+
     def getPipelineForDataBetweenTwoDates(self, req: PeriodDataRequest, startdate: datetime, enddate: datetime):
         letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
         if req.value: letdict['value'] = req.value
@@ -92,7 +115,7 @@ class DashboardHelper:
         return pipeline
     
     
-    async def getMonthData(self, req: MonthDataRequest):
+    async def getMonthLiteData(self, req: MonthDataRequest):
         month = next((Month.model_validate(x) for x in (await self.getMonths()) if x['month']==req.month), None)
         if not month: return ValueError("Invalid Month")
         pipeline = self.getPipelineForDataBetweenTwoDates(req, month.startdate, month.enddate)
@@ -104,7 +127,7 @@ class DashboardHelper:
         monthdata = Analytics.transformData('Month Data',data, req)
         return {
             "month": req.month,
-            "meterGroups": monthMeterGroups[0]['data'][0] if len(monthMeterGroups)>0 and 'data' in monthMeterGroups[0] and len(monthMeterGroups[0]['data'])>0 else [],
+            "meterGroups": monthMeterGroups[0]['data'] if len(monthMeterGroups)>0 and 'data' in monthMeterGroups[0] else [],
             "bars": monthBars[0]['data'][0] if len(monthBars)>0 and 'data' in monthBars[0] and len(monthBars[0]['data'])>0 else [],
             "data": monthdata[0]['data'][0] if len(monthdata)>0 and 'data' in monthdata[0] and len(monthdata[0]['data'])>0 else [],
         }
@@ -139,14 +162,14 @@ class DashboardHelper:
     
     async def getStateDataDetailedForMonth(self, req: MonthDataRequest):
         rows = await self.getStateWiseData(req, 'State All')
-        columns = Analytics.GroupBySchema['State All'][0].items
+        columns = Analytics.convertSchematoMultiLevelColumns('State All')
         return {"columns": columns, "rows": rows}
-    
+
     async def getStateDataLiteByMonth(self, req: MonthDataRequest):
         data = await self.getStateWiseData(req, 'State Lite')
         return {"data": [{"state": item['state'], 'data': item['data'][0]['items'] if len(item['data']) > 0 and 'items' in item['data'][0] else []} for item in data]}
     
-    async def getStateDataDetailedByMonth(self, req: StateDetailedDataByStateRequest):
+    async def getStateDataDetailed(self, req: StateDetailedDataByStateRequest):
         letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'startdate': '$startdate', 'enddate': '$enddate', 'collatetype': 'marketplace', 'state': req.state }
         if req.value: letdict['value'] = req.value
         matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', self.uid ] }, { '$eq': [ '$marketplace', self.marketplace ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$gte': [ '$date', '$$startdate' ] }, { '$lte': [ '$date', '$$enddate' ] }, { '$eq': [ '$state', '$$state' ] } ] } }
@@ -160,7 +183,7 @@ class DashboardHelper:
             { '$unwind': { 'path': '$data' } }, 
             { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$$ROOT', { 'data': '$data.data' } ] } } },
             self.db.pp.collateData(),
-            {"$sort": { "startdate": 1 }},
+            {"$sort": { "startdate": -1 }},
             {"$replaceRoot": { "newRoot": { "month": "$month", "period": "$period", "data": "$data" } }}
         ]
         pipeline.append(Analytics.addMissingFields("data"))
@@ -171,7 +194,7 @@ class DashboardHelper:
         data = await self.db.aggregate(pipeline)
         months = [{"month": x['month'], "period": x['period']} for x in data]
         data = Analytics.transformData('State Detail',data, req)
-        return {"columns": months, "rows": data[0]['items']}
+        return {"columns": months, "rows": data}
         
     
     # async def getAllStateWithMonths(self, req: MonthDataRequest):

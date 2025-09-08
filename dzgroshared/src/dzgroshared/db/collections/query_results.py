@@ -73,11 +73,12 @@ class QueryResultsHelper:
         filterDict = {"collatetype": req.collatetype.value, "queryid": ObjectId(req.queryId)}
         if req.value: filterDict.update({"value": req.value})
         from dzgroshared.db.extras import Analytics
-        pipeline = [self.db.pp.matchMarketplace(filterDict), Analytics.getProjectionStage('Comparison', req.collatetype)]
+        pipeline = [self.db.pp.matchMarketplace(filterDict), Analytics.getProjectionStage('Comparison', req.collatetype), {"$project": {"data": 1, "_id": 0}}]
         from dzgroshared.utils import mongo_pipeline_print
         mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.db.aggregate(pipeline)
-        return Analytics.transformData('Comparison',data, req)
+        data = Analytics.transformData('Comparison',data, req)
+        return data[0]
         headers = [item.metric for item in AnalyticsModel.getMetricGroupsBySchemaType('Comparison', req.collatetype)]
         return {"headers": headers, 'items': (data[0]['data'] if len(data)>0 else [])}
 

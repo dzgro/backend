@@ -1,10 +1,10 @@
 from typing import Literal
 from bson import ObjectId
-from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, PeriodDataRequest
+from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, MultiLevelColumns, PeriodDataRequest
 from dzgroshared.models.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsMetricOperation, CollateType, CollectionType, CountryCode
-from dzgroshared.models.model import AnalyticKeyGroup, AnalyticKeylabelValue, MetricGroup, MetricItem, StartEndDate
-from dzgroshared.models.extras.Analytics import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS
-SchemaType = Literal['Period','Comparison', 'Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month']
+from dzgroshared.models.model import AnalyticKeyGroup, AnalyticKeylabelValue, MetricGroup, MetricItem, NestedColumn, StartEndDate
+from dzgroshared.models.extras.Analytics import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS, MONTH_DATE_METRICS
+SchemaType = Literal['Period','Comparison', 'Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date']
 
 GroupBySchema: dict[SchemaType, list[MetricGroup]] = {
     'Period': PERIOD_METRICS,
@@ -13,6 +13,7 @@ GroupBySchema: dict[SchemaType, list[MetricGroup]] = {
     'Month Bars': [MONTH_BARS],
     'Month Data': [MONTH_DATA],
     'Month': MONTH_METRICS,
+    'Month Date': MONTH_DATE_METRICS,
     'State Lite': STATE_LITE_METRICS,
     'State Detail': STATE_DETAILED_METRICS,
     'State All': ALL_STATE_METRICS,
@@ -27,12 +28,10 @@ def transformData(schemaType: SchemaType, data: list[dict], req: PeriodDataReque
     schema = getSchema(schemaType, req.collatetype)
     if schemaType=='Comparison':
         return [{**d, "data": [transformComparisonData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
-    elif schemaType == 'State Detail':
-        return [transformStateData(s, data, req.countrycode, 1) for s in schema]
     elif schemaType == 'State All':
         return transformStateAllData(GroupBySchema[schemaType], data, req.countrycode)
-    elif schemaType == 'Month':
-        return transformMonthData(GroupBySchema[schemaType], data, req.countrycode)
+    elif schemaType == 'Month' or schemaType == 'State Detail':
+        return transformSchemaData(GroupBySchema[schemaType], data, req.countrycode)
     else: return [{**d, "data": [transformPeriodData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
 
 
@@ -78,7 +77,8 @@ def transformPeriodData(schema: dict, data: dict, countrycode: CountryCode, leve
         value = data.get(key.value, None)
         detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
         if detail:
-            result['label'] = detail.label
+            result['label'] = schema.get('label', None)
+            if not result['label']: result['label'] = detail.label
             result['description'] = detail.description
         else: 
             result['label'] = schema['metric']
@@ -99,7 +99,8 @@ def transformComparisonData(schema: dict, data: dict, countrycode: CountryCode, 
             value = data.get(key.value, {})
             detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
             if detail:
-                result['label'] = detail.label
+                result['label'] = schema.get('label', None)
+                if not result['label']: result['label'] = detail.label
                 result['description'] = detail.description
                 for k,v in value.items():
                     result[k] = {
@@ -132,29 +133,6 @@ def transformCurrPreData(data: list[dict], countrycode: CountryCode):
         item.update(newData)
     return data
 
-def transformStateData(schema: dict, data: list[dict], countrycode: CountryCode, level=1):
-    result: dict = {"label": schema['metric'], "values": []}
-    if level > 1 and "metric" in schema:
-        key = AnalyticsMetric(schema['metric'])
-        for item in data:
-            value = item['data'].get(key.value, None)
-            detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
-            if detail:
-                result['label'] = detail.label
-                result['description'] = detail.description
-            else: 
-                result['label'] = schema['metric']
-            result['values'].append({
-                "value": round(value,2) if isinstance(value, float) else value,
-                "valueString": format_number(value, key, countrycode)
-            })
-    if schema.get("items"):
-        result["items"] = [
-            transformStateData(item, data, countrycode, level + 1)
-            for item in schema["items"]
-        ]
-    return result
-
 def transformStateAllData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
     metrics: list[AnalyticsMetric] = []
     for s in schema:
@@ -178,20 +156,19 @@ def transformStateAllData(schema: list[MetricGroup], data: list[dict], countryco
             })
     return result
 
-def transformMonthData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
+def transformSchemaData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
 
     def getResultItem(metric: MetricItem):
         try:
-            result = {}
             detail = next((d for d in METRIC_DETAILS if d.metric == metric.metric), None)
-            if detail:
-                result: dict = {"label": metric.label or detail.label, "values": [], "description": detail.description}
-                for item in data:
-                    value = item['data'].get(metric.metric.value, None)
-                    result['values'].append({
-                        "value": round(value,2) if isinstance(value, float) else value,
-                        "valueString": format_number(value, metric.metric, countrycode)
-                    })
+            if not detail: raise ValueError(f"Metric detail not found for {metric.metric}")
+            result: dict = {"label": metric.label or detail.label, "values": [], "description": detail.description, "items": []}
+            for item in data:
+                value = item['data'].get(metric.metric.value, None)
+                result['values'].append({
+                    "value": round(value,2) if isinstance(value, float) else value,
+                    "valueString": format_number(value, metric.metric, countrycode)
+                })
             return result
         except Exception as e:
             print(e)
@@ -201,16 +178,21 @@ def transformMonthData(schema: list[MetricGroup], data: list[dict], countrycode:
     for s in schema:
         resultItem: dict = {"label": s.metric.value, "items": []}
         for ss in (s.items or []):
-            subItem = getResultItem(ss)
-            if ss.items:
-                subItem["items"] = [getResultItem(sss) for sss in (ss.items or [])]
-            resultItem["items"].append(subItem)
+            ssItem = getResultItem(ss)
+            for sss in (ss.items or []):
+                sssItem = getResultItem(sss)
+                for ssss in (sss.items or []):
+                    ssssItem = getResultItem(ssss)
+                    sssItem["items"].append(ssssItem)
+                ssItem["items"].append(sssItem)
+            resultItem["items"].append(ssItem)
         result.append(resultItem)
     return result
 
 
 
 def addDerivedMetrics(data_key: str = "data"):
+    level0: dict = {}
     level1: dict = {}
     level2: dict = {}
     level3: dict = {}
@@ -229,16 +211,18 @@ def addDerivedMetrics(data_key: str = "data"):
         elif item.operation == AnalyticsMetricOperation.MULTIPLY:
             result = { "$multiply": [f"{dk}{m.value}" for m in item.metrics] }
         if item.level == 0:
-            level1.update( {f"{data_key}.{item.metric.value}": result} )
+            level0.update( {f"{data_key}.{item.metric.value}": result} )
         elif item.level == 1:
-            level2.update( {f"{data_key}.{item.metric.value}": result} )
+            level1.update( {f"{data_key}.{item.metric.value}": result} )
         elif item.level == 2:
-            level3.update( {f"{data_key}.{item.metric.value}": result} )
+            level2.update( {f"{data_key}.{item.metric.value}": result} )
         elif item.level == 3:
-            level4.update( {f"{data_key}.{item.metric.value}": result} )
+            level3.update( {f"{data_key}.{item.metric.value}": result} )
         elif item.level == 4:
+            level4.update( {f"{data_key}.{item.metric.value}": result} )
+        elif item.level == 5:
             level5.update( {f"{data_key}.{item.metric.value}": result} )
-    return [{ "$addFields": level1 }, { "$addFields": level2 }, { "$addFields": level3 }, { "$addFields": level4 }, { "$addFields": level5 }]
+    return [ { "$addFields": level0 },{ "$addFields": level1 }, { "$addFields": level2 }, { "$addFields": level3 }, { "$addFields": level4 }, { "$addFields": level5 }]
 
 def addGrowth():
     return { "$addFields": { "growth": { "$arrayToObject": { "$map": { "input": { "$objectToArray": "$curr" }, "as": "kv", "in": { "k": "$$kv.k", "v": { "$let": { "vars": { "currVal": "$$kv.v", "preVal": { "$getField": { "field": "$$kv.k", "input": "$pre" } }, "percentFields": percent_fields }, "in": { "$cond": [ { "$in": ["$$kv.k", "$$percentFields"] }, { "$cond": [ { "$lt": [{ "$abs": { "$subtract": ["$$currVal", "$$preVal"] } }, 10] }, { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 2] }, { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 1] } ] }, { "$cond": [ { "$or": [{ "$eq": ["$$preVal", 0] }, { "$eq": ["$$preVal", None] }] }, 0, { "$cond": [ { "$lt": [ { "$abs": { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] } }, 10 ] }, { "$round": [ { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] }, 2 ] }, { "$round": [ { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] }, 1 ] } ] } ] } ] } } } } } } } } }
@@ -305,6 +289,29 @@ def getAnalyticsGroups():
                 metrics.append(AnalyticKeylabelValue(label=label, value=k))
         data.append(AnalyticKeyGroup(label=val, items=metrics))
     return data
+
+def convertSchemaToMetricItemList(schemaType: SchemaType):
+
+    def convertToLabel(metric: MetricItem):
+        try:
+            detail = next((d for d in METRIC_DETAILS if d.metric == metric.metric), None)
+            if not detail: raise ValueError(f"Metric detail not found for {metric.metric}")
+            result =  MetricItem(metric=metric.metric, label=metric.label or detail.label)
+            if metric.items: result.items = [convertToLabel(s) for s in metric.items]
+            return result
+        except Exception as e:
+            raise e
+
+    return [convertToLabel(x) for s in GroupBySchema[schemaType] for x in s.items]
+
+def convertSchematoMultiLevelColumns(schemaType: SchemaType) -> MultiLevelColumns:
+    metrics = convertSchemaToMetricItemList(schemaType)
+    columns1 = [NestedColumn(header=m.label or m.metric.value, colSpan=len(m.items or [])) for m in metrics]
+    columns2 = [NestedColumn(header=x.label or x.metric.value, colSpan=1) for m in metrics for x in (m.items or [])]
+    columns3 = [NestedColumn(header=y.label or y.metric.value, colSpan=1) for m in metrics for x in (m.items or []) for y in (x.items or [])]
+    if not columns3: columns3 = None
+    return MultiLevelColumns(columns1=columns1, columns2=columns2, columns3=columns3)
+
 
 
 # for x in AnalyticsMetric.values():

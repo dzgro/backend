@@ -315,52 +315,27 @@ class MetricDetail(BaseModel):
     label: str
     description: str|SkipJsonSchema[None] = None
 
+class NestedColumn(BaseModel):
+    header: str
+    colSpan: int = 1
+
+
+class MultiLevelColumns(BaseModel):
+    columns1: list[NestedColumn]
+    columns2: list[NestedColumn]|SkipJsonSchema[None]=None
+    columns3: list[NestedColumn]|SkipJsonSchema[None]=None
+
 
 class MetricItem(BaseModel):
     metric: AnalyticsMetric
     label: str|SkipJsonSchema[None] = None
     items: Optional[List["MetricItem"]] = None  # recursive reference
-    rowSpan: int = 1
-
-    @model_validator(mode="after")
-    def setRowSpan(self):
-        def calculate_row_span(items: List[MetricItem]) -> int:
-            if not items:
-                return 1
-            total = 0
-            for item in items:
-                if item.items:
-                    total += calculate_row_span(item.items)
-                else:
-                    total += 1
-            return total
-        if self.items:
-            self.rowSpan = calculate_row_span(self.items)
-        return self
+    
     class Config:
         arbitrary_types_allowed = True
         extra = "ignore"
-
-
 MetricItem.model_rebuild()
 
 class MetricGroup(BaseModel):
     metric: AnalyticGroupMetricLabel
     items: list[MetricItem]
-    rowSpan: int = 1
-
-    @model_validator(mode="after")
-    def setRowSpan(self):
-        def calculate_row_span(items: List[MetricItem]) -> int:
-            if not items:
-                return 1
-            total = 0
-            for item in items:
-                if item.items:
-                    total += calculate_row_span(item.items)
-                else:
-                    total += 1
-            return total
-
-        self.rowSpan = calculate_row_span(self.items)
-        return self

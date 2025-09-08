@@ -1,4 +1,5 @@
 from typing import List, Optional
+from dzgroshared.models.collections.analytics import PerformancePeriodGroup
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.model import ItemId, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId
@@ -38,28 +39,6 @@ class CategoryQueryResultItem(ProductCategory):
     def setMoreCount(cls, data: dict):
         data['moreCount'] = data['count'] - len(data['asins'])
         return data
-    
-
-class PerformancePeriodItem(BaseModel):
-    label: str
-    value: str
-    valueString: str
-    growth: str
-    growing: bool
-    items: Optional[List["PerformancePeriodItem"]] = None  # recursive reference
-
-    class Config:
-        arbitrary_types_allowed = True
-        extra = "ignore"
-PerformancePeriodItem.model_rebuild()  # required for recursive models in Pydantic v2
-
-class PerformancePeriodGroup(BaseModel):
-    label: AnalyticGroupMetricLabel
-    items: list[PerformancePeriodItem]
-
-class PerformancePeriodData(BaseModel):
-    headers: list[AnalyticGroupMetricLabel]
-    items: list[PerformancePeriodGroup]
 
 class PerformanceResultChildren(ProductCategory):
     count: int

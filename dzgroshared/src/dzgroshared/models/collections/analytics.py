@@ -1,5 +1,4 @@
-from bson import ObjectId
-from dzgroshared.models.model import MetricItem, PyObjectId
+from dzgroshared.models.model import MultiLevelColumns, PyObjectId
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsPeriod, CollateType, CountryCode, QueryTag
@@ -33,6 +32,10 @@ AnalyticPeriodItem.model_rebuild()  # required for recursive models in Pydantic 
 class AnalyticPeriodGroup(BaseModel):
     label: AnalyticGroupMetricLabel
     items: list[AnalyticPeriodItem]
+
+class AnalyticPeriodValuesGroup(BaseModel):
+    label: AnalyticGroupMetricLabel
+    items: list[AnalyticPeriodValuesItem]
 
 class PeriodDataResponseItem(BaseModel):
     label: AnalyticsPeriod
@@ -76,11 +79,15 @@ class MonthDataResponse(BaseModel):
     month: str
     data: AnalyticPeriodGroup
     bars: AnalyticPeriodGroup
-    meterGroups: AnalyticPeriodGroup
+    meterGroups: list[AnalyticPeriodGroup]
 
-class MathTableResponse(BaseModel):
+class MonthTableResponse(BaseModel):
     columns: list[MonthLite]
-    rows: list[AnalyticPeriodValuesItem]
+    rows: list[AnalyticPeriodValuesGroup]
+
+class MonthDateTableResponse(BaseModel):
+    columns: MultiLevelColumns
+    rows: list[AnalyticPeriodValuesGroup]
 
 class StateMonthDataResponseItem(BaseModel):
     state: str
@@ -92,16 +99,17 @@ class StateMonthDataResponse(BaseModel):
 class StateDetailedDataByStateRequest(PeriodDataRequest):
     state: str
 
-class StateDetailedDataByStateResponse(BaseModel):
+class StateDetailedDataResponse(BaseModel):
     columns: list[MonthLite]
-    rows: list[AnalyticPeriodValuesItem]
+    rows: list[AnalyticPeriodValuesGroup]
 
 class AllStateDataItem(BaseModel):
     state: str
     values: list[ValueWithValueString]
 
+
 class AllStateData(BaseModel):
-    columns: list[MetricItem]
+    columns: MultiLevelColumns
     rows: list[AllStateDataItem]
 
 class SingleAnalyticsMetricTableResponseItem(BaseModel):
@@ -114,6 +122,30 @@ class ComparisonPeriodDataRequest(PeriodDataRequest):
     queryId: PyObjectId
     
 
+
+class PerformancePeriodItem(BaseModel):
+    label: str
+    value: str
+    valueString: str
+    growth: str
+    growing: bool
+    items: Optional[List["PerformancePeriodItem"]] = None  # recursive reference
+
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "ignore"
+PerformancePeriodItem.model_rebuild()  # required for recursive models in Pydantic v2
+
+class PerformancePeriodGroup(BaseModel):
+    label: AnalyticGroupMetricLabel
+    items: list[PerformancePeriodItem]
+
+class PerformancePeriodData(BaseModel):
+    headers: list[AnalyticGroupMetricLabel]
+    items: list[PerformancePeriodGroup]
+
+class PerformancePeriodDataResponse(BaseModel):
+    data: list[PerformancePeriodGroup]
 
 
 
