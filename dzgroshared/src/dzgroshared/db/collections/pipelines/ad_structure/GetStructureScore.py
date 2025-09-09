@@ -1,10 +1,9 @@
-from bson import ObjectId
+from dzgroshared.models.model import PyObjectId
 
-def pipeline(uid: str, marketplace: ObjectId):
+def pipeline(marketplace: PyObjectId):
     return [
     {
         '$match': {
-            'uid': uid, 
             'marketplace': marketplace, 
             'state': 'ENABLED', 
             'adproduct': 'SPONSORED_PRODUCTS',

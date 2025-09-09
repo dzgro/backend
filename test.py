@@ -2,13 +2,16 @@ from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
 import inspect
-from dzgroshared.models.enums import ENVIRONMENT, AnalyticsMetric, CollateType, CountryCode, QueueName
-from dzgroshared.models.model import DataCollections, MockLambdaContext, PyObjectId, StartEndDate
 
+from dzgroshared.models.collections.marketplaces import MarketplaceCache
+from dzgroshared.models.enums import ENVIRONMENT, CollateType, CountryCode, MarketplaceId, QueueName
+from dzgroshared.models.model import DataCollections, MockLambdaContext, Paginator, PyObjectId, Sort, StartEndDate
 
-client = DzgroSharedClient(ENVIRONMENT.LOCAL)
+env = ENVIRONMENT.LOCAL
+client = DzgroSharedClient(env)
 uid = "41e34d1a-6031-70d2-9ff3-d1a704240921"
-marketplace = ObjectId("6895638c452dc4315750e826")
+marketplace = MarketplaceCache(_id=PyObjectId("6895638c452dc4315750e826"), uid=uid, countrycode=CountryCode.INDIA, marketplaceid=MarketplaceId.IN,profileid=476214271739435, sellerid="AUYWKTHB2JM7A") 
+DB_NAME = f'dzgro-{env.value.lower()}' if env != ENVIRONMENT.LOCAL else 'dzgro-dev'
 client.setUid(uid)
 client.setMarketplace(marketplace)
 context = MockLambdaContext()
@@ -16,33 +19,47 @@ enddate = datetime(2025, 8, 31)
 startdate= datetime(2025, 7, 3)
 date_range = StartEndDate(startdate=startdate, enddate=enddate)
 queryId=PyObjectId("686750af5ec9b6bf57fe9060")
-countrycode = CountryCode.INDIA
 
 
 async def buildStateDateAnalyticsAndQueries():
-    # from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
-    # processor = AnalyticsProcessor(client, date_range)
-    # await processor.execute()
+    from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
+    processor = AnalyticsProcessor(client, date_range)
+    await processor.execute()
     from dzgroshared.db.extras import Analytics
-    pipeline = Analytics.getQueriesPipeline(client.uid, client.marketplace, date_range)
+    pipeline = Analytics.getQueriesPipeline(client.marketplaceId, date_range)
     await client.db.query_results.deleteQueryResults()
     await client.db.marketplaces.marketplaceDB.aggregate(pipeline)
     print("Done")
 
 async def testapi():
     from dzgroshared.models.collections.analytics import PeriodDataResponse, PeriodDataRequest, ComparisonPeriodDataRequest,PerformancePeriodDataResponse,MonthDataRequest, StateMonthDataResponse,StateDetailedDataByStateRequest, StateDetailedDataResponse, AllStateData,MonthTableResponse, MonthDataResponse,MonthDateTableResponse
-    periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode)
-    comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, queryId=queryId)
-    monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, month="Jul 2025")
-    stateDetailsReq = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, countrycode=countrycode, state="Karnataka")
+    from dzgroshared.models.collections.query_results import PerformanceTableRequest, PerformanceTableResponse
+    periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None)
+    comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, queryId=queryId)
+    monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, month="Jul 2025")
+    stateDetailsReq = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, state="Karnataka")
+    paginator = Paginator(skip=0, limit=10)
+    sort = Sort(field="revenue", order=-1)
+    performanceRequest = PerformanceTableRequest(collatetype=CollateType.SKU, queryId=queryId, value="Mad PD PC S 122", paginator=paginator, sort=sort)
 
     def showStatus(frame, SUCCESS: bool=True):
         if not frame: raise ValueError("Frame is required")
         print(f"{'Success' if SUCCESS else 'Failed'}: {frame.f_code.co_name.replace('_'," ").title()}")
 
+    async def get_performance_table():
+        data = await client.db.query_results.getPerformanceListforPeriod(performanceRequest)
+        PerformanceTableResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
     async def get_period_data():
         data = await client.db.analytics.getPeriodData(periodreq)
         PeriodDataResponse.model_validate(data)
+        showStatus( inspect.currentframe())
+
+    async def get_health():
+        from dzgroshared.models.collections.analytics import MarketplaceHealthResponse
+        data = await client.db.health.getHealth()
+        MarketplaceHealthResponse.model_validate(data)
         showStatus( inspect.currentframe())
 
     async def get_period_data_comparison():
@@ -81,14 +98,16 @@ async def testapi():
         showStatus( inspect.currentframe())
 
     try:    
+        # await get_health()
         # await get_state_data_lite_by_month()
         # await get_data_for_state()
         # await get_state_data_for_month()
         # await get_month_data()
-        await get_month_dates_data()
+        # await get_month_dates_data()
         # await get_month_lite_data()
         # await get_period_data()
         # await get_period_data_comparison()
+        await get_performance_table()
         print("Done")
     except Exception as e:
         print(f"Error occurred: {e}")
@@ -100,25 +119,14 @@ async def deleteData():
 async def buildReports():
     # await deleteData()
     event = {"country": CountryCode.INDIA.value, "queue": QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE.value}
-    
     await client.functions(event, context).send_daily_report_refresh_message_to_queue
 
 async def runReport():
-    messageId = "4caf10ff-cd26-4fc5-920c-33ac80ad6915"
-
-    event = client.sqs.mockSQSEvent(messageId, '')
+    messageId = '8ce77c23-2958-41fd-8f9d-b32845a214ab'
+    await  client.db.sqs_messages.setMessageAsPending(messageId)
+    message = await client.db.sqs_messages.getAmazonParentReportQueueMessage(messageId)
+    event = client.sqs.mockSQSEvent(messageId, message.model_dump_json(exclude_none=True))
     await client.functions(event, context).amazon_daily_report
-
-
-def dates():
-    from dzgroshared.utils import date_util
-    dates = date_util.getEconomicsKioskReportDates('Asia/Kolkata', True)
-    print(dates)
-    dates = date_util.getAdReportDates('Asia/Kolkata',31, True)
-    print(dates)
-    dates = date_util.getSPAPIReportDates('Asia/Kolkata',31, True)
-    print(dates)
-
 
 async def estimate_db_reclaimable_space():
     stats = await client.db.database.command("dbStats", 1, scale=1)

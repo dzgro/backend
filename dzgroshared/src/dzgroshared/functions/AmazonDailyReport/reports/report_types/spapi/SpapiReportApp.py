@@ -6,10 +6,9 @@ from datetime import datetime
 from dzgroshared.models.model import DzgroError
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus, SPAPICreateReportSpecification
 from dzgroshared.models.extras.amazon_daily_report import AmazonSpapiReport, AmazonSpapiReportDB, MarketplaceObjectForReport, PyObjectId, SPAPIReport,SPAPIReportDocument
-from dzgroshared.models.enums import AmazonReportType, CollectionType, SPAPIReportType
-from dzgroshared.functions.AmazonDailyReport.reports import Utility
+from dzgroshared.models.enums import CollectionType, SPAPIReportType
+from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from dzgroshared.models.model import ErrorDetail, ErrorList
-from dzgroshared.utils import date_util
 
 class AmazonSpapiReportManager:
     client: DzgroSharedClient
@@ -20,33 +19,28 @@ class AmazonSpapiReportManager:
     getDocumentThrottle: bool = False
     reportUtil: ReportUtil
     reportId: PyObjectId
+    dateUtil: MarketplaceDatesUtility
 
 
-    def __init__(self, client: DzgroSharedClient,  marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
+    def __init__(self, client: DzgroSharedClient,  marketplace: MarketplaceObjectForReport, spapi: SpApiClient, dateUtil: MarketplaceDatesUtility) -> None:
         self.client = client
         self.spapi = spapi
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
+        self.dateUtil = dateUtil
 
     def __getattr__(self, item):
         return None
 
     async def getSPAPIReportsConf(self)->list[AmazonSpapiReport]:
         reports: list[AmazonSpapiReport] = []
-        isNew = self.marketplace.dates is None
-        dates = date_util.getSPAPIReportDates(self.marketplace.details.timezone, 31, isNew)
-        startdate, enddate = date_util.getMarketplaceRefreshDates(isNew, self.marketplace.details.timezone)
-        lastRefreshStarted = self.marketplace.lastRefresh.startdate if self.marketplace.lastRefresh else None
-        # reports= await self.__getSettlementReports(lastRefreshStarted or startdate)
-        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
-        # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
+        dates = self.dateUtil.getSPAPIReportDates(31)
+        reports= await self.__getSettlementReports(self.marketplace.lastrefresh or dates[0][0])
+        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_V2_SELLER_PERFORMANCE_REPORT))
+        reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_MERCHANT_LISTINGS_ALL_DATA))
         # reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FBA_MYI_ALL_INVENTORY_DATA))
-        # for date in dates:
-        #     reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL, startDate=date[0], endDate=date[1]))
         for date in dates:
-            # date = ("2025-05-01","2025-05-31")
-            # startdate = datetime.strptime(date[0], "%Y-%m-%d")
-            # enddate = datetime.strptime(date[1], "%Y-%m-%d")
+            reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL, startDate=date[0], endDate=date[1]))
             reports.append(self.__createSPAPIReportConf(reportType=SPAPIReportType.GET_FBA_STORAGE_FEE_CHARGES_DATA, startDate=date[0], endDate=date[1]))
         return reports
     
@@ -150,7 +144,7 @@ class AmazonSpapiReportManager:
             elif reportType==SPAPIReportType.GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2: await self.__executeSettlementReports(data)
             elif reportType==SPAPIReportType.GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL: await self.__executeOrderReports(data)
             elif reportType==SPAPIReportType.GET_FBA_STORAGE_FEE_CHARGES_DATA: await self.__fbaStorageFees(data)
-            elif reportType==SPAPIReportType.GET_FBA_MYI_ALL_INVENTORY_DATA: await self.__fbaStorageFees(data)
+            elif reportType==SPAPIReportType.GET_FBA_MYI_ALL_INVENTORY_DATA: await self.__fbaFnSkuMapping(data)
 
     async def __executeHealthReport(self, data: str):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.HealthReportConvertor import HealthReportConvertor

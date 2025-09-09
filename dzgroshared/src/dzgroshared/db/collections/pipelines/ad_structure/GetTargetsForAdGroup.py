@@ -1,10 +1,8 @@
-from bson import ObjectId
+from dzgroshared.models.model import PyObjectId
 
-
-def pipeline(uid: str, marketplace: ObjectId, adgroup: str, matchtype: str|None):
+def pipeline(marketplace: PyObjectId, adgroup: str, matchtype: str|None):
     matchStage = {
         '$match': {
-            "uid": uid,
             "marketplace": marketplace, 
             'assettype': 'Target', 
             'parent': adgroup, 
@@ -21,7 +19,6 @@ def pipeline(uid: str, marketplace: ObjectId, adgroup: str, matchtype: str|None)
         '$lookup': {
             'from': 'adv', 
             'let': {
-                'uid': '$uid', 
                 'marketplace': '$marketplace', 
                 'id': '$id'
             }, 
@@ -31,10 +28,6 @@ def pipeline(uid: str, marketplace: ObjectId, adgroup: str, matchtype: str|None)
                         '$expr': {
                             '$and': [
                                 {
-                                    '$eq': [
-                                        '$uid', '$$uid'
-                                    ]
-                                }, {
                                     '$eq': [
                                         '$marketplace', '$$marketplace'
                                     ]

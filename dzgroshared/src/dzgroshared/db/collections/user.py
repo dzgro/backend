@@ -10,13 +10,12 @@ class UserHelper:
     client: DzgroSharedClient
     db: DbManager
     marketplaceHelper: MarketplaceHelper
-    uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str) -> None:
+    def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
         collection = client.db.database.get_collection(CollectionType.USERS.value)
-        self.db = DbManager(collection, uid=uid)
-        self.uid = uid
+        self.uid = client.uid
+        self.db = DbManager(collection, uid=self.uid)
 
     async def addUserToDb(self, details: dict):
         setDict = {"name": details['name'], "email": details['email']}

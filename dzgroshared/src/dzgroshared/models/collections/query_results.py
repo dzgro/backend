@@ -1,5 +1,5 @@
 from typing import List, Optional
-from dzgroshared.models.collections.analytics import PerformancePeriodGroup
+from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest, PerformancePeriodGroup, PerformancePeriodItem
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.model import ItemId, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId
@@ -40,33 +40,35 @@ class CategoryQueryResultItem(ProductCategory):
         data['moreCount'] = data['count'] - len(data['asins'])
         return data
 
-class PerformanceResultChildren(ProductCategory):
+class PerformanceResultCategory(ProductCategory):
     count: int
-    skus: list[Product] = []
+    skus: List[Product]
 
-class QueryResultParent(PerformanceResultChildren, Product):
+class PerformanceResultParent(Product):
     count: int
-    skus: list[Product] = []
+    skus: List[Product]
 
-class QueryResultAsin(PerformanceResultChildren, Product):
-    count: int|SkipJsonSchema[None]=None
+class PerformanceResultAsin(Product):
+    skus: List[Product]
 
-class QueryResult(BaseModel):
+
+class PerformanceTableResponseItem(BaseModel):
     data: list[PerformancePeriodGroup]
-    category: PerformanceResultChildren|SkipJsonSchema[None] = None
-    parent: QueryResultParent|SkipJsonSchema[None] = None
-    asin: QueryResultAsin|SkipJsonSchema[None] = None
+    category: PerformanceResultCategory|SkipJsonSchema[None] = None
+    parent: PerformanceResultParent|SkipJsonSchema[None] = None
+    asin: PerformanceResultAsin|SkipJsonSchema[None] = None
     sku: Product|SkipJsonSchema[None] = None   
+
+class PerformanceTableResponse(BaseModel):
+    rows: list[PerformanceTableResponseItem]
+    columns: list[str]
+
      
-class QueryRequest(BaseModel):
-    queryId: str
-    collateType: CollateType
+class PerformanceTableRequest(BaseModel):
+    queryId: PyObjectId
+    collatetype: CollateType
     value: str|SkipJsonSchema[None]=None
     parent: str|SkipJsonSchema[None]=None
-    category: str|SkipJsonSchema[None]=None
     filters: list[AnalyticValueFilterItem] = []
     paginator: Paginator = Paginator(skip=0, limit=10)
     sort: Sort = Sort(field='revenue', order=-1)
-
-class ComparisonTableResult(ItemId):
-    data: PerformancePeriodGroup

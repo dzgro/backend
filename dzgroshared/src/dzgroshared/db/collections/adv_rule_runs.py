@@ -7,15 +7,11 @@ from dzgroshared.client import DzgroSharedClient
 
 class AdRuleRunUtility:
     db: DbManager
-    marketplace: ObjectId
-    uid: str
     client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.marketplace = marketplace
-        self.uid = uid
+    def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_RULE_RUNS.value), uid=self.uid, marketplace=self.marketplace)
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_RULE_RUNS.value), marketplace=self.client.marketplaceId)
 
     def convertToObjectId(self, id: str|ObjectId):
         return ObjectId(id) if isinstance(id, str) else id
@@ -28,7 +24,7 @@ class AdRuleRunUtility:
             rule = await self.client.db.ad_rule_utility.getRuleById(req.ruleid)
             obj: dict = {"ruleId": self.convertToObjectId(rule.id), "status": AdRuleRunStatus.QUEUED.value}
             if req.filters: obj['filters']=req.filters.model_dump()
-            id = await self.db.insertOne(obj, timestampkey="startedat", withUidMarketplace=True)
+            id = await self.db.insertOne(obj)
             return await self.getRunById(id)
         except: raise ValueError('We could not find the rule in your account')
     
@@ -58,7 +54,7 @@ class AdRuleRunUtility:
     async def getRuleRunResults(self, runid: str, paginator: Paginator):
         pipeline: list[dict]|None = None
         from dzgroshared.db.extras.rule_executor import AdRuleExecutor
-        pipeline = await AdRuleExecutor(self.uid, self.marketplace, runid).viewResults(paginator)
+        pipeline = await AdRuleExecutor(self.client.marketplaceId, runid).viewResults(paginator)
         data = await self.db.aggregate(pipeline)
         return data
 

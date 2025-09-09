@@ -1,20 +1,14 @@
-from dzgroshared.models.enums import ENVIRONMENT
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from bson import ObjectId
 
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from dzgroshared.client import DzgroSharedClient
 
 
 class DbClient:
     client: DzgroSharedClient
     database: AsyncIOMotorDatabase
-    uid: str
-    marketplace: ObjectId
 
     def __init__(self, client: DzgroSharedClient):
         self.client = client
-        if client.uid: self.uid = client.uid
-        if client.marketplace: self.marketplace = client.marketplace
         if not self.client.mongoClient: raise ValueError("MongoDB client is not initialized.")
         self.database = self.client.mongoClient[client.DB_NAME]
 
@@ -63,289 +57,281 @@ class DbClient:
     
     @property
     def user(self):
-        if not self.uid:
+        if not self.client.uid:
             raise ValueError("UID must be set to access user.")
         from dzgroshared.db.collections.user import UserHelper
         if self.userHelper:
             return self.userHelper
-        self.userHelper = UserHelper(self.client, self.uid)
+        self.userHelper = UserHelper(self.client)
         return self.userHelper
 
     @property
     def marketplaces(self):
-        if not self.uid:
+        if not self.client.uid:
             raise ValueError("UID must be set to access marketplaces.")
         from dzgroshared.db.collections.marketplaces import MarketplaceHelper
         if self.marketplaceHelper:
             return self.marketplaceHelper
-        self.marketplaceHelper = MarketplaceHelper(self.client, self.uid)
+        self.marketplaceHelper = MarketplaceHelper(self.client)
         return self.marketplaceHelper
 
     @property
     def payments(self):
-        if not self.uid:
+        if not self.client.uid:
             raise ValueError("UID must be set to access payments.")
         from dzgroshared.db.collections.payments import PaymentHelper
         if self.paymentHelper:
             return self.paymentHelper
-        self.paymentHelper = PaymentHelper(self.client, self.uid)
+        self.paymentHelper = PaymentHelper(self.client)
         return self.paymentHelper
     
     @property
     def health(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access health.")
         from dzgroshared.db.collections.health import HealthHelper
         if self.healthHelper:
             return self.healthHelper
-        self.healthHelper = HealthHelper(self.client, self.uid, self.marketplace)
+        self.healthHelper = HealthHelper(self.client)
         return self.healthHelper
 
     @property
     def analytics(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access analytics.")
         from dzgroshared.db.collections.analytics import DashboardHelper
         if self.dashboardHelper:
             return self.dashboardHelper
-        self.dashboardHelper = DashboardHelper(self.client, self.uid, self.marketplace)
+        self.dashboardHelper = DashboardHelper(self.client)
         return self.dashboardHelper
 
     @property
     def subscriptions(self):
-        if not self.uid:
+        if not self.client.uid:
             raise ValueError("UID must be set to access subscriptions.")
         from dzgroshared.db.collections.subscriptions import SubscriptionsHelper
         if self.subscriptionsHelper:
             return self.subscriptionsHelper
-        self.subscriptionsHelper = SubscriptionsHelper(self.client, self.uid)
+        self.subscriptionsHelper = SubscriptionsHelper(self.client)
         return self.subscriptionsHelper
 
     @property
     def advertising_accounts(self):
-        if not self.uid:
+        if not self.client.uid:
             raise ValueError("UID must be set to access advertising_accounts.")
         from dzgroshared.db.collections.advertising_accounts import AdvertisingAccountsHelper
         if self.advertisingAccountsHelper:
             return self.advertisingAccountsHelper
-        self.advertisingAccountsHelper = AdvertisingAccountsHelper(self.client, self.uid)
+        self.advertisingAccountsHelper = AdvertisingAccountsHelper(self.client)
         return self.advertisingAccountsHelper
 
     @property
     def spapi_accounts(self):
-        if not self.uid:
+        if not self.client.uid:
             raise ValueError("UID must be set to access spapi_accounts.")
         from dzgroshared.db.collections.spapi_accounts import SPAPIAccountsHelper
         if self.spapiAccountsHelper:
             return self.spapiAccountsHelper
-        self.spapiAccountsHelper = SPAPIAccountsHelper(self.client, self.uid)
+        self.spapiAccountsHelper = SPAPIAccountsHelper(self.client)
         return self.spapiAccountsHelper
 
     @property
     def amazon_daily_reports(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access amazon_daily_reports.")
         from dzgroshared.db.collections.amazon_daily_reports import AmazonDailyReportHelper
         if self.amazonDailyReportHelper:
             return self.amazonDailyReportHelper
-        self.amazonDailyReportHelper = AmazonDailyReportHelper(self.client, self.uid, self.marketplace)
+        self.amazonDailyReportHelper = AmazonDailyReportHelper(self.client)
         return self.amazonDailyReportHelper
 
     @property
-    def calculation_keys(self):
-        from dzgroshared.db.collections.analytics_calculation import CalculationKeysHelper
-        if self.calculationKeysHelper:
-            return self.calculationKeysHelper
-        self.calculationKeysHelper = CalculationKeysHelper(self.client)
-        return self.calculationKeysHelper
-
-    @property
     def queries(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access queries.")
         from dzgroshared.db.collections.queries import QueryHelper
         if self.queryHelper:
             return self.queryHelper
-        self.queryHelper = QueryHelper(self.client, self.uid, self.marketplace)
+        self.queryHelper = QueryHelper(self.client)
         return self.queryHelper
 
     @property
     def dzgro_report_types(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access dzgro_reports.")
         from dzgroshared.db.collections.dzgro_report_types import DzgroReportTypesHelper
         if self.dzgroReportTypesHelper:
             return self.dzgroReportTypesHelper
-        self.dzgroReportTypesHelper = DzgroReportTypesHelper(self.client, self.uid, self.marketplace)
+        self.dzgroReportTypesHelper = DzgroReportTypesHelper(self.client)
         return self.dzgroReportTypesHelper
 
     @property
     def dzgro_reports(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access dzgro_reports.")
         from dzgroshared.db.collections.dzgro_reports import DzgroReportHelper
         if self.dzgroReportHelper:
             return self.dzgroReportHelper
-        self.dzgroReportHelper = DzgroReportHelper(self.client, self.uid, self.marketplace)
+        self.dzgroReportHelper = DzgroReportHelper(self.client)
         return self.dzgroReportHelper
 
     @property
     def dzgro_reports_data(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access dzgro_reports.")
         from dzgroshared.db.collections.dzgro_reports_data import DzgroReportDataHelper
         if self.dzgroReportDataHelper:
             return self.dzgroReportDataHelper
-        self.dzgroReportDataHelper = DzgroReportDataHelper(self.client, self.uid, self.marketplace)
+        self.dzgroReportDataHelper = DzgroReportDataHelper(self.client)
         return self.dzgroReportDataHelper
 
     @property
     def query_results(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access query_results.")
         from dzgroshared.db.collections.query_results import QueryResultsHelper
         if self.queryResultsHelper:
             return self.queryResultsHelper
-        self.queryResultsHelper = QueryResultsHelper(self.client, self.uid, self.marketplace)
+        self.queryResultsHelper = QueryResultsHelper(self.client)
         return self.queryResultsHelper
 
     @property
     def products(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access products.")
         from dzgroshared.db.collections.products import ProductHelper
         if self.productHelper:
             return self.productHelper
-        self.productHelper = ProductHelper(self.client, self.uid, self.marketplace)
+        self.productHelper = ProductHelper(self.client)
         return self.productHelper
 
     @property
     def order_items(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access order_items.")
         from dzgroshared.db.collections.order_items import OrderItemsHelper
         if self.orderItemsHelper:
             return self.orderItemsHelper
-        self.orderItemsHelper = OrderItemsHelper(self.client, self.uid, self.marketplace)
+        self.orderItemsHelper = OrderItemsHelper(self.client)
         return self.orderItemsHelper
 
     @property
     def orders(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access orders.")
         from dzgroshared.db.collections.orders import OrdersHelper
         if self.ordersHelper:
             return self.ordersHelper
-        self.ordersHelper = OrdersHelper(self.client, self.uid, self.marketplace)
+        self.ordersHelper = OrdersHelper(self.client)
         return self.ordersHelper
 
     @property
     def settlements(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access settlements.")
         from dzgroshared.db.collections.settlements import SettlementsHelper
         if self.settlementsHelper:
             return self.settlementsHelper
-        self.settlementsHelper = SettlementsHelper(self.client, self.uid, self.marketplace)
+        self.settlementsHelper = SettlementsHelper(self.client)
         return self.settlementsHelper
 
     @property
     def adv_assets(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access adv_assets.")
         from dzgroshared.db.collections.adv_assets import AdvAssetsHelper
         if self.advAssetsHelper:
             return self.advAssetsHelper
-        self.advAssetsHelper = AdvAssetsHelper(self.client, self.uid, self.marketplace)
+        self.advAssetsHelper = AdvAssetsHelper(self.client)
         return self.advAssetsHelper
 
     @property
     def adv_ads(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access adv_assets.")
         from dzgroshared.db.collections.adv_ads import AdvAAdsHelper
         if self.advAdsHelper:
             return self.advAdsHelper
-        self.advAdsHelper = AdvAAdsHelper(self.client, self.uid, self.marketplace)
+        self.advAdsHelper = AdvAAdsHelper(self.client)
         return self.advAdsHelper
 
     @property
     def state_analytics(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access state_analytics.")
         from dzgroshared.db.collections.state_analytics import StateAnalyticsHelper
         if self.stateAnalyticsHelper:
             return self.stateAnalyticsHelper
-        self.stateAnalyticsHelper = StateAnalyticsHelper(self.client, self.uid, self.marketplace)
+        self.stateAnalyticsHelper = StateAnalyticsHelper(self.client)
         return self.stateAnalyticsHelper
 
     @property
     def date_analytics(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access date_analytics.")
         from dzgroshared.db.collections.date_analytics import DateAnalyticsHelper
         if self.dateAnalyticsHelper:
             return self.dateAnalyticsHelper
-        self.dateAnalyticsHelper = DateAnalyticsHelper(self.client, self.uid, self.marketplace)
+        self.dateAnalyticsHelper = DateAnalyticsHelper(self.client)
         return self.dateAnalyticsHelper
     
     @property
     def ad_structure(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access ad_structure.")
         from dzgroshared.db.extras.ad_structure import AdStructureHelper
         if self.adStructureHelper:
             return self.adStructureHelper
-        self.adStructureHelper = AdStructureHelper(self.client, self.uid, self.marketplace)
+        self.adStructureHelper = AdStructureHelper(self.client)
         return self.adStructureHelper
 
     @property
     def ad_rule_utility(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access ad_rule_utility.")
         from dzgroshared.db.collections.adv_rules import AdRuleUtility
         if self.adRuleUtility:
             return self.adRuleUtility
-        self.adRuleUtility = AdRuleUtility(self.client, self.uid, self.marketplace)
+        self.adRuleUtility = AdRuleUtility(self.client)
         return self.adRuleUtility
 
     @property
     def ad_rule_run_utility(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access ad_rule_run_utility.")
         from dzgroshared.db.collections.adv_rule_runs import AdRuleRunUtility
         if self.adRuleRunUtility:
             return self.adRuleRunUtility
-        self.adRuleRunUtility = AdRuleRunUtility(self.client, self.uid, self.marketplace)
+        self.adRuleRunUtility = AdRuleRunUtility(self.client)
         return self.adRuleRunUtility
 
     @property
     def ad_rule_criteria_groups(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access ad_rule_criteria_groups.")
         from dzgroshared.db.collections.adv_rule_criterias import AdRuleCriteriaGroupsUtility
         if self.adRuleCriteriaGroupsUtility:
             return self.adRuleCriteriaGroupsUtility
-        self.adRuleCriteriaGroupsUtility = AdRuleCriteriaGroupsUtility(self.client, self.uid, self.marketplace)
+        self.adRuleCriteriaGroupsUtility = AdRuleCriteriaGroupsUtility(self.client)
         return self.adRuleCriteriaGroupsUtility
     
     @property
     def ad_rule_run_results(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access ad_rule_run_results.")
         from dzgroshared.db.collections.adv_rule_run_results import AdRuleRunResultsHelper
         if self.adRuleRunResultsHelper:
             return self.adRuleRunResultsHelper
-        self.adRuleRunResultsHelper = AdRuleRunResultsHelper(self.client, self.uid, self.marketplace)
+        self.adRuleRunResultsHelper = AdRuleRunResultsHelper(self.client)
         return self.adRuleRunResultsHelper
     
     @property
     def ad_ad_group_mapping(self):
-        if not self.uid or not self.marketplace:
+        if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access ad_ad_group_mapping.")
         from dzgroshared.db.collections.adv_ad_group_mapping import AdvAdGroupMappingHelper
         if self.advAdGroupMappingHelper:
             return self.advAdGroupMappingHelper
-        self.advAdGroupMappingHelper = AdvAdGroupMappingHelper(self.client, self.uid, self.marketplace)
+        self.advAdGroupMappingHelper = AdvAdGroupMappingHelper(self.client)
         return self.advAdGroupMappingHelper
     

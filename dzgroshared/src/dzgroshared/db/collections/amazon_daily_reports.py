@@ -9,19 +9,16 @@ from dzgroshared.client import DzgroSharedClient
 class AmazonDailyReportHelper:
     childDB: DbManager
     groupDB: DbManager
-    marketplace: ObjectId
-    uid: str
+    client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.marketplace = marketplace
-        self.uid = uid
-        self.childDB = DbManager(client.db.database.get_collection(CollectionType.AMAZON_CHILD_REPORT.value), uid=self.uid, marketplace=self.marketplace)
-        self.groupDB = DbManager(client.db.database.get_collection(CollectionType.AMAZON_CHILD_REPORT_GROUP.value), uid=self.uid, marketplace=self.marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.childDB = DbManager(client.db.database.get_collection(CollectionType.AMAZON_CHILD_REPORT.value), marketplace=self.client.marketplaceId)
+        self.groupDB = DbManager(client.db.database.get_collection(CollectionType.AMAZON_CHILD_REPORT_GROUP.value), marketplace=self.client.marketplaceId)
 
-    async def insertParentReport(self, reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]], startdate: datetime, enddate: datetime):
+    async def insertParentReport(self, reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]], dates: StartEndDate):
         childReports: list[dict] = []
-        dates = StartEndDate(startdate=startdate, enddate=enddate).model_dump()
-        id = await self.groupDB.insertOne({'status':AmazonParentReportTaskStatus.PROCESSING.value, 'dates': dates}, withUidMarketplace=True)
+        id = await self.groupDB.insertOne({'status':AmazonParentReportTaskStatus.PROCESSING.value, 'dates': dates.model_dump()}, withUidMarketplace=True)
         for k,v in reports.items(): childReports.extend([{'parent': id, 'reporttype': k.value, "report": x.model_dump(mode="json", exclude_none=True, exclude_defaults=True, by_alias=True)} for x in v])
         await self.childDB.insertMany(childReports)
         return id

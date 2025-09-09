@@ -8,11 +8,11 @@ from dzgroshared.amazonapi.spapi import SpApiClient
 
 class SPAPIAccountsHelper:
     db: DbManager
-    uid: str
+    client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str) -> None:
-        self.db = DbManager(client.db.database.get_collection(CollectionType.SPAPI_ACCOUNTS.value), uid=uid)
-        self.uid = uid
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.SPAPI_ACCOUNTS.value), uid=client.uid)
 
     async def getSeller(self, sellerid: str) -> dict:
         return await self.db.findOne({"sellerid": sellerid})

@@ -5,14 +5,10 @@ from dzgroshared.client import DzgroSharedClient
 
 class DzgroReportDataHelper:
     db: DbManager
-    marketplace: ObjectId
-    uid: str
     client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.uid = uid
+    def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
-        self.marketplace = marketplace
         self.db = DbManager(client.db.database.get_collection(CollectionType.DZGRO_REPORT_DATA))
 
     async def count(self, reportid: str|ObjectId):

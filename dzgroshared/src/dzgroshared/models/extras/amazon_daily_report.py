@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Literal
 from dzgroshared.models.amazonapi.model import AmazonApiObject
-from dzgroshared.models.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemIdWithDate, PyObjectId, StartEndDate
+from dzgroshared.models.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemId, PyObjectId, StartEndDate
 from dzgroshared.models.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, QueryTag, DataKioskType, MarketplaceId, MarketplaceStatus, PlanType
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -122,6 +122,6 @@ class MarketplaceObjectForReport(ItemId):
     spapi: AmazonApiObject
     ad: AmazonApiObject
     dates: StartEndDate|SkipJsonSchema[None]=None
-    lastRefresh: StartEndDate|SkipJsonSchema[None]=None
+    lastrefresh: datetime|SkipJsonSchema[None]=None
     details: CountryDetails
     plantype: PlanType

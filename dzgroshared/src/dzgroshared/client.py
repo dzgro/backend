@@ -1,6 +1,7 @@
 from bson import ObjectId
+from dzgroshared.models.collections.marketplaces import MarketplaceCache
 from dzgroshared.models.enums import ENVIRONMENT
-from dzgroshared.models.model import DzgroSecrets, LambdaContext
+from dzgroshared.models.model import DzgroSecrets, LambdaContext, PyObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 
 
@@ -10,7 +11,8 @@ class DzgroSharedClient:
     env: ENVIRONMENT
     DB_NAME: str
     uid: str
-    marketplace: ObjectId
+    marketplace: MarketplaceCache
+    marketplaceId: ObjectId
     mongoClient: AsyncIOMotorClient
     secretsClient: DzgroSecrets
 
@@ -27,8 +29,12 @@ class DzgroSharedClient:
     def setUid(self, uid: str):
         self.uid = uid
 
-    def setMarketplace(self, marketplace: ObjectId):
+    def setMarketplace(self, marketplace: MarketplaceCache):
         self.marketplace = marketplace
+        self.setMarketplaceId(marketplace.id)
+
+    def setMarketplaceId(self, marketplaceId: ObjectId|PyObjectId):
+        self.marketplaceId = marketplaceId if isinstance(marketplaceId, ObjectId) else ObjectId(marketplaceId)
 
     def setSecretsClient(self, secretsClient: DzgroSecrets):
         self.secretsClient = secretsClient

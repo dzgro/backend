@@ -4,14 +4,12 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.model import LambdaContext
 from dzgroshared.models.sqs import SQSEvent, SQSRecord
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
-from dzgroshared.functions.AmazonDailyReport.reports.report_types.adexport.AdsExportApp import AmazonAdsExportManager
-from dzgroshared.functions.AmazonDailyReport.reports.report_types.datakiosk.DataKioskReportApp import AmazonDataKioskReportManager
+from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from bson import ObjectId
 from dzgroshared.db.collections.products import ProductHelper
 from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage
-from dzgroshared.models.enums import AdAssetType, AmazonAccountType, AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, QueueName, SQSMessageStatus, ENVIRONMENT
+from dzgroshared.models.enums import AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, QueueName, SQSMessageStatus, ENVIRONMENT
 from dzgroshared.models.extras.amazon_daily_report import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonParentReport, MarketplaceObjectForReport, AmazonSpapiReport
-from dzgroshared.utils import date_util
 from dzgroshared.models.sqs import SendMessageRequest
 from pandas import date_range
 
@@ -24,10 +22,16 @@ class AmazonReportManager:
     report: AmazonParentReport
     message: AmazonParentReportQueueMessage
     messageId: str
-    reportUti: ReportUtil
+    reportUtil: ReportUtil
+    dateUtil: MarketplaceDatesUtility
 
     def __init__(self, client: DzgroSharedClient):
         self.client = client
+    
+    def __getattr__(self, item):
+        return None
+    
+    
 
     async def execute(self, event: dict|SQSEvent, context: LambdaContext):
         try:
@@ -40,20 +44,24 @@ class AmazonReportManager:
             await self.client.db.sqs_messages.setMessageAsFailed(self.messageId, error)
             print(f"Error in AmazonReportManager: {error}")
 
+    
+
     async def processRecord(self, record: SQSRecord):
         try:
             self.messageId = record.messageId
-            await self.setMessage(record.dictBody)
+            self.message = AmazonParentReportQueueMessage.model_validate(record.dictBody)
             self.client.setUid(self.message.uid)
             self.client.setMarketplace(self.message.marketplace)
             await self.setUserMarketplace()
             messageId, delay = await self.checkMessage()
             if self.client.env==ENVIRONMENT.LOCAL:
                 while messageId is not None:
+                    print('--------------------------------------------------------')
+                    print(f'Messageid: {messageId}, Action: {self.message.step.value}, Date: {self.message.date}')
                     print(f"Waiting for {delay} seconds before continuing...")
                     await asyncio.sleep(delay)
                     self.messageId = messageId
-                    await self.setMessage()
+                    self.message = await self.client.db.sqs_messages.getAmazonParentReportQueueMessage(self.messageId)
                     messageId, delay = await self.checkMessage()
                 print("Completed")
         except Exception as e:
@@ -61,19 +69,11 @@ class AmazonReportManager:
             if self.message.index:
                 await self.client.db.amazon_daily_reports.terminateParent(self.message.index, error)
             raise e
-        
-    async def setMessage(self, body: dict|None=None):
-        if self.client.env==ENVIRONMENT.LOCAL:
-            self.message = await self.client.db.sqs_messages.getAmazonParentReportQueueMessage(self.messageId)
-        else: self.message = AmazonParentReportQueueMessage.model_validate(body)
-
-    def __getattr__(self, item):
-        return None
     
     async def checkMessage(self):
         await self.client.db.sqs_messages.setMessageAsProcessing(self.messageId)
-        delay = await self.executeMessage()
-        return await self.exitAndContinue(delay), delay
+        await self.executeMessage()
+        return await self.exitAndContinue()
     
     async def setUserMarketplace(self):
         self.userMarketplace = MarketplaceObjectForReport(**await self.client.db.marketplaces.getMarketplaceObjectForReport(ObjectId(self.message.marketplace)))
@@ -82,6 +82,7 @@ class AmazonReportManager:
         self.userMarketplace.ad.client_id = self.client.secrets.ADS_CLIENT_ID
         self.userMarketplace.ad.client_secret = self.client.secrets.ADS_CLIENT_SECRET
         self.reportUtil = ReportUtil(self.client)
+        self.dateUtil = MarketplaceDatesUtility(self.userMarketplace)
 
     async def executeMessage(self)->int:
         if not self.message.index:
@@ -90,13 +91,12 @@ class AmazonReportManager:
             reportid = ObjectId(self.message.index)
             self.report = await self.client.db.amazon_daily_reports.getParentReport(reportid)
             if self.message.step==AmazonDailyReportAggregationStep.ADD_PRODUCTS:
+                if not self.message.date: self.message.date = self.userMarketplace.lastrefresh
                 from dzgroshared.functions.AmazonDailyReport.reports.AddProducts import ListingsBuilder
                 builder = ListingsBuilder(self.client,self.context, self.userMarketplace, self.spapi, self.reportUtil, self.report.id)
                 self.message.date = await builder.execute(self.message.date)
-                if not self.message.date: await self.client.db.amazon_daily_reports.markProductsComplete(reportid)
             elif self.message.step==AmazonDailyReportAggregationStep.PROCESS_REPORTS: 
-                if self.report.progress!=100: await self.processReports()
-                return 60 if self.report.progress!=100 else 0
+                await self.processReports()
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_PORTFOLIOS:
                 from dzgroshared.functions.AmazonDailyReport.reports.pipelines.AddPortfolios import PortfolioProcessor
                 portfolios = await PortfolioProcessor(self.userMarketplace, self.adapi).getPortfolios()
@@ -120,12 +120,38 @@ class AmazonReportManager:
                             self.userMarketplace.id, self.report.dates, self.report.createdat, reportid
                         )
         return 0
+    
+    
+    async def exitAndContinue(self):
+        if self.message.step==AmazonDailyReportAggregationStep.CREATE_REPORTS:
+            if self.client.env!=ENVIRONMENT.LOCAL: 
+                await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
+                return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
+            return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
+        elif self.message.step==AmazonDailyReportAggregationStep.ADD_PRODUCTS:
+            if self.message.date: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
+            else: 
+                await self.client.db.amazon_daily_reports.markProductsComplete(ObjectId(self.message.index))
+                if self.client.env==ENVIRONMENT.LOCAL: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
+        elif self.message.step==AmazonDailyReportAggregationStep.PROCESS_REPORTS:
+            if self.report.productsComplete and self.report.progress==100: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS)
+            else: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS, delay=120 if not self.report.productsComplete else 60)
+        elif self.message.step==AmazonDailyReportAggregationStep.ADD_PORTFOLIOS:
+            return await self.__sendMessage(AmazonDailyReportAggregationStep.CREATE_ADS)
+        elif self.message.step==AmazonDailyReportAggregationStep.CREATE_ADS:
+            return await self.__sendMessage(AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS)
+        elif self.message.step==AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS:
+            if self.message.date: return await self.__sendMessage(AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS)
+            else: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_QUERIES)
+        elif self.message.step==AmazonDailyReportAggregationStep.ADD_QUERIES:
+            return await self.__sendMessage(AmazonDailyReportAggregationStep.MARK_COMPLETION)
+        return None, 0
 
     async def __sendMessage(self, step: AmazonDailyReportAggregationStep, delay: int=0):
         await self.client.db.sqs_messages.setMessageAsCompleted(self.messageId)
         self.message.step = step
         queue = QueueName.AMAZON_REPORTS
-        return await self.client.sqs.sendMessage(SendMessageRequest(Queue=queue, DelaySeconds=delay), self.message)
+        return await self.client.sqs.sendMessage(SendMessageRequest(Queue=queue, DelaySeconds=delay), self.message), delay
 
     @property
     def spapi(self):
@@ -137,15 +163,15 @@ class AmazonReportManager:
 
     async def getSPAPIReportManager(self):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.spapi.SpapiReportApp import AmazonSpapiReportManager
-        return AmazonSpapiReportManager(self.client, self.userMarketplace, self.spapi)
+        return AmazonSpapiReportManager(self.client, self.userMarketplace, self.spapi, self.dateUtil)
         
     async def getDataKioskReportManager(self):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.datakiosk.DataKioskReportApp import AmazonDataKioskReportManager
-        return AmazonDataKioskReportManager(self.client, self.userMarketplace, self.spapi)
+        return AmazonDataKioskReportManager(self.client, self.userMarketplace, self.spapi, self.dateUtil)
 
     async def getAdReportManager(self):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.ad.AdsReportApp import AmazonAdsReportManager
-        return AmazonAdsReportManager(self.client, self.userMarketplace, self.adapi)
+        return AmazonAdsReportManager(self.client, self.userMarketplace, self.adapi, self.dateUtil)
 
     async def getAdExportManager(self):
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.adexport.AdsExportApp import AmazonAdsExportManager
@@ -158,12 +184,12 @@ class AmazonReportManager:
         kioskReports = (await self.getDataKioskReportManager()).getDataKioskReportsConf()
         reports: dict[AmazonReportType, list[AmazonSpapiReport]|list[AmazonAdReport]|list[AmazonExportReport]|list[AmazonDataKioskReport]] = {
             AmazonReportType.SPAPI: spapiReports,
-            # AmazonReportType.AD: adReports,
-            # AmazonReportType.AD_EXPORT: adExports,
-            # AmazonReportType.KIOSK: kioskReports
+            AmazonReportType.AD: adReports,
+            AmazonReportType.AD_EXPORT: adExports,
+            AmazonReportType.KIOSK: kioskReports
         }
-        startdate, enddate = date_util.getMarketplaceRefreshDates(self.userMarketplace.dates is None, self.userMarketplace.details.timezone)
-        self.message.index = str(await self.client.db.amazon_daily_reports.insertParentReport(reports, startdate, enddate))
+        dates = self.dateUtil.getMarketplaceRefreshDates()
+        self.message.index = str(await self.client.db.amazon_daily_reports.insertParentReport(reports, dates))
         await self.client.db.sqs_messages.addIndex(self.messageId,self.message.index)
         
     async def processReports(self):
@@ -201,37 +227,6 @@ class AmazonReportManager:
         saved = len(list(filter(lambda x: x.filepath is not None, self.report.adexport)))
         if created>0 and saved!=created:
             print(f"AdExport Total: {len(self.report.adexport)}, Created: {created}, Saved: {saved}")
-        
-
-    
-    async def exitAndContinue(self, delay: int=0):
-        if self.message.step==AmazonDailyReportAggregationStep.CREATE_REPORTS:
-            if self.client.env==ENVIRONMENT.LOCAL:
-                await self.client.db.amazon_daily_reports.markProductsComplete(ObjectId(self.message.index))
-            return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
-            # if self.client.env==ENVIRONMENT.DEV:self.userMarketplace.lastrefresh = date_util.getCurrentDateTime()
-            # if not self.message.date: self.message.date = self.userMarketplace.lastrefresh
-            # await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
-        elif self.message.step==AmazonDailyReportAggregationStep.ADD_PRODUCTS:
-            if self.message.date: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
-            else: return None
-        elif self.message.step==AmazonDailyReportAggregationStep.PROCESS_REPORTS:
-            if delay==0:
-                if self.report.productsComplete: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS, delay=delay)
-                else: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS, delay=60)
-            else: 
-                return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS, delay=delay)
-        elif self.message.step==AmazonDailyReportAggregationStep.ADD_PORTFOLIOS:
-            return await self.__sendMessage(AmazonDailyReportAggregationStep.CREATE_ADS)
-        elif self.message.step==AmazonDailyReportAggregationStep.CREATE_ADS:
-            return await self.__sendMessage(AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS)
-        elif self.message.step==AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS:
-            if self.message.date: return await self.__sendMessage(AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS)
-            else: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_QUERIES)
-        elif self.message.step==AmazonDailyReportAggregationStep.ADD_QUERIES:
-            if self.message.query: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_QUERIES)
-            else: return await self.__sendMessage(AmazonDailyReportAggregationStep.MARK_COMPLETION)
-        else: return None
 
 
 

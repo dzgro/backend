@@ -53,16 +53,7 @@ class SuccessResponse(BaseModel):
 
 class ItemId(BaseModel):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str})
-    id: PyObjectId= Field(...,alias="_id")
-
-class ItemIdWithDate(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str})
-    id: PyObjectId= Field(...,alias="_id")
-    createdat: datetime|SkipJsonSchema[None]=None
-    @model_validator(mode="before")
-    def setCreateAt(cls, data):
-        data['createdat'] = ObjectId(str(data['_id'])).generation_time
-        return data
+    id: PyObjectId= Field(...,alias="_id")                                                                                                                                         
 
 class ItemObjectId(BaseModel):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str})

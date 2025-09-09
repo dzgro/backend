@@ -1,6 +1,6 @@
 from bson import ObjectId
 import json
-from dzgroshared.models.model import Paginator
+from dzgroshared.models.model import Paginator, PyObjectId
 from dzgroshared.models.enums import Operator, CollectionType
 from dzgroshared.models.collections.adv_rule_runs import AdRuleRunStatus
 from dzgroshared.models.collections.adv_rules import AdCriteria, AdCriteriaResultAction, AdCriteriaResultSubAction, CriteriasSimplified
@@ -8,17 +8,15 @@ from dzgroshared.db.PipelineProcessor import LookUpLetExpression, LookUpPipeline
 from dzgroshared.db.DataTransformer import Datatransformer
 
 class AdRuleExecutor:
-    uid: str
-    marketplace: ObjectId
+    marketplace: PyObjectId
     runid: str
     # helper: AdRuleRunUtility
     pp: PipelineProcessor
 
-    def __init__(self, uid: str,marketplace: ObjectId,runid: str) -> None:
+    def __init__(self, marketplace: PyObjectId,runid: str) -> None:
         try:
-            self.uid = uid
             self.runid = runid
-            self.marketplace = ObjectId(marketplace)
+            self.marketplace = marketplace
             # self.helper = AdRuleRunUtility(self.marketplace, self.uid)
             self.pp = self.helper.db.pp
             self.processRule()

@@ -4,14 +4,12 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.DbUtils import DbManager
 
 class AdvAdGroupMappingHelper:
+    client: DzgroSharedClient
     db: DbManager
-    marketplace: ObjectId
-    uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.marketplace = marketplace
-        self.uid = uid
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_AD_GROUP_MAPPING.value), uid=self.uid, marketplace=self.marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_AD_GROUP_MAPPING.value), marketplace=self.client.marketplaceId)
 
     # async def listMappings(self, paginator: Paginator):
     #     pipeline = ListAdGroupMappings.pipeline(self.uid, self.marketplace, paginator)

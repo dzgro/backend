@@ -337,92 +337,47 @@ ALL_STATE_METRICS: list[MetricGroup] = [
 
 MONTH_DATE_METRICS: list[MetricGroup] = [
     MetricGroup(
-        metric=AnalyticGroupMetricLabel.STATE_DETAILED, items = [
-            MetricItem(metric=AnalyticsMetric.REVENUE, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_REVENUE),
-                MetricItem(metric=AnalyticsMetric.FBM_REVENUE),
-                MetricItem(metric=AnalyticsMetric.REVENUE, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.RETURN_VALUE, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_RETURN_VALUE),
-                MetricItem(metric=AnalyticsMetric.FBM_RETURN_VALUE),
-                MetricItem(metric=AnalyticsMetric.RETURN_VALUE, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.NET_REVENUE, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_NET_REVENUE),
-                MetricItem(metric=AnalyticsMetric.FBM_NET_REVENUE),
-                MetricItem(metric=AnalyticsMetric.NET_REVENUE, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.ORDERS, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_ORDERS),
-                MetricItem(metric=AnalyticsMetric.FBM_ORDERS),
-                MetricItem(metric=AnalyticsMetric.ORDERS, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_CANCELLED_ORDERS),
-                MetricItem(metric=AnalyticsMetric.FBM_CANCELLED_ORDERS),
-                MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.NET_ORDERS, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_NET_ORDERS),
-                MetricItem(metric=AnalyticsMetric.FBM_NET_ORDERS),
-                MetricItem(metric=AnalyticsMetric.NET_ORDERS, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.QUANTITY, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_QUANTITY),
-                MetricItem(metric=AnalyticsMetric.FBM_QUANTITY),
-                MetricItem(metric=AnalyticsMetric.QUANTITY, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_RETURN_QUANTITY),
-                MetricItem(metric=AnalyticsMetric.FBM_RETURN_QUANTITY),
-                MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.NET_QUANTITY, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_NET_QUANTITY),
-                MetricItem(metric=AnalyticsMetric.FBM_NET_QUANTITY),
-                MetricItem(metric=AnalyticsMetric.NET_QUANTITY, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE),
-                MetricItem(metric=AnalyticsMetric.FBM_RETURN_PERCENTAGE),
-                MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_AVERAGE_SALE_PRICE),
-                MetricItem(metric=AnalyticsMetric.FBM_AVERAGE_SALE_PRICE),
-                MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.FEES, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_FEES),
-                MetricItem(metric=AnalyticsMetric.FBM_FEES),
-                MetricItem(metric=AnalyticsMetric.FEES, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_NON_FEES_EXPENSES),
-                MetricItem(metric=AnalyticsMetric.FBM_NON_FEES_EXPENSES),
-                MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.GROSS_EXPENSES, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_EXPENSES),
-                MetricItem(metric=AnalyticsMetric.FBM_EXPENSES),
-                MetricItem(metric=AnalyticsMetric.GROSS_EXPENSES, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_NET_PROCEEDS),
-                MetricItem(metric=AnalyticsMetric.FBM_NET_PROCEEDS),
-                MetricItem(metric=AnalyticsMetric.GROSS_PROCEEDS, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PERCENTAGE),
-                MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PERCENTAGE),
-                MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE, label="Total"),
-            ]),
-            MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT, items=[
-                MetricItem(metric=AnalyticsMetric.FBA_PAYOUT_PER_UNIT),
-                MetricItem(metric=AnalyticsMetric.FBM_PAYOUT_PER_UNIT),
-                MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT, label="Total"),
-            ]),
+        metric=AnalyticGroupMetricLabel.SALES, items=[
+            MetricItem(metric=AnalyticsMetric.REVENUE),
+            MetricItem(metric=AnalyticsMetric.RETURN_VALUE),
+            MetricItem(metric=AnalyticsMetric.NET_REVENUE),
+            MetricItem(metric=AnalyticsMetric.ORDERS),
+            MetricItem(metric=AnalyticsMetric.CANCELLED_ORDERS),
+            MetricItem(metric=AnalyticsMetric.NET_ORDERS),
+            MetricItem(metric=AnalyticsMetric.QUANTITY),
+            MetricItem(metric=AnalyticsMetric.RETURN_QUANTITY),
+            MetricItem(metric=AnalyticsMetric.NET_QUANTITY),
+            MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE),
+            MetricItem(metric=AnalyticsMetric.AVERAGE_SALE_PRICE),
+            MetricItem(metric=AnalyticsMetric.FEES),
+            MetricItem(metric=AnalyticsMetric.NON_FEES_EXPENSES),
+            MetricItem(metric=AnalyticsMetric.SPEND),
+            MetricItem(metric=AnalyticsMetric.MISC_EXPENSES),
+            MetricItem(metric=AnalyticsMetric.NET_EXPENSES),
+            MetricItem(metric=AnalyticsMetric.NET_PROCEEDS),
+            MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE),
+            MetricItem(metric=AnalyticsMetric.PAYOUT_PER_UNIT),
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.ADVERTISEMENT, items = [
+            MetricItem(metric=AnalyticsMetric.IMPRESSIONS),
+            MetricItem(metric=AnalyticsMetric.CLICKS),
+            MetricItem(metric=AnalyticsMetric.CTR),
+            MetricItem(metric=AnalyticsMetric.SPEND),
+            MetricItem(metric=AnalyticsMetric.CPC),
+            MetricItem(metric=AnalyticsMetric.AD_UNITS),
+            MetricItem(metric=AnalyticsMetric.AD_ORDERS),
+            MetricItem(metric=AnalyticsMetric.CVR),
+            MetricItem(metric=AnalyticsMetric.AD_SALES),
+            MetricItem(metric=AnalyticsMetric.ACOS),
+            MetricItem(metric=AnalyticsMetric.ROAS),
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.TRAFFIC, items = [
+            MetricItem(metric=AnalyticsMetric.PAGE_VIEWS),
+            MetricItem(metric=AnalyticsMetric.SESSIONS),
+            MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
+            MetricItem(metric=AnalyticsMetric.BUY_BOX_PERCENTAGE),
         ])
     ]
 

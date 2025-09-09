@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field,model_validator
-from dzgroshared.models.model import ItemId, ItemIdWithDate, StartEndDate
+from dzgroshared.models.model import ItemId, ItemId, PyObjectId, StartEndDate
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.enums import AmazonAccountType, MarketplaceId, CountryCode, MarketplaceStatus
 from datetime import datetime
@@ -77,7 +77,14 @@ class RenameAccountRequest(BaseModel):
     accountType: AmazonAccountType
     name: str
 
-class Marketplace(ItemIdWithDate):
+class MarketplaceCache(ItemId):
+    countrycode: CountryCode
+    marketplaceid: MarketplaceId
+    uid: str
+    profileid: int
+    sellerid: str
+
+class Marketplace(ItemId):
     countrycode: CountryCode
     marketplaceid: MarketplaceId
     profileid: int

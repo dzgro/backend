@@ -50,7 +50,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
         '$lookup': {
             'from': 'orders', 
             'let': {
-                'uid': '$uid', 
                 'marketplace': '$_id', 
                 'date': '$date'
             }, 
@@ -60,10 +59,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
                         '$expr': {
                             '$and': [
                                 {
-                                    '$eq': [
-                                        '$uid', '$$uid'
-                                    ]
-                                }, {
                                     '$eq': [
                                         '$marketplace', '$$marketplace'
                                     ]
@@ -79,7 +74,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
                     '$lookup': {
                         'from': 'settlements', 
                         'let': {
-                            'uid': '$uid', 
                             'marketplace': '$marketplace', 
                             'orderid': '$orderid'
                         }, 
@@ -89,10 +83,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
                                     '$expr': {
                                         '$and': [
                                             {
-                                                '$eq': [
-                                                    '$uid', '$$uid'
-                                                ]
-                                            }, {
                                                 '$eq': [
                                                     '$marketplace', '$$marketplace'
                                                 ]
@@ -118,7 +108,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
                                 '$lookup': {
                                     'from': 'products', 
                                     'let': {
-                                        'uid': '$uid', 
                                         'marketplace': '$marketplace', 
                                         'sku': '$sku'
                                     }, 
@@ -128,10 +117,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
                                                 '$expr': {
                                                     '$and': [
                                                         {
-                                                            '$eq': [
-                                                                '$uid', '$$uid'
-                                                            ]
-                                                        }, {
                                                             '$eq': [
                                                                 '$marketplace', '$$marketplace'
                                                             ]
@@ -793,7 +778,6 @@ def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
             'newRoot': {
                 '$mergeObjects': [
                     {
-                        'uid': '$uid', 
                         'marketplace': '$_id', 
                         'date': '$date'
                     }, '$order'

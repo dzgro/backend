@@ -435,7 +435,6 @@ class CollectionType(str,Enum):
     DATE_ANALYTICS = 'date_analytics'
     QUERIES = 'queries'
     QUERY_RESULTS = 'query_results'
-    ANALYTICS_CALCULATION = 'analytics_calculation'
     SPAPI_REPORTS = 'spapi_reports'
     DATA_KIOSK_REPORTS = 'data_kiosk_reports'
     ADV_PERFORMANCE_REPORTS = 'adv_performance_reports'

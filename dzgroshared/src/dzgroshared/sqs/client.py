@@ -97,11 +97,11 @@ class SqsHelper:
         await self.client.db.sqs_messages.addBatchMessageToDb(dbBatch)
         return res
     
-    def getSQSEventByMessage(self, message: SQSSendMessageResponse, body: BaseModel):
+    def getSQSEventByMessage(self, message: str, body: BaseModel):
         return {
             "Records": [
                 {
-                    "messageId": message.message_id,
+                    "messageId": message,
                     "receiptHandle": 'rec123',
                     "md5OfBody": 'md5OfBody',
                     "body": body.model_dump_json(exclude_none=True),

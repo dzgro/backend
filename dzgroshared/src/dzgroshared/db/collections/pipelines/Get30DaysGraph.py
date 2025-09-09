@@ -2,15 +2,16 @@
 from bson import ObjectId
 from dzgroshared.db.extras import Analytics
 from dzgroshared.models.collections.analytics import SingleMetricPeriodDataRequest
+from dzgroshared.models.model import PyObjectId
 
 
-def pipeline(uid: str, marketplace: ObjectId, req: SingleMetricPeriodDataRequest):
-    letdict = { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
+def pipeline(marketplace: ObjectId, req: SingleMetricPeriodDataRequest):
+    letdict = {'marketplace': '$marketplace', 'date': '$date', 'collatetype': 'marketplace' }
     if req.value: letdict['value'] = req.value
-    matchDict ={ '$expr': { '$and': [ { '$eq': [ '$uid', '41e34d1a-6031-70d2-9ff3-d1a704240921' ] }, { '$eq': [ '$marketplace', ObjectId('6895638c452dc4315750e826') ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] } ] } }
+    matchDict ={ '$expr': { '$and': [ { '$eq': [ '$marketplace', marketplace ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] } ] } }
     if req.value: matchDict['$expr']['$and'].append({ '$eq': [ '$value', '$$value' ] })
     pipeline = [
-        { '$match': { '_id': marketplace, 'uid': uid } }, 
+        { '$match': { '_id': marketplace} }, 
         { '$set': { 'date': { '$reduce': { 'input': { '$range': [ 0, 30, 1 ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$dateSubtract': { 'startDate': '$dates.enddate', 'amount': '$$this', 'unit': 'day' } } ] ] } } } } }, 
         { '$unwind': { 'path': '$date' } },
         { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict }, { '$project': { 'data': 1, '_id': 0 } } ], 'as': 'data' } }, 

@@ -8,12 +8,11 @@ from dzgroshared.amazonapi.adapi import AdApiClient
 
 class AdvertisingAccountsHelper:
     db: DbManager
-    uid: str
-    db: DbManager
+    client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str) -> None:
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ADVERTISING_ACCOUNTS.value), uid=uid)
-        self.uid = uid
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ADVERTISING_ACCOUNTS.value), uid=client.uid)
 
     async def addAccount(self, data: AdvertisingAccountRequest):
         await self.db.insertOne(data.model_dump(mode="json"), withUidMarketplace=True)

@@ -2,9 +2,9 @@ from datetime import datetime
 from bson import ObjectId
 from dzgroshared.models.amazonapi.model import AmazonApiObject
 from dzgroshared.models.enums import CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus
-from dzgroshared.models.model import Paginator, StartEndDate, SuccessResponse, AddMarketplace
+from dzgroshared.models.model import Paginator, PyObjectId, StartEndDate, SuccessResponse, AddMarketplace
 from dzgroshared.db import Exceptions
-from dzgroshared.models.collections.marketplaces import Marketplace, UserAccountsCount, MarketplaceNameId, Account, AdAccount, RenameAccountRequest
+from dzgroshared.models.collections.marketplaces import Marketplace, MarketplaceCache, UserAccountsCount, MarketplaceNameId, Account, AdAccount, RenameAccountRequest
 from dzgroshared.db.collections.pipelines import GetAdAccounts, GetMarketplaces
 from dzgroshared.models.collections.country_details import CountryDetailsWithBids
 from dzgroshared.db.DbUtils import DbManager
@@ -13,24 +13,27 @@ from dzgroshared.client import DzgroSharedClient
 
 
 class MarketplaceHelper:
-    uid:str
+    client: DzgroSharedClient
     marketplaceDB: DbManager
     spapiDB: DbManager
     advDb: DbManager
 
-    def __init__(self, client: DzgroSharedClient, uid:str):
-        self.uid = uid
-        self.marketplaceDB = DbManager(client.db.database.get_collection(CollectionType.MARKETPLACES.value), uid=self.uid)
-        self.spapiDB = DbManager(client.db.database.get_collection(CollectionType.SPAPI_ACCOUNTS.value), uid=self.uid)
-        self.advDb = DbManager(client.db.database.get_collection(CollectionType.ADVERTISING_ACCOUNTS.value), uid=self.uid)
+    def __init__(self, client: DzgroSharedClient):
+        self.client = client
+        self.marketplaceDB = DbManager(client.db.database.get_collection(CollectionType.MARKETPLACES.value), uid=self.client.uid)
+        self.spapiDB = DbManager(client.db.database.get_collection(CollectionType.SPAPI_ACCOUNTS.value), uid=self.client.uid)
+        self.advDb = DbManager(client.db.database.get_collection(CollectionType.ADVERTISING_ACCOUNTS.value), uid=self.client.uid)
 
     async def getMarketplace(self, id: str|ObjectId):
         marketplace = await self.marketplaceDB.findOne({'_id': self.marketplaceDB.convertToObjectId(id)})
         return Marketplace(**marketplace)
     
+    async def getMarketplaceForCache(self, id: PyObjectId):
+        return MarketplaceCache.model_validate(self.marketplaceDB.findOne({"_id": id, "uid": self.client.uid}, projectionInc=["sellerid", "profileid", "marketplaceid","countrycode","uid"]))
+    
     async def getMarketplaceObjectForReport(self, marketplace: ObjectId):
         from dzgroshared.db.collections.pipelines.marketplaces import MarketplaceObjectForReport
-        pipeline = MarketplaceObjectForReport.pipeline(marketplace, self.uid)
+        pipeline = MarketplaceObjectForReport.pipeline(marketplace, self.client.uid)
         data = await self.marketplaceDB.aggregate(pipeline)
         if len(data)==0: raise ValueError("Invalid Marketplace")
         return data[0]
@@ -42,7 +45,7 @@ class MarketplaceHelper:
     async def addMarketplace(self, body: AddMarketplace):
         data = body.model_dump(mode="json")
         data.update({"seller": ObjectId(body.seller), "ad": ObjectId(body.ad), "status": MarketplaceStatus.NEW.value})
-        await self.marketplaceDB.insertOne(data, withUidMarketplace=True)
+        await self.marketplaceDB.insertOne(data)
         
     async def getMarketplaceApiObject(self, id: str|ObjectId, client_id:str, client_secret:str, accountType: AmazonAccountType):
         collection: CollectionType = CollectionType.SPAPI_ACCOUNTS if accountType==AmazonAccountType.SPAPI else CollectionType.ADVERTISING_ACCOUNTS
@@ -58,7 +61,7 @@ class MarketplaceHelper:
 
     async def getCountryBidsByMarketplace(self, id: ObjectId|str)->CountryDetailsWithBids:
         pp = self.marketplaceDB.pp
-        matchStage = pp.match({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.uid})
+        matchStage = pp.match({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.client.uid})
         lookupDetail = pp.lookup(CollectionType.COUNTRY_DETAILS, "detail", localField="countrycode", foreignField="_id")
         unwind = pp.unwind("detail")
         replaceWith = pp.replaceRoot("$detail")
@@ -68,14 +71,14 @@ class MarketplaceHelper:
     
     async def lookbackPeriod(self, id: ObjectId|str)->int:
         pp = self.marketplaceDB.pp
-        matchStage = pp.match({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.uid})
+        matchStage = pp.match({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.client.uid})
         setlookback = pp.replaceWith( { 'lookback': { '$dateDiff': { 'startDate': '$startDate', 'endDate': '$endDate', 'unit': 'day' } } } )
         return (await self.marketplaceDB.aggregate([matchStage, setlookback]))[0]['lookback']
 
     
     async def getMarketplaceWithToken(self, id: str|ObjectId):
         pp = self.marketplaceDB.pp
-        matchStage = pp.match({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.uid})
+        matchStage = pp.match({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.client.uid})
         lookupDetail = pp.lookup(CollectionType.COUNTRY_DETAILS, "detail", localField="countryCode", foreignField="_id", pipeline=[pp.project([],["_id"])])
         lookupSpapi = pp.lookup(CollectionType.SPAPI_ACCOUNTS, "spapi", localField="seller", foreignField="_id")
         lookupAdv = pp.lookup(CollectionType.AD_ACCOUNTS, "adAccount", localField="adAccount", foreignField="_id")
@@ -89,8 +92,8 @@ class MarketplaceHelper:
         return result[0]
 
     async def getUserAccountsCount(self)->UserAccountsCount:
-        spapiAccountsCount = await self.spapiDB.count({"uid": self.uid})
-        advertisingAccountsCount = await self.advDb.count({"uid": self.uid})
+        spapiAccountsCount = await self.spapiDB.count({"uid": self.client.uid})
+        advertisingAccountsCount = await self.advDb.count({"uid": self.client.uid})
         return UserAccountsCount(spapiAccountsCount=spapiAccountsCount, advertisingAccountsCount=advertisingAccountsCount)
 
     async def getAllMarketplaceNames(self, uid: str)->list[MarketplaceNameId]:
@@ -98,33 +101,33 @@ class MarketplaceHelper:
         return [MarketplaceNameId(**x) for x in res]
 
     async def getTeamMemberMarketplaces(self, ids: list[str])->list[MarketplaceNameId]:
-        res = await self.marketplaceDB.find({"uid": self.uid, "_id": {"$in": [ObjectId(id) for id in ids]}}, projectionInc=["name"] )
+        res = await self.marketplaceDB.find({"uid": self.client.uid, "_id": {"$in": [ObjectId(id) for id in ids]}}, projectionInc=["name"] )
         return [MarketplaceNameId(**x) for x in res]
 
     async def getMarketplaces(self)->list[dict]:
-        pipeline = GetMarketplaces.pipeline(self.uid)
+        pipeline = GetMarketplaces.pipeline(self.client.uid)
         data = await self.spapiDB.aggregate(pipeline)
         return data
         
     async def getAllMarkeptlaceIdsBySellerIdForUser(self, sellerId: str)->list[str]:
-        ids = await self.marketplaceDB.find({"uid": self.uid, "sellerId": sellerId}, projectionInc=["marketplaceId"])
+        ids = await self.marketplaceDB.find({"uid": self.client.uid, "sellerId": sellerId}, projectionInc=["marketplaceId"])
         return [id['marketplaceId'] for id in ids]
     
     async def updateSeller(self, sellerId: str, updateDict: dict, upsert: bool=False):
-       await self.spapiDB.updateOne({"sellerId": sellerId, "uid": self.uid}, updateDict, upsert=upsert)
+       await self.spapiDB.updateOne({"sellerId": sellerId, "uid": self.client.uid}, updateDict, upsert=upsert)
     
     async def addAdvertisingAccount(self, refreshtoken: str, countryCode: CountryCode, name: str):
-        data = {"name": name, "uid": self.uid, "countrycode": countryCode, "refreshtoken": refreshtoken}
+        data = {"name": name, "uid": self.client.uid, "countrycode": countryCode, "refreshtoken": refreshtoken}
         data.update()
         id =  await self.advDb.insertOne(data)
         return await self.getAdvertisingAccount(str(id))
     
     async def deleteAdvertisingAccount(self, id: str):
-        await self.advDb.deleteOne({"_id": ObjectId(id), "uid": self.uid})
+        await self.advDb.deleteOne({"_id": ObjectId(id), "uid": self.client.uid})
     
 
     async def addMarketplaces(self, sellerid: str, marketplaces: list[MarketplaceId]):
-        data: list[dict] = [{sellerid: "sellerid", "uid": self.uid} for marketplace in marketplaces]
+        data: list[dict] = [{sellerid: "sellerid", "uid": self.client.uid} for marketplace in marketplaces]
         await self.marketplaceDB.insertMany(data)
     
     async def getMarketplaceById(self, id: str|ObjectId):
@@ -133,17 +136,17 @@ class MarketplaceHelper:
         return marketplace
 
     async def isSellerAlreadyAdded(self, sellerId: str)->bool:
-        seller = await self.spapiDB.findOne({"sellerId": sellerId, "uid": self.uid})
+        seller = await self.spapiDB.findOne({"sellerId": sellerId, "uid": self.client.uid})
         if not seller: return False
         return True
 
     async def getAdvertisingAccount(self, id: str|ObjectId)->Account:
-        account = await self.advDb.findOne({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.uid})
+        account = await self.advDb.findOne({"_id": self.marketplaceDB.convertToObjectId(id), "uid": self.client.uid})
         if not account: raise Exceptions.MISSING_ADVERISING_ACCOUNT
         return Account(**account)
 
     async def listAdvertisingAccounts(self, paginator: Paginator, id: str|None=None)->list[dict]:
-        pipeline = GetAdAccounts.pipeline(self.uid, paginator, id)
+        pipeline = GetAdAccounts.pipeline(self.client.uid, paginator, id)
         accounts = list(await self.advDb.aggregate(pipeline))
         return accounts
     

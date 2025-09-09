@@ -1,4 +1,5 @@
 from dzgroshared.models.collections.queries import Query
+from dzgroshared.models.model import MarketplaceObjectId, PyObjectId
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
@@ -13,22 +14,11 @@ class MessageIndexOptional(BaseModel):
 class MessageIndex(BaseModel):
     index: str
 
-class UidMarketplace(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, json_encoders={ObjectId: str})
-    marketplace: ObjectId
-    uid: str
-
-    @model_validator(mode='before')
-    def setMarketplace(cls, data):
-        data['marketplace'] = ObjectId(data['marketplace'])
-        return data
-
-class AmazonParentReportQueueMessage(MessageIndexOptional, UidMarketplace):
+class AmazonParentReportQueueMessage(MessageIndexOptional, MarketplaceObjectId):
     step: AmazonDailyReportAggregationStep
     date: datetime|SkipJsonSchema[None]=None
-    query: Query|SkipJsonSchema[None]=None
 
-class DzgroReportQueueMessage(MessageIndex, UidMarketplace):
+class DzgroReportQueueMessage(MessageIndex, MarketplaceObjectId):
     reporttype: DzgroReportType
 
 class PaymentMessage(MessageIndex):

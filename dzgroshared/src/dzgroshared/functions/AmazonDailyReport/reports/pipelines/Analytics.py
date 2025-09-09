@@ -17,11 +17,11 @@ class AnalyticsProcessor:
     def __init__(self, client: DzgroSharedClient, dates: StartEndDate):
         self.client = client
         self.dates = dates
-        self.pp = PipelineProcessor(self.client.uid, self.client.marketplace)
+        self.pp = PipelineProcessor(self.client.uid, self.client.marketplaceId)
         self.allDates = date_util.getAllDatesBetweenTwoDates(self.dates.startdate, self.dates.enddate)
 
     def __matchmarketplace(self):
-        return { '$match': { '_id': self.client.marketplace, 'uid': self.client.uid } }
+        return { '$match': { '_id': self.client.marketplaceId, 'uid': self.client.uid } }
     
     def __setDates(self):
         datesObj = self.dates.model_dump()
@@ -37,8 +37,8 @@ class AnalyticsProcessor:
         return Datatransformer(self.pp, key).collateData()
     
     def __setData(self, collatetype:CollateType):
-        curr = { "uid": "$$current.uid", "marketplace": "$$current.marketplace", "date": "$$current.date", "data": ["$$current.data"] }
-        cond = [ { "$eq": ["$$g.uid", "$$this.uid"] }, { "$eq": ["$$g.marketplace", "$$this.marketplace"] },{ "$eq": ["$$g.date", "$$this.date"] } ]
+        curr = { "marketplace": "$$current.marketplace", "date": "$$current.date", "data": ["$$current.data"] }
+        cond = [ { "$eq": ["$$g.marketplace", "$$this.marketplace"] },{ "$eq": ["$$g.date", "$$this.date"] } ]
         if collatetype==CollateType.SKU: 
             curr.update({'value': '$$current.value','parent': '$$current.parent', "parentsku": "$$current.parentsku", "category": "$$current.category"})
             cond.append( { "$eq": ["$$g.value", "$$this.value"] } )
@@ -56,22 +56,22 @@ class AnalyticsProcessor:
         return self.pp.merge(CollectionType.DATE_ANALYTICS)
     
     def __lookupStateAnalytics(self, collatetype: CollateType):
-        pipeline = [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] }] } } } ]
-        return { '$lookup': { 'from': 'state_analytics', 'let': { 'uid': '$uid', 'marketplace': '$_id', 'collatetype': collatetype.value, 'date': '$date'}, 'pipeline': pipeline, 'as': 'data' } }
-    
+        pipeline = [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] }] } } } ]
+        return { '$lookup': { 'from': 'state_analytics', 'let': { 'marketplace': '$_id', 'collatetype': collatetype.value, 'date': '$date'}, 'pipeline': pipeline, 'as': 'data' } }
+
     def __lookupDateAnalytics(self, collatetype: CollateType):
-        pipeline = [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] } ] } } } ]
-        return { '$lookup': { 'from': 'date_analytics', 'let': { 'uid': '$uid', 'marketplace': '$_id', 'collatetype': collatetype.value, 'date': '$date', }, 'pipeline': pipeline, 'as': 'data' } }
+        pipeline = [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] }, { '$eq': [ '$date', '$$date' ] } ] } } } ]
+        return { '$lookup': { 'from': 'date_analytics', 'let': { 'marketplace': '$_id', 'collatetype': collatetype.value, 'date': '$date', }, 'pipeline': pipeline, 'as': 'data' } }
 
     def __lookupAds(self):
-        return { '$lookup': { 'from': 'adv', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'assettype': 'Ad', 'date': '$date', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
-    
+        return { '$lookup': { 'from': 'adv', 'let': { 'marketplace': '$marketplace', 'assettype': 'Ad', 'date': '$date', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
+
     def __lookupAllAds(self):
-        return { '$lookup': { 'from': 'adv', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'assettype': 'Campaign', 'date': '$date'}, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
+        return { '$lookup': { 'from': 'adv', 'let': { 'marketplace': '$marketplace', 'assettype': 'Campaign', 'date': '$date'}, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$assettype', '$$assettype' ] }, { '$eq': [ '$date', '$$date' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$ad' } } ], 'as': 'ad' } }
 
     def __lookupTraffic(self):
-        return { '$lookup': { 'from': 'traffic', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'asin': '$value', 'date': '$date' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$asin', '$$asin' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$traffic' } } ], 'as': 'traffic' } }
-    
+        return { '$lookup': { 'from': 'traffic', 'let': { 'marketplace': '$marketplace', 'asin': '$value', 'date': '$date' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ '$asin', '$$asin' ] } ] } } }, { '$replaceRoot': { 'newRoot': '$traffic' } } ], 'as': 'traffic' } }
+
     def __mergeDataWithAdTraffic(self):
         return { '$set': { 'data': { '$mergeObjects': [ '$data', '$ad', '$traffic' ] } } }
     
@@ -93,7 +93,7 @@ class AnalyticsProcessor:
         return { '$replaceRoot': { 'newRoot': '$data' } }
     
     def __addMiscExpense(self):
-        return { '$lookup': { 'from': 'settlements', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'date': '$date' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ { '$ifNull': [ '$orderid', None ] }, None ] }, { '$ne': [ '$amounttype', 'Cost of Advertising' ] } ] } } }, { '$match': { 'amountdescription': { '$not': { '$regex': 'Reserve', '$options': 'i' } } } }, { '$group': { '_id': None, 'expense': { '$sum': '$amount' } } } ], 'as': 'expense' } }
+        return { '$lookup': { 'from': 'settlements', 'let': {'marketplace': '$marketplace', 'date': '$date' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$date', '$$date' ] }, { '$eq': [ { '$ifNull': [ '$orderid', None ] }, None ] }, { '$ne': [ '$amounttype', 'Cost of Advertising' ] } ] } } }, { '$match': { 'amountdescription': { '$not': { '$regex': 'Reserve', '$options': 'i' } } } }, { '$group': { '_id': None, 'expense': { '$sum': '$amount' } } } ], 'as': 'expense' } }
 
 
     async def __executeSkuDate(self):
@@ -190,14 +190,18 @@ class AnalyticsProcessor:
         mongo_pipeline_print.copy_pipeline(pipeline)
         await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
 
+    async def __executeStateAnalytics(self):
+        from dzgroshared.functions.AmazonDailyReport.reports.pipelines import CreateStateAnalytics
+        statepipeline = CreateStateAnalytics.pipeline(self.client.uid, self.client.marketplaceId, self.dates)
+        mongo_pipeline_print.copy_pipeline(statepipeline)
+        await self.client.db.marketplaces.marketplaceDB.aggregate(statepipeline)
+
 
     async def execute(self):
         await self.client.db.state_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
         await self.client.db.date_analytics.db.deleteMany({"date": {"$gte": self.dates.startdate}})
         start_time = time.perf_counter()
-        from dzgroshared.functions.AmazonDailyReport.reports.pipelines import CreateStateAnalytics
-        statepipeline = CreateStateAnalytics.pipeline(self.client.uid, self.client.marketplace, self.dates)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(statepipeline)
+        await self.__executeStateAnalytics()
         await self.__executeSkuDate()
         await self.__executeAsinDate()
         await self.__executeParentDate()

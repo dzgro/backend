@@ -7,15 +7,11 @@ from dzgroshared.client import DzgroSharedClient
 
 class AdRuleUtility:
     db: DbManager
-    marketplace: ObjectId
-    uid: str
     client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.marketplace = marketplace
-        self.uid = uid
+    def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_RULES.value), uid=self.uid, marketplace=self.marketplace)
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_RULES.value), marketplace=client.marketplaceId)
 
 
     def convertToObjectId(self, id: str|ObjectId):
@@ -41,7 +37,7 @@ class AdRuleUtility:
         return await self.getRuleById(str(inserted_id))
         
     async def deleteRule(self, ruleId: str|ObjectId):
-        deleted_count = await self.db.deleteOne({'marketplace': self.marketplace, '_id': self.convertToObjectId(ruleId)})
+        deleted_count = await self.db.deleteOne({'marketplace': self.client.marketplace, '_id': self.convertToObjectId(ruleId)})
         message = 'Rule deleted' if deleted_count==1 else 'Rule could not be deleted'
         return SuccessResponse(success=deleted_count==1, message=message)
     
@@ -62,7 +58,7 @@ class AdRuleUtility:
     
     async def getCriteriaGroups(self, assettype: AdAssetType, adproduct: AdProduct):
         groups = await self.client.db.ad_rule_criteria_groups.db.find({"assettype": assettype.value, "adproduct": adproduct.value}, projectionInc=["action","subactions"])
-        detail = await self.client.db.marketplaces.getCountryBidsByMarketplace(self.marketplace)
+        detail = await self.client.db.marketplaces.getCountryBidsByMarketplace(self.client.marketplaceId)
         bidMinMax: dict|None = None
         if adproduct==AdProduct.SP: bidMinMax = detail.bids[adproduct]
         if not bidMinMax: raise ValueError(f"Your marketplace country is currently not eligible to run this automation.")

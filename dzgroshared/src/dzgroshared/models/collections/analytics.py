@@ -1,9 +1,13 @@
+from dzgroshared.models.collections.health import AmazonHealthReportConverted
 from dzgroshared.models.model import MultiLevelColumns, PyObjectId
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.models.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsPeriod, CollateType, CountryCode, QueryTag
 from datetime import datetime
 from typing import List, Literal, Optional
+
+class MarketplaceHealthResponse(BaseModel):
+    health: AmazonHealthReportConverted
 
 class ValueWithValueString(BaseModel):
     value: float
@@ -60,7 +64,6 @@ class Month(MonthLite):
 
 class PeriodDataRequest(BaseModel):
     collatetype: CollateType
-    countrycode: CountryCode
     value: str|SkipJsonSchema[None]=None
 
     @model_validator(mode="after")
@@ -85,9 +88,13 @@ class MonthTableResponse(BaseModel):
     columns: list[MonthLite]
     rows: list[AnalyticPeriodValuesGroup]
 
+class MonthDateTableResponseRow(BaseModel):
+    date: str
+    values: list[ValueWithValueString]
+
 class MonthDateTableResponse(BaseModel):
     columns: MultiLevelColumns
-    rows: list[AnalyticPeriodValuesGroup]
+    rows: list[MonthDateTableResponseRow]
 
 class StateMonthDataResponseItem(BaseModel):
     state: str
@@ -121,8 +128,6 @@ class SingleAnalyticsMetricTableResponseItem(BaseModel):
 class ComparisonPeriodDataRequest(PeriodDataRequest):
     queryId: PyObjectId
     
-
-
 class PerformancePeriodItem(BaseModel):
     label: str
     value: str
@@ -130,7 +135,6 @@ class PerformancePeriodItem(BaseModel):
     growth: str
     growing: bool
     items: Optional[List["PerformancePeriodItem"]] = None  # recursive reference
-
     class Config:
         arbitrary_types_allowed = True
         extra = "ignore"

@@ -19,6 +19,7 @@ inquirer = "*"
 toml = "*"
 pyyaml = "*"
 psutil = "7.0.0"
+cachetools = "6.2.0"
 
 
 

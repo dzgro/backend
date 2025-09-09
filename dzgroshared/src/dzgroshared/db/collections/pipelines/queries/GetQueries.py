@@ -2,14 +2,13 @@ from bson import ObjectId
 from dzgroshared.models.model import StartEndDate
 
 
-def pipeline(uid:str, marketplace:ObjectId, dates: StartEndDate|None=None):
+def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
     hasdates = dates is not None
     datesObj = dates.model_dump() if dates else None
     return [
     {
         '$match': {
-            '_id': marketplace,
-            'uid': uid
+            '_id': marketplace
         }
     },
     {

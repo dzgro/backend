@@ -4,7 +4,7 @@ from dzgroshared.models.collections.analytics import ComparisonPeriodDataRequest
 from dzgroshared.models.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsMetricOperation, CollateType, CollectionType, CountryCode
 from dzgroshared.models.model import AnalyticKeyGroup, AnalyticKeylabelValue, MetricGroup, MetricItem, NestedColumn, StartEndDate
 from dzgroshared.models.extras.Analytics import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS, MONTH_DATE_METRICS
-SchemaType = Literal['Period','Comparison', 'Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date']
+SchemaType = Literal['Period','Comparison','Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date']
 
 GroupBySchema: dict[SchemaType, list[MetricGroup]] = {
     'Period': PERIOD_METRICS,
@@ -24,15 +24,17 @@ def getSchema(schemaType: SchemaType, collatetype: CollateType) -> list[dict]:
     groups = getMetricGroupsBySchemaType(schemaType, collatetype)
     return [s.model_dump(mode="json") for s in groups]
 
-def transformData(schemaType: SchemaType, data: list[dict], req: PeriodDataRequest):
-    schema = getSchema(schemaType, req.collatetype)
+def transformData(schemaType: SchemaType, data: list[dict], collatetype: CollateType, countryCode: CountryCode):
+    schema = getSchema(schemaType, collatetype)
     if schemaType=='Comparison':
-        return [{**d, "data": [transformComparisonData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
+        return [{**d, "data": [transformComparisonData(s, d['data'], countryCode, 1) for s in schema]} for d in data]
     elif schemaType == 'State All':
-        return transformStateAllData(GroupBySchema[schemaType], data, req.countrycode)
+        return transformStateAllData(GroupBySchema[schemaType], data, countryCode)
+    elif schemaType == 'Month Date':
+        return transformMonthDateData(GroupBySchema[schemaType], data, countryCode)
     elif schemaType == 'Month' or schemaType == 'State Detail':
-        return transformSchemaData(GroupBySchema[schemaType], data, req.countrycode)
-    else: return [{**d, "data": [transformPeriodData(s, d['data'], req.countrycode, 1) for s in schema]} for d in data]
+        return transformSchemaData(GroupBySchema[schemaType], data, countryCode)
+    else: return [{**d, "data": [transformPeriodData(s, d['data'], countryCode, 1) for s in schema]} for d in data]
 
 
 def getMetricGroupsBySchemaType(schemaType: SchemaType, collatetype: CollateType) -> list[MetricGroup]:
@@ -133,6 +135,22 @@ def transformCurrPreData(data: list[dict], countrycode: CountryCode):
         item.update(newData)
     return data
 
+def transformMonthDateData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
+    metrics: list[AnalyticsMetric] = [ss.metric for s in schema for ss in s.items]
+    result: list[dict] = []
+    for metric in metrics:
+        for item in data:
+            value = item['data'].get(metric.value, None)
+            index = next((i for i, d in enumerate(result) if d['date']==item['date']), None)
+            if index is None:
+                result.append({"date": item['date'], 'values': []})
+                index = len(result)-1
+            result[index]['values'].append({
+                "value": round(value,2) if isinstance(value, float) else value,
+                "valueString": format_number(value, metric, countrycode)
+            })
+    return result
+
 def transformStateAllData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
     metrics: list[AnalyticsMetric] = []
     for s in schema:
@@ -157,7 +175,6 @@ def transformStateAllData(schema: list[MetricGroup], data: list[dict], countryco
     return result
 
 def transformSchemaData(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode):
-
     def getResultItem(metric: MetricItem):
         try:
             detail = next((d for d in METRIC_DETAILS if d.metric == metric.metric), None)
@@ -230,12 +247,12 @@ def addGrowth():
 def create_comparison_data():
     return { "$addFields": { "data": { "$arrayToObject": { "$map": { "input": { "$objectToArray": "$curr" }, "as": "kv", "in": { "k": "$$kv.k", "v": { "$let": { "vars": { "currVal": "$$kv.v", "preVal": { "$getField": { "field": "$$kv.k", "input": "$pre" } }, "growthVal": { "$getField": { "field": "$$kv.k", "input": "$growth" } } }, "in": { "curr": "$$currVal", "pre": "$$preVal", "growth": { "$cond": [ { "$in": ["$$kv.k", percent_fields] }, "$$growthVal", { "$round": ["$$growthVal", 1] } ] } } } } } } } } } }
 
-def getQueriesPipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
+def getQueriesPipeline(marketplace: ObjectId, dates: StartEndDate):
         from dzgroshared.db.collections.pipelines.queries import GetQueries
-        pipeline = GetQueries.pipeline(uid, marketplace, dates)
+        pipeline = GetQueries.pipeline(marketplace, dates)
         pipeline.extend([{"$project": {"tag": 0, "dates": 0}}, {"$match": {"disabled": False}},{"$set": {"collatetype": CollateType.list()}}, {"$unwind": "$collatetype"}])
         pipeline.append({ "$addFields": { "currdates": { "$map": { "input": { "$range": [ 0, { "$add": [ { "$dateDiff": { "startDate": "$curr.startdate", "endDate": "$curr.enddate", "unit": "day" } }, 1 ] } ] }, "as": "i", "in": { "$dateAdd": { "startDate": "$curr.startdate", "unit": "day", "amount": "$$i" } } } }, "predates": { "$map": { "input": { "$range": [ 0, { "$add": [ { "$dateDiff": { "startDate": "$pre.startdate", "endDate": "$pre.enddate", "unit": "day" } }, 1 ] } ] }, "as": "i", "in": { "$dateAdd": { "startDate": "$pre.startdate", "unit": "day", "amount": "$$i" } } } } } } )
-        pipeline.append({ '$lookup': { 'from': 'date_analytics', 'let': { 'currdates': '$currdates','predates': '$predates', 'collatetype': "$collatetype", 'dates': {"$setUnion": {"$concatArrays": ["$currdates","$predates"]}} }, 'pipeline': [ { '$match': { '$expr': { '$and': [ {"$eq": ["$uid", uid]},{"$eq": ["$marketplace", marketplace]},{"$eq": ["$collatetype", "$$collatetype"]},{ '$in': [ '$date', '$$dates' ] } ] } } }, { '$group': { '_id': { 'collatetype': '$collatetype', 'value': '$value', 'parent': '$parent' }, 'data': { '$push': '$$ROOT' } } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { '$reduce': { 'input': '$data', 'initialValue': { 'curr': [], 'pre': [] }, 'in': { '$mergeObjects': [ '$$value', { '$cond': { 'if': { '$in': [ '$$this.date', "$$currdates" ] }, 'then': { 'curr': { '$concatArrays': [ '$$value.curr', [ '$$this.data' ] ] } }, 'else': { '$cond': { 'if': { '$in': [ '$$this.date', "$$predates" ] }, 'then': { 'pre': { '$concatArrays': [ '$$value.pre', [ '$$this.data' ] ] } }, 'else': {} } } } } ] } } } ] } } }, { '$set': { 'curr': { '$reduce': { 'input': '$curr', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } }, 'pre': { '$reduce': { 'input': '$pre', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } } } } ], 'as': 'data' } })
+        pipeline.append({ '$lookup': { 'from': 'date_analytics', 'let': { 'currdates': '$currdates','predates': '$predates', 'collatetype': "$collatetype", 'dates': {"$setUnion": {"$concatArrays": ["$currdates","$predates"]}} }, 'pipeline': [ { '$match': { '$expr': { '$and': [ {"$eq": ["$marketplace", marketplace]},{"$eq": ["$collatetype", "$$collatetype"]},{ '$in': [ '$date', '$$dates' ] } ] } } }, { '$group': { '_id': { 'collatetype': '$collatetype', 'value': '$value', 'parent': '$parent' }, 'data': { '$push': '$$ROOT' } } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$_id', { '$reduce': { 'input': '$data', 'initialValue': { 'curr': [], 'pre': [] }, 'in': { '$mergeObjects': [ '$$value', { '$cond': { 'if': { '$in': [ '$$this.date', "$$currdates" ] }, 'then': { 'curr': { '$concatArrays': [ '$$value.curr', [ '$$this.data' ] ] } }, 'else': { '$cond': { 'if': { '$in': [ '$$this.date', "$$predates" ] }, 'then': { 'pre': { '$concatArrays': [ '$$value.pre', [ '$$this.data' ] ] } }, 'else': {} } } } } ] } } } ] } } }, { '$set': { 'curr': { '$reduce': { 'input': '$curr', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } }, 'pre': { '$reduce': { 'input': '$pre', 'initialValue': {}, 'in': { '$arrayToObject': { '$filter': { 'input': { '$map': { 'input': { '$setUnion': [ { '$map': { 'input': { '$objectToArray': '$$value' }, 'as': 'v', 'in': '$$v.k' } }, { '$map': { 'input': { '$objectToArray': '$$this' }, 'as': 't', 'in': '$$t.k' } } ] }, 'as': 'key', 'in': { 'k': '$$key', 'v': { '$round': [ { '$add': [ { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$value' } }, 0 ] }, { '$ifNull': [ { '$getField': { 'field': '$$key', 'input': '$$this' } }, 0 ] } ] }, 2 ] } } } }, 'as': 'item', 'cond': { '$ne': [ '$$item.v', 0 ] } } } } } } } } ], 'as': 'data' } })
         pipeline.extend([{ '$unwind': { 'path': '$data', 'preserveNullAndEmptyArrays': False } }, { '$replaceRoot': { 'newRoot': { '$mergeObjects': [ '$data', { 'queryid': '$_id' } ] } } }])
         from dzgroshared.db.extras import Analytics
         pipeline.append(addMissingFields('curr'))
@@ -244,7 +261,7 @@ def getQueriesPipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):
         pipeline.extend(addDerivedMetrics('pre'))
         pipeline.append(addGrowth())
         pipeline.append(create_comparison_data())
-        pipeline.append({"$set": {"uid": uid, "marketplace": marketplace}})
+        pipeline.append({"$set": {"marketplace": marketplace}})
         pipeline.extend([{"$project": {"curr": 0, "pre": 0,'growth':0}}, {"$merge": {"into":CollectionType.QUERY_RESULTS.value, "whenMatched": "merge", "whenNotMatched": "insert"}}])
         from dzgroshared.utils import mongo_pipeline_print
         mongo_pipeline_print.copy_pipeline(pipeline)

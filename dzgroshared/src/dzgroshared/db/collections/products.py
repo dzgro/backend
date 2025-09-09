@@ -4,14 +4,12 @@ from dzgroshared.models.enums import CollectionType
 from dzgroshared.client import DzgroSharedClient
 
 class ProductHelper:
+    client: DzgroSharedClient
     db: DbManager
-    marketplace: ObjectId
-    uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.uid = uid
-        self.marketplace = marketplace
-        self.db = DbManager(client.db.database.get_collection(CollectionType.PRODUCTS), uid, marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.PRODUCTS), marketplace=client.marketplaceId)
 
 
     async def getSku(self, sku: str):

@@ -6,14 +6,14 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.DbUtils import DbManager
 
 class AdvAssetsHelper:
+    client: DzgroSharedClient
     db: DbManager
     marketplace: ObjectId
     uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.marketplace = marketplace
-        self.uid = uid
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_ASSETS.value), uid=self.uid, marketplace=self.marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_ASSETS.value), marketplace=client.marketplaceId)
 
     async def createCampaignAds(self):
         from dzgroshared.db.collections.pipelines.adv_ads import Campaigns

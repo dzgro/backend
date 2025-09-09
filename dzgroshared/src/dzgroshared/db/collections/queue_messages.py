@@ -38,6 +38,10 @@ class QueueMessagesHelper:
         setDict.update(extras)
         return await self.dbManager.updateOne({"_id": messageid}, setDict=setDict)
 
+    async def setMessageAsPending(self, messageid: str):
+        setDict = {"status": SQSMessageStatus.PENDING.value}
+        return await self.dbManager.updateOne({"_id": messageid, "status": {"$in": [SQSMessageStatus.PROCESSING.value, SQSMessageStatus.FAILED.value]}}, setDict=setDict)
+
     async def getMessageStatus(self, messageid:str):
         message = await self.dbManager.findOne({"_id": messageid}, projectionInc=["status"])
         return SQSMessageStatus(message["status"])

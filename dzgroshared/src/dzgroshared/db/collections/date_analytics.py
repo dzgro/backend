@@ -5,10 +5,6 @@ from dzgroshared.db.DbUtils import DbManager
 
 class DateAnalyticsHelper:
     db: DbManager
-    marketplace: ObjectId
-    uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.marketplace = marketplace
-        self.uid = uid
-        self.db = DbManager(client.db.database.get_collection(CollectionType.DATE_ANALYTICS.value), uid=self.uid, marketplace=self.marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.db = DbManager(client.db.database.get_collection(CollectionType.DATE_ANALYTICS.value), marketplace=client.marketplaceId)

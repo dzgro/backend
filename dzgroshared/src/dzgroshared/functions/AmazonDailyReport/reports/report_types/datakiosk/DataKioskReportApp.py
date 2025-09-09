@@ -6,10 +6,10 @@ from dzgroshared.models.amazonapi.spapi.datakiosk import DataKioskCreateQueryReq
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus
 from dzgroshared.models.enums import CollectionType, DataKioskType
 from dzgroshared.models.extras.amazon_daily_report import AmazonDataKioskReport, AmazonDataKioskReportDB, MarketplaceObjectForReport
-from dzgroshared.functions.AmazonDailyReport.reports import Utility
+from dzgroshared.functions.AmazonDailyReport.reports import DateUtility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
-from dzgroshared.utils import date_util
+from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 
 class AmazonDataKioskReportManager:
     client: DzgroSharedClient
@@ -21,42 +21,39 @@ class AmazonDataKioskReportManager:
     marketplace: MarketplaceObjectForReport
     reportUtil: ReportUtil
     reportId: PyObjectId
+    dateUtil: MarketplaceDatesUtility
 
 
-    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, spapi: SpApiClient) -> None:
+    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, spapi: SpApiClient, dateUtil: MarketplaceDatesUtility) -> None:
         self.client = client
         self.spapi = spapi
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
+        self.dateUtil = dateUtil
 
     def getDataKioskReportsConf(self)->list[AmazonDataKioskReport]:
         reports: list[AmazonDataKioskReport] = []
-        # reports.extend(self.__getAsinTrafficReportsConf())
-        reports.extend(self.__getSkuEconomicsConf())
+        reports.extend(self.__getAsinTrafficReportsConf())
+        # reports.extend(self.__getSkuEconomicsConf())
         return reports 
 
     def __getAsinTrafficReportsConf(self)->list[AmazonDataKioskReport]:
-        isNew = self.marketplace.dates is None
-        dates = date_util.getTrafficKioskReportDates(self.marketplace.details.timezone, isNew)
+        dates = self.dateUtil.getTrafficKioskReportDates()
         reports: list[AmazonDataKioskReport] = []
         for date in dates:
-            startDate, endDate = date
-            query = 'query MyQuery{analytics_salesAndTraffic_2024_04_24{salesAndTrafficByAsin(aggregateBy:PARENT endDate:"'+endDate+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+startDate+'"){childAsin endDate marketplaceId parentAsin sales{orderedProductSales{amount currencyCode}orderedProductSalesB2B{amount currencyCode}totalOrderItems totalOrderItemsB2B unitsOrdered unitsOrderedB2B}sku startDate traffic{browserPageViews browserPageViewsB2B browserPageViewsPercentage browserPageViewsPercentageB2B browserSessionPercentage browserSessions browserSessionPercentageB2B browserSessionsB2B buyBoxPercentage buyBoxPercentageB2B mobileAppPageViews mobileAppPageViewsPercentage mobileAppPageViewsB2B mobileAppPageViewsPercentageB2B mobileAppSessionPercentageB2B mobileAppSessionPercentage mobileAppSessions mobileAppSessionsB2B pageViews pageViewsB2B pageViewsPercentage pageViewsPercentageB2B sessionPercentage sessionPercentageB2B sessions sessionsB2B unitSessionPercentage unitSessionPercentageB2B}}}}'
+            query = 'query MyQuery{analytics_salesAndTraffic_2024_04_24{salesAndTrafficByAsin(aggregateBy:PARENT endDate:"'+date+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+date+'"){childAsin endDate marketplaceId parentAsin sales{orderedProductSales{amount currencyCode}orderedProductSalesB2B{amount currencyCode}totalOrderItems totalOrderItemsB2B unitsOrdered unitsOrderedB2B}sku startDate traffic{browserPageViews browserPageViewsB2B browserPageViewsPercentage browserPageViewsPercentageB2B browserSessionPercentage browserSessions browserSessionPercentageB2B browserSessionsB2B buyBoxPercentage buyBoxPercentageB2B mobileAppPageViews mobileAppPageViewsPercentage mobileAppPageViewsB2B mobileAppPageViewsPercentageB2B mobileAppSessionPercentageB2B mobileAppSessionPercentage mobileAppSessions mobileAppSessionsB2B pageViews pageViewsB2B pageViewsPercentage pageViewsPercentageB2B sessionPercentage sessionPercentageB2B sessions sessionsB2B unitSessionPercentage unitSessionPercentageB2B}}}}'
             reports.append(AmazonDataKioskReport(reporttype=DataKioskType.SALES_TRAFFIC_ASIN, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
         return reports
 
     def __getSkuEconomicsConf(self)->list[AmazonDataKioskReport]:
         isNew = self.marketplace.dates is None
-        dates = date_util.getEconomicsKioskReportDates(self.marketplace.details.timezone, isNew)
+        dates = self.dateUtil.getEconomicsKioskReportDates()
         reports: list[AmazonDataKioskReport] = []
-        # for date in dates:
-        #     startDate, endDate = date
-        #     query = 'query MyQuery{analytics_economics_2024_03_15{economics(endDate:"'+endDate+'" marketplaceIds:"" startDate:"'+startDate+'" includeComponentsForFeeTypes:[FBA_STORAGE_FEE]aggregateBy:{date:MONTH}){fees{charge{aggregatedDetail{totalAmount{amount}}properties{propertyName propertyValue}}charges{components{properties{propertyName propertyValue}aggregatedDetail{amount{amount}amountPerUnit{amount}amountPerUnitDelta{amount}promotionAmount{amount}totalAmount{amount}taxAmount{amount}}name}aggregatedDetail{amount{amount}amountPerUnit{amount}amountPerUnitDelta{amount}promotionAmount{amount}taxAmount{amount}totalAmount{amount}quantity}}}fnsku msku parentAsin childAsin cost{mfnCost{storageCost{amount currencyCode}}miscellaneousCost{amount currencyCode}}}}}'
-        #     reports.append(AmazonDataKioskReport(reporttype=DataKioskType.ECONOMICS, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
-        # return reports
-        endDate, startDate = "2024-05-31","2024-05-01"
-        query = 'query MyQuery{analytics_economics_2024_03_15{economics(endDate:"'+endDate+'" marketplaceIds:["'+self.spapi.object.marketplaceid+'"] startDate:"'+startDate+'" includeComponentsForFeeTypes:[FBA_STORAGE_FEE,FBA_FULFILLMENT_FEE]aggregateBy:{date:MONTH,productId:FNSKU}){fees{charge{aggregatedDetail{totalAmount{amount currencyCode}amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}quantity taxAmount{amount currencyCode}}properties{propertyName propertyValue}components{aggregatedDetail{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}quantity taxAmount{amount currencyCode}totalAmount{amount currencyCode}}name properties{propertyName propertyValue}}endDate identifier startDate}charges{components{properties{propertyName propertyValue}aggregatedDetail{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}totalAmount{amount currencyCode}taxAmount{amount currencyCode}quantity}name}aggregatedDetail{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}promotionAmount{amount currencyCode}taxAmount{amount currencyCode}totalAmount{amount currencyCode}quantity}endDate identifier properties{propertyName propertyValue}startDate}feeTypeName}fnsku msku parentAsin childAsin cost{mfnCost{storageCost{amount currencyCode}fulfillmentCost{amount currencyCode}}miscellaneousCost{amount currencyCode}costOfGoodsSold{amount currencyCode}}ads{charge{amount{amount currencyCode}amountPerUnit{amount currencyCode}amountPerUnitDelta{amount currencyCode}quantity promotionAmount{amount currencyCode}taxAmount{amount currencyCode}totalAmount{amount currencyCode}}}endDate marketplaceId netProceeds{perUnit{amount currencyCode}total{amount currencyCode}}sales{averageSellingPrice{amount currencyCode}netProductSales{amount currencyCode}netUnitsSold orderedProductSales{amount currencyCode}refundedProductSales{amount currencyCode}unitsOrdered unitsRefunded}startDate}}}'
-        reports.append(AmazonDataKioskReport(reporttype=DataKioskType.ECONOMICS, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
+        for date in dates:
+            startDate, endDate = date
+            query = 'query MyQuery{analytics_economics_2024_03_15{economics(endDate:"'+endDate+'" marketplaceIds:"" startDate:"'+startDate+'" includeComponentsForFeeTypes:[FBA_STORAGE_FEE]aggregateBy:{date:MONTH}){fees{charge{aggregatedDetail{totalAmount{amount}}properties{propertyName propertyValue}}charges{components{properties{propertyName propertyValue}aggregatedDetail{amount{amount}amountPerUnit{amount}amountPerUnitDelta{amount}promotionAmount{amount}totalAmount{amount}taxAmount{amount}}name}aggregatedDetail{amount{amount}amountPerUnit{amount}amountPerUnitDelta{amount}promotionAmount{amount}taxAmount{amount}totalAmount{amount}quantity}}}fnsku msku parentAsin childAsin cost{mfnCost{storageCost{amount currencyCode}}miscellaneousCost{amount currencyCode}}}}}'
+            reports.append(AmazonDataKioskReport(reporttype=DataKioskType.ECONOMICS, req=DataKioskCreateQueryRequest(body=DataKioskCreateQuerySpecification(query=query))))
+        return reports
         return reports
 
     async def __createReport(self, req: DataKioskCreateQueryRequest)-> str|None:

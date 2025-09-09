@@ -7,43 +7,41 @@ from dzgroshared.db.client import DbClient
 from dzgroshared.client import DzgroSharedClient
 
 class AdStructureHelper:
+    client: DzgroSharedClient
     db: DbManager
-    marketplace: ObjectId
-    uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.uid = uid
-        self.marketplace = marketplace
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_ASSETS.value), uid, marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ADV_ASSETS.value), marketplace=client.marketplaceId)
 
     async def getAdvertismentStructureScore(self):
-        pipeline = GetStructureScore.pipeline(self.uid, self.marketplace)
+        pipeline = GetStructureScore.pipeline(self.client.marketplaceId)
         data = await self.db.aggregate(pipeline)
         if len(data)==0: raise ValueError("No Data to Display")
         return data[0]
         
     async def getAdGroupWithStructureViolations(self):
-        pipeline = GetAdGroupsViolations.pipeline(self.uid, self.marketplace)
+        pipeline = GetAdGroupsViolations.pipeline(self.client.marketplaceId)
         return await self.db.aggregate(pipeline)
     
     async def getAdGroupViolation(self, adgroupid: str):
-        pipeline = GetAdGroupsViolations.pipeline(self.uid, self.marketplace, adgroupid)
+        pipeline = GetAdGroupsViolations.pipeline(self.client.marketplaceId, adgroupid)
         data = await self.db.aggregate(pipeline)
         if len(data)==0: raise ValueError("Ad Group is inactive or not delivering")
         return data[0]
     
     async def getMultipleAsinViolationByAdgroupId(self, adgroup:str):
-        pipeline = GetAdsForAdGroup.pipeline(self.uid, self.marketplace, adgroup)
+        pipeline = GetAdsForAdGroup.pipeline(self.client.marketplaceId, adgroup)
         data = await self.db.aggregate(pipeline)
         return data
     
     async def getMatchTypesForAdGroup(self, adgroup:str):
-        pipeline = GetMatchTypesForAdGroup.pipeline(self.uid, self.marketplace, adgroup)
+        pipeline = GetMatchTypesForAdGroup.pipeline(self.client.marketplaceId, adgroup)
         data = await self.db.aggregate(pipeline)
         return data
     
     async def getTargetsForAdGroup(self, adgroup:str, matchtype:str|None):
-        pipeline = GetTargetsForAdGroup.pipeline(self.uid, self.marketplace, adgroup, matchtype)
+        pipeline = GetTargetsForAdGroup.pipeline(self.client.marketplaceId, adgroup, matchtype)
         data = await self.db.aggregate(pipeline)
         return data
 

@@ -59,17 +59,15 @@ from dzgroshared.models.enums import CollectionType
 from dzgroshared.client import DzgroSharedClient
 
 class OrdersHelper:
+    client: DzgroSharedClient
     db: DbManager
-    marketplace: ObjectId
-    uid: str
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.uid = uid
-        self.marketplace = marketplace
-        self.db = DbManager(client.db.database.get_collection(CollectionType.ORDERS), uid, marketplace)
+    def __init__(self, client: DzgroSharedClient) -> None:
+        self.client = client
+        self.db = DbManager(client.db.database.get_collection(CollectionType.ORDERS), marketplace=client.marketplaceId)
 
     async def replaceStateNames(self):
-        matchStage = { '$match': { 'uid': self.uid, 'marketplace': self.marketplace} }
+        matchStage = { '$match': { 'marketplace': self.client.marketplaceId} }
         setAlias = { '$set': { 'alias': { '$concat': [ '$country', '_', { '$toLower': '$state' } ] } } }
         lookup = { '$lookup': { 'from': 'state_names', 'localField': 'alias', 'foreignField': '_id', 'pipeline': [ { '$project': { 'state': 1, '_id': 0 } } ], 'as': 'result' } }
         filterResults = { '$match': { '$expr': { '$gt': [ { '$size': '$result' }, 0 ] } } }

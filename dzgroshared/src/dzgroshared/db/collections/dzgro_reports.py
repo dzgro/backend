@@ -10,34 +10,29 @@ from dzgroshared.models.sqs import SQSEvent, SendMessageRequest
 
 class DzgroReportHelper:
     db: DbManager
-    marketplace: ObjectId
-    uid: str
     client: DzgroSharedClient
 
-    def __init__(self, client: DzgroSharedClient, uid: str, marketplace: ObjectId) -> None:
-        self.uid = uid
+    def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
-        self.marketplace = marketplace
-        self.db = DbManager(client.db.database.get_collection(CollectionType.DZGRO_REPORTS), uid, marketplace)
+        self.db = DbManager(client.db.database.get_collection(CollectionType.DZGRO_REPORTS),  marketplace=client.marketplaceId)
 
 
     async def createReport(self, request: CreateDzgroReportRequest):
         try:
             id = await self.db.insertOne(request.model_dump(exclude_none=True), withUidMarketplace=True)
             reportId = str(id)
-            print(reportId)
-            message = DzgroReportQueueMessage(uid=self.uid, marketplace=self.marketplace, index=reportId, reporttype=request.reporttype)
+            message = DzgroReportQueueMessage(marketplace=self.client.marketplaceId, index=reportId, reporttype=request.reporttype)
             req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
-            res = await self.client.sqs.sendMessage(req, message)
-            await self.addMessageId(reportId,res.message_id)
+            message_id = await self.client.sqs.sendMessage(req, message)
+            await self.addMessageId(reportId,message_id)
             if self.client.env in ENVIRONMENT.LOCAL:
-                message = await self.client.db.sqs_messages.getMessage(res.message_id)
-                sqsEvent = self.client.sqs.getSQSEventByMessage(res, message)
+                message = await self.client.db.sqs_messages.getMessage(message_id)
+                sqsEvent = self.client.sqs.getSQSEventByMessage(message_id, message)
                 from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor
                 await DzgroReportProcessor(self.client).execute(sqsEvent)
             return await self.getReport(reportId)
         except Exception as e:
-            if not res.message_id: await self.client.db.dzgro_reports.deleteReport(reportId)
+            if not message_id: await self.client.db.dzgro_reports.deleteReport(reportId)
             else: await self.client.db.dzgro_reports.addError(reportId, str(e))
             raise e
 

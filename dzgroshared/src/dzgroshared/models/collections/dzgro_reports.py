@@ -2,7 +2,7 @@ from dzgroshared.models.enums import CollateType, DzgroReportType, DzroReportPay
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
-from dzgroshared.models.model import ItemId, ItemIdWithDate, Paginator
+from dzgroshared.models.model import ItemId, ItemId, Paginator
 
 class DzgroReportDates(BaseModel):
     startDate: datetime
@@ -67,7 +67,7 @@ class CreateDzgroReportRequest(BaseModel):
             if not self.keyMetricsWithGrowth: raise error
         return self
 
-class DzgroReport(CreateDzgroReportRequest, ItemIdWithDate):
+class DzgroReport(CreateDzgroReportRequest, ItemId):
     messageid: str
     count: int|SkipJsonSchema[None]=None
     key: str|SkipJsonSchema[None]=None

@@ -1,4 +1,5 @@
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
 from dzgroshared.utils import date_util
@@ -20,17 +21,18 @@ class AmazonAdsReportManager:
     reportUtil: ReportUtil
     reportId: PyObjectId
     dates: list[tuple[str, str]]
+    dateUtil: MarketplaceDatesUtility
 
-    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, api: AdApiClient) -> None:
+    def __init__(self, client: DzgroSharedClient, marketplace: MarketplaceObjectForReport, api: AdApiClient, dateUtil: MarketplaceDatesUtility) -> None:
         self.client = client
         self.api = api
         self.timezone = marketplace.details.timezone
         self.marketplace = marketplace
+        self.dateUtil = dateUtil
 
     def getReportsConf(self)->list[AmazonAdReport]:
         reports: list[AmazonAdReport] = []
-        isNew = self.marketplace.dates is None
-        self.dates = date_util.getAdReportDates(self.marketplace.details.timezone, 31, isNew)
+        self.dates = self.dateUtil.getAdReportDates(31)
         reports.extend(self.__createCampaignReports())
         reports.extend(self.__createSearchTermReports())
         reports.extend(self.__createTargetingReports())
@@ -46,7 +48,7 @@ class AmazonAdsReportManager:
         ))
     
     def __createReportConfByType(self, conf: AdReportConfiguration):
-        from dzgroshared.functions.AmazonDailyReport.reports import Utility
+        from dzgroshared.functions.AmazonDailyReport.reports import DateUtility
         return [self.__createReportConf(date[0], date[1], conf) for date in self.dates]
 
     def __createCampaignReports(self)->list[AmazonAdReport]:

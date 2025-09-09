@@ -1,7 +1,7 @@
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.models.model import ItemIdWithDate
+from dzgroshared.models.model import ItemId
 from pydantic import BaseModel
-class Payment(ItemIdWithDate):
+class Payment(ItemId):
     uid:str
     paymenttype: str
     amount: float

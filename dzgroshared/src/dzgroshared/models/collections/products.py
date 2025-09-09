@@ -8,6 +8,7 @@ class ProductCategory(BaseModel):
     def setCategory(self):
         self.category = self.producttype.replace('_',' ').title()
         return self
+    
 class Product(ProductCategory):
     asin: str|SkipJsonSchema[None]=None
     sku: str|SkipJsonSchema[None]=None
