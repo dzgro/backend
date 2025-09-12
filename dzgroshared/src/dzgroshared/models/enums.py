@@ -113,58 +113,6 @@ class Operator(str, Enum):
     @staticmethod
     def withSigns():
         return list(map(lambda c: {"label": c.value, "value": getOperator(c)}, Operator))
-    
-
-
-class GSTStateCode(Enum):
-    JAMMU_AND_KASHMIR = "01"
-    HIMACHAL_PRADESH = "02"
-    PUNJAB = "03"
-    CHANDIGARH = "04"
-    UTTARAKHAND = "05"
-    HARYANA = "06"
-    DELHI = "07"
-    RAJASTHAN = "08"
-    UTTAR_PRADESH = "09"
-    BIHAR = "10"
-    SIKKIM = "11"
-    ARUNACHAL_PRADESH = "12"
-    NAGALAND = "13"
-    MANIPUR = "14"
-    MIZORAM = "15"
-    TRIPURA = "16"
-    MEGHALAYA = "17"
-    ASSAM = "18"
-    WEST_BENGAL = "19"
-    JHARKHAND = "20"
-    ODISHA = "21"
-    CHHATTISGARH = "22"
-    MADHYA_PRADESH = "23"
-    GUJARAT = "24"
-    DAMAN_AND_DIU = "25"
-    DADRA_AND_NAGAR_HAVELI = "26"
-    MAHARASHTRA = "27"
-    ANDHRA_PRADESH_OLD = "28"
-    KARNATAKA = "29"
-    GOA = "30"
-    LAKSHADWEEP = "31"
-    KERALA = "32"
-    TAMIL_NADU = "33"
-    PUDUCHERRY = "34"
-    ANDAMAN_AND_NICOBAR_ISLANDS = "35"
-    TELANGANA = "36"
-    ANDHRA_PRADESH = "37"
-
-class OnboardStep(str, Enum):
-    ADD_SPAPI_ACCOUNT = 'Add Seller Central Account'
-    ADD_AD_ACCOUNT = 'Add Advertising Account'
-    ADD_MARKETPLACE = 'Select Marketplace'
-    ADD_GST_DETAILS = 'Add Business Details'
-    SUBSCRIBE = 'Start Subscription'
-
-    @staticmethod
-    def values():
-        return list(OnboardStep)
 
 def getOperator(op: Operator)->OperatorSign:
     return OperatorSign[op.name]
@@ -394,6 +342,8 @@ class CurrencySymbol(Enum):
 
 class CollectionType(str,Enum):
     USERS = 'users'
+    GSTIN = 'gstin'
+    PG_ORDERS = 'pg_orders'
     PRICING = 'pricing'
     SPAPI_ACCOUNTS = 'spapi_accounts'
     SPAPI_SUBSCRIPTIONS = 'spapi_subscriptions'
@@ -479,6 +429,15 @@ class PlanDuration(str, Enum):
 class BusinessType(str, Enum):
     PERSONAL = 'Personal'
     BUSINESS = 'Business'
+
+class UserStatus(str, Enum):
+    NEW = 'New'
+    PAID = 'Paid'
+    UNPAID = 'Unpaid'
+    OVERDUE = 'Overdue'
+    TRIAL = 'Trial'
+    SUSPENDED = 'Suspended'
+
 
 class PlanType(str, Enum):
     REPORTS = 'Reports'
@@ -693,3 +652,94 @@ class AnalyticsMetric(str, Enum):
         return list(AnalyticsMetric)
 
 
+from enum import Enum
+
+class GSTStateCode(Enum):
+    JAMMU_AND_KASHMIR = "01"
+    HIMACHAL_PRADESH = "02"
+    PUNJAB = "03"
+    CHANDIGARH = "04"
+    UTTARAKHAND = "05"
+    HARYANA = "06"
+    DELHI = "07"
+    RAJASTHAN = "08"
+    UTTAR_PRADESH = "09"
+    BIHAR = "10"
+    SIKKIM = "11"
+    ARUNACHAL_PRADESH = "12"
+    NAGALAND = "13"
+    MANIPUR = "14"
+    MIZORAM = "15"
+    TRIPURA = "16"
+    MEGHALAYA = "17"
+    ASSAM = "18"
+    WEST_BENGAL = "19"
+    JHARKHAND = "20"
+    ODISHA = "21"
+    CHHATTISGARH = "22"
+    MADHYA_PRADESH = "23"
+    GUJARAT = "24"
+    DAMAN_AND_DIU = "25"
+    DADRA_AND_NAGAR_HAVELI = "26"
+    MAHARASHTRA = "27"
+    ANDHRA_PRADESH_OLD = "28"
+    KARNATAKA = "29"
+    GOA = "30"
+    LAKSHADWEEP = "31"
+    KERALA = "32"
+    TAMIL_NADU = "33"
+    PUDUCHERRY = "34"
+    ANDAMAN_AND_NICOBAR_ISLANDS = "35"
+    TELANGANA = "36"
+    ANDHRA_PRADESH = "37"
+
+    @staticmethod
+    def list():
+        return [x.value for x in GSTStateCode]
+    
+    @staticmethod
+    def values():
+        return list(GSTStateCode)
+
+    @classmethod
+    def get_state_name(cls, code: str) -> str:
+        mapping = {
+            "01": "Jammu & Kashmir",
+            "02": "Himachal Pradesh",
+            "03": "Punjab",
+            "04": "Chandigarh",
+            "05": "Uttarakhand",
+            "06": "Haryana",
+            "07": "Delhi",
+            "08": "Rajasthan",
+            "09": "Uttar Pradesh",
+            "10": "Bihar",
+            "11": "Sikkim",
+            "12": "Arunachal Pradesh",
+            "13": "Nagaland",
+            "14": "Manipur",
+            "15": "Mizoram",
+            "16": "Tripura",
+            "17": "Meghalaya",
+            "18": "Assam",
+            "19": "West Bengal",
+            "20": "Jharkhand",
+            "21": "Odisha",
+            "22": "Chhattisgarh",
+            "23": "Madhya Pradesh",
+            "24": "Gujarat",
+            "25": "Daman and Diu",
+            "26": "Dadra and Nagar Haveli",
+            "27": "Maharashtra",
+            "28": "Andhra Pradesh (Old)",
+            "29": "Karnataka",
+            "30": "Goa",
+            "31": "Lakshadweep",
+            "32": "Kerala",
+            "33": "Tamil Nadu",
+            "34": "Puducherry",
+            "35": "Andaman and Nicobar Islands",
+            "36": "Telangana",
+            "37": "Andhra Pradesh",
+        }
+        return mapping.get(code, "Unknown")

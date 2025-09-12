@@ -33,7 +33,6 @@ class PyObjectId(str):
             raise ValueError("Invalid ObjectId")
         return ObjectId(value)
 
-
 class Paginator(BaseModel):
     skip:int
     limit:int
@@ -72,6 +71,8 @@ class CustomError(Exception):
         self.error_data = error_data
         super().__init__(str(error_data))
 
+class RefreshToken(BaseModel):
+    refreshtoken: str
 
 class LambdaContext:
     function_name: str
@@ -209,37 +210,14 @@ class AuthorizationUrlRequest(BaseModel):
 class Url(BaseModel):
     url: str
 
-class AddMarketplace(BaseModel):
-    seller: str
-    ad: str
+class AddMarketplaceRequest(BaseModel):
+    seller: PyObjectId
+    ad: PyObjectId
     sellerid: str
     marketplaceid: MarketplaceId
     countrycode: CountryCode
     storename: str
     profileid: int
-
-
-class AdAccount(BaseModel):
-    accountname: str
-    entityid: str
-    countryCode: CountryCode
-    profileid: int
-    adsaccountid: str
-
-
-class AdvertisingAccountInfo(BaseModel):
-    marketplaceStringId: str
-    id: str
-    type: str
-    name: str
-    validPaymentMethod: bool
-
-class AdvertisingProfile(BaseModel):
-    profileId: int
-    countryCode: str
-    currencyCode: str
-    timezone: str
-    accountInfo: AdvertisingAccountInfo
 
 
 class DzgroSecrets(BaseModel):
@@ -255,6 +233,8 @@ class DzgroSecrets(BaseModel):
     ADS_CLIENT_SECRET: str
     MONGO_DB_CONNECT_URI: str
     MONGO_DB_FED_CONNECT_URI: str
+    TEST_PASSWORD: str
+    AUTH_REDIRECT_URL: str
 
 DataCollections: list[CollectionType] = [
             # CollectionType.ORDERS,
@@ -330,3 +310,7 @@ MetricItem.model_rebuild()
 class MetricGroup(BaseModel):
     metric: AnalyticGroupMetricLabel
     items: list[MetricItem]
+
+
+class RenameAccountRequest(ItemId):
+    name: str

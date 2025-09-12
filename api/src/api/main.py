@@ -25,6 +25,8 @@ async def lifespan(app: FastAPI):
     app.state.secrets = SecretManager(app.state.env).secrets
     from motor.motor_asyncio import AsyncIOMotorClient
     app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI, appname="dzgro-api")
+    from dzgroshared.razorpay.client import RazorpayClient
+    app.state.razorpayClient = RazorpayClient(app.state.secrets.RAZORPAY_CLIENT_ID, app.state.secrets.RAZORPAY_CLIENT_SECRET)
     import jwt
     jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{app.state.secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
     app.state.jwtClient = jwt.PyJWKClient(jwks_url)
@@ -95,16 +97,19 @@ async def log_request_time(request: Request, call_next):
 
 register_exception_handlers(app)
 
-from api.routers import user, onboarding, payments, ad, analytics,reports, product, seller,plans
+from api.routers import user, payments, ad, analytics,reports, product, marketplaces,plans, spapi, adv_account, gstin, pg_orders
+app.include_router(spapi.router)
+app.include_router(adv_account.router)
 app.include_router(user.router)
-app.include_router(onboarding.router)
 app.include_router(payments.router)
 app.include_router(ad.router)
 app.include_router(analytics.router)
 app.include_router(product.router)
 app.include_router(reports.router)
-app.include_router(seller.router)
+app.include_router(marketplaces.router)
 app.include_router(plans.router)
+app.include_router(gstin.router)
+app.include_router(pg_orders.router)
 
 use_route_names_as_operation_ids(app)
 

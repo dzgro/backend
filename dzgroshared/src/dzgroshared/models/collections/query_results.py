@@ -49,6 +49,7 @@ class PerformanceResultParent(Product):
     skus: List[Product]
 
 class PerformanceResultAsin(Product):
+    count: int|SkipJsonSchema[None] = None
     skus: List[Product]
 
 

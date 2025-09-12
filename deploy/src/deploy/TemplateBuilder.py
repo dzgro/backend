@@ -313,17 +313,18 @@ class TemplateBuilder:
 
     def createResources(self, region: Region, LayerArn: str|None):
         for _lambda in mapping.LAMBDAS:
-            for _lambdaRegion in _lambda.regions:
-                if _lambdaRegion.region == region:
-                    if region==Region.DEFAULT:
-                        if _lambdaRegion.s3: self.addBucket(region, _lambdaRegion.s3)
-                        if self.env != ENVIRONMENT.LOCAL:
-                            self.createRawApiGateway(region)
-                            self.createApiGatewayRole(region)
-                            self.createLambdaRole(_lambda, region)
-                            if _lambdaRegion.queue: 
-                                self.addQueue(region, _lambdaRegion.queue, _lambda.name)
-                            self.createFunction(_lambda, _lambdaRegion, LayerArn)
+            if self.env in _lambda.env:
+                for _lambdaRegion in _lambda.regions:
+                    if _lambdaRegion.region == region:
+                        if region==Region.DEFAULT:
+                            if _lambdaRegion.s3: self.addBucket(region, _lambdaRegion.s3)
+                            if self.env != ENVIRONMENT.LOCAL:
+                                self.createRawApiGateway(region)
+                                self.createApiGatewayRole(region)
+                                self.createLambdaRole(_lambda, region)
+                                if _lambdaRegion.queue: 
+                                    self.addQueue(region, _lambdaRegion.queue, _lambda.name)
+                                self.createFunction(_lambda, _lambdaRegion, LayerArn)
                 
 
     def createRawApiGateway(self, region: Region):
@@ -343,12 +344,13 @@ class TemplateBuilder:
             'Tags': self.getDictTag(),
             "Environment": {"Variables": {"ENV": self.env.value}}
         }
-        layers = [] if not layer_arn else [layer_arn]
-        if property.requirements:
-            builder = CustomLambdaLayerBuilder(self.env, property.name, property.requirements, _lambda.region)
-            arn = builder.create_or_reuse_requirements_layer()
-            layers.append(arn)
-        if layers: properties['Layers'] = layers
+        if property.skipSharedLibraries is not True:
+            layers = [] if not layer_arn else [layer_arn]
+            if property.requirements:
+                builder = CustomLambdaLayerBuilder(self.env, property.name, property.requirements, _lambda.region)
+                arn = builder.create_or_reuse_requirements_layer()
+                layers.append(arn)
+            if layers: properties['Layers'] = layers
         if _lambda.s3 and _lambda.s3.trigger:
             event = { "Bucket": { "Ref": self.getBucketResourceName(_lambda.s3.name) }, "Events": _lambda.s3.trigger.eventName }
             if _lambda.s3.trigger.filter:

@@ -1,6 +1,6 @@
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.models.model import CountryDetails
-from dzgroshared.models.collections.country_details import CountryUrls, CountriesByRegion
+from dzgroshared.models.collections.country_details import CountriesByRegionList, CountryUrls, CountriesByRegion
 from dzgroshared.models.enums import CountryCode,AmazonAccountType, CollectionType
 from dzgroshared.client import DzgroSharedClient
 
@@ -15,9 +15,9 @@ class CountryDetailsHelper:
         return [CountryDetails(**x) for x in await self.db.find({})]
     
     async def getCountryDetailsByCountryCode(self, countryCode: CountryCode):
-        return CountryUrls(**(await self.db.findOne({"_id": countryCode})))
+        countryDetail = await self.db.findOne({"_id": countryCode.value})
+        return CountryUrls.model_validate(countryDetail)
 
-    async def getCountriesByRegion(self, accountType: AmazonAccountType, params: str):
-        urlkey = {"$concat": ["$spapi_auth_url" if accountType==AmazonAccountType.SPAPI else '$ad_auth_url', params]}
-        data = await self.db.aggregate([ { '$group': { '_id': '$regionName', 'countries': { '$push': { 'countryCode': '$_id', 'country': '$country', 'url': urlkey } } } }, { '$project': { 'region': '$_id', 'countries': 1, '_id': 0 } } ])
-        return [CountriesByRegion(**x) for x in data]
+    async def getCountriesByRegion(self):
+        data = await self.db.aggregate([ { '$group': { '_id': '$regionName', 'countries': { '$push': { 'countryCode': '$_id', 'country': '$country' } } } }, { '$project': { 'region': '$_id', 'countries': 1, '_id': 0 } } ])
+        return CountriesByRegionList.model_validate({"regions": data})

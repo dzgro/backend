@@ -113,23 +113,3 @@ class RazorpayWebhookPayload(BaseModel):
         if self.payload.subscription: self.subscription=self.payload.subscription['entity']
         if self.payload.payment: self.payment=self.payload.payment['entity']
         return self
-
-
-class BusinessClass(str, Enum):
-    PERSONAL = 'Personal'
-    BUSINESS = 'Business'
-
-
-class GSTDetails(BaseModel):
-    gstin: str
-    name: str
-    addressline1: str
-    addressline2: str
-    addressline3: str
-    pincode: str
-    city: str
-    state: str
-
-class BusinessDetails(BaseModel):
-    businesstype: BusinessClass|SkipJsonSchema[None]=None
-    business: GSTDetails|SkipJsonSchema[None]=None

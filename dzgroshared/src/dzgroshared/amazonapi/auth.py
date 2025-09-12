@@ -71,7 +71,7 @@ class Onboard:
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
 
-    async def generateRefreshToken(self, code: str):
+    async def generateRefreshToken(self, code: str)->str:
         data = {
             'grant_type' : 'authorization_code',
             'client_id': self.client_id,

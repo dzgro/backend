@@ -84,7 +84,27 @@ class DbClient:
             return self.paymentHelper
         self.paymentHelper = PaymentHelper(self.client)
         return self.paymentHelper
-    
+
+    @property
+    def gstin(self):
+        if not self.client.uid:
+            raise ValueError("UID must be set to access gstin.")
+        from dzgroshared.db.collections.gstin import GSTHelper
+        if self.gstinHelper:
+            return self.gstinHelper
+        self.gstinHelper = GSTHelper(self.client)
+        return self.gstinHelper
+
+    @property
+    def pg_orders(self):
+        if not self.client.uid:
+            raise ValueError("UID must be set to access PG Orders.")
+        from dzgroshared.db.collections.pg_orders import PGOrderHelper
+        if self.pgOrderHelper:
+            return self.pgOrderHelper
+        self.pgOrderHelper = PGOrderHelper(self.client)
+        return self.pgOrderHelper
+
     @property
     def health(self):
         if not self.client.uid or not self.client.marketplaceId:

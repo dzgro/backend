@@ -1,7 +1,10 @@
+from dzgroshared.models.amazonapi.spapi.listings import OfferType
+from dzgroshared.models.collections.health import AHR
+from dzgroshared.models.collections.pricing import PricingOffer
 from pydantic import BaseModel, Field,model_validator
-from dzgroshared.models.model import ItemId, ItemId, PyObjectId, StartEndDate
+from dzgroshared.models.model import Count, ItemId, ItemId, PyObjectId, StartEndDate
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.models.enums import AmazonAccountType, MarketplaceId, CountryCode, MarketplaceStatus
+from dzgroshared.models.enums import AmazonAccountType, MarketplaceId, CountryCode, MarketplaceStatus, PlanType
 from datetime import datetime
 from typing import Literal
 
@@ -18,27 +21,43 @@ class Account(ItemId, NameCountryCode):
 #     destinationId: str
 
 
-class AdAccount(BaseModel):
-    accountname: str
-    entityid: str
-    countryCode: CountryCode
-    profileid: int
-    adsaccountid: str
 
+class UserMarketplaceHealth(BaseModel):
+    ahr: AHR
+    violations: int
 
-class AdvertisingAccountInfo(BaseModel):
-    marketplaceStringId: str
-    id: str
-    type: str
-    name: str
-    validPaymentMethod: bool
+class UserMarketplaceSalesData(BaseModel):
+    orders: int
+    units: int
+    revenue: int
+    roas: float
 
-class AdvertisingProfile(BaseModel):
-    profileId: int
-    countryCode: str
-    currencyCode: str
-    timezone: str
-    accountInfo: AdvertisingAccountInfo
+class UserMarketplaceDetails(BaseModel):
+    count: int
+    countries: list[CountryCode]
+    statuses: list[MarketplaceStatus]
+    plantypes: list[PlanType]
+
+class UserMarketplaceBasic(ItemId):
+    countrycode: CountryCode
+    status: MarketplaceStatus
+    storename: str
+    gstin: PyObjectId|SkipJsonSchema[None]=None
+    marketplaceid: MarketplaceId
+
+class UserMarketplace(UserMarketplaceBasic):
+    createdat: datetime
+    seller: str
+    status: MarketplaceStatus
+    dates: StartEndDate
+    plantype: PlanType
+    health: UserMarketplaceHealth|SkipJsonSchema[None]=None
+    sales: UserMarketplaceSalesData|SkipJsonSchema[None]=None
+    lastrefresh: datetime|SkipJsonSchema[None]=None
+
+class UserMarketplaceList(BaseModel):
+    data: list[UserMarketplace]
+    count: int|SkipJsonSchema[None]=None
 
 class MarketplaceNameId(ItemId):
     name: str
@@ -55,12 +74,7 @@ class DefectsAndViolations(BaseModel):
     title: str
     value: str
     type: Literal['Defect','Violation']
-# class MarketplaceListItem(Marketplace):
-#     dataAvailabilityPeriod: int|SkipJsonSchema[None]=None
-#     lastRefreshed: datetime|SkipJsonSchema[None]=None
-#     healthScore: float|SkipJsonSchema[None]=None
-#     defectsAndViolations: list[DefectsAndViolations] = []
-    # reportUpdate: MarketplaceReportUpdate|SkipJsonSchema[None]=None
+
 class DateRange(BaseModel):
     startDate: datetime
     endDate: datetime
@@ -71,11 +85,6 @@ class DateRange(BaseModel):
 class UserAccountsCount(BaseModel):
     spapiAccountsCount: int
     advertisingAccountsCount: int
-
-class RenameAccountRequest(BaseModel):
-    id :str
-    accountType: AmazonAccountType
-    name: str
 
 class MarketplaceCache(ItemId):
     countrycode: CountryCode
@@ -91,3 +100,13 @@ class Marketplace(ItemId):
     status: MarketplaceStatus
     storename: str|SkipJsonSchema[None]=None
     dates: StartEndDate
+
+class MarketplaceOnboardOffer(ItemId):
+    offerType: OfferType
+    offer: PricingOffer
+
+class MarketplaceOnboardPaymentRequest(ItemId):
+    planid: str
+    offer: MarketplaceOnboardOffer|SkipJsonSchema[None]=None
+    
+

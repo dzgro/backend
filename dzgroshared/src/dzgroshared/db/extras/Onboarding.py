@@ -8,7 +8,7 @@ from dzgroshared.models.collections.subscriptions import CreateSubscriptionReque
 from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.amazonapi.adapi import AdApiClient
 from dzgroshared.models.amazonapi.model import AmazonApiObject
-from dzgroshared.models.razorpay.customer import CreateCustomer
+from dzgroshared.models.razorpay.customer import RazorpayCreateCustomer
 from dzgroshared.models.razorpay.subscription import CreateSubscription
 from dzgroshared.razorpay.client import RazorpayClient
 from api.Util import RequestHelper
@@ -41,45 +41,8 @@ class OnboardingHelper:
         from dzgroshared.amazonapi.auth import Onboard
         manager = Onboard(client_id, client_secret, self.redirect_uri)
         return manager.generateRefreshToken(code)
+    
 
-    def getUrls(self, accountType: AmazonAccountType):
-        params = f'?client_id={self.client.secrets.ADS_CLIENT_ID}&scope=advertising::campaign_management&redirect_uri={self.redirect_uri}&response_type=code'
-        if accountType==AmazonAccountType.SPAPI:
-            import string,random
-            state = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-            params = f'/apps/authorize/consent?application_id={self.client.secrets.SPAPI_APPLICATION_ID}&state={state}&redirect_uri={self.redirect_uri}'
-        return self.client.db.country_details.getCountriesByRegion(accountType, params)
-    
-    async def addSeller(self, data: SPAPIAccountRequest)->SuccessResponse:
-        if not data.sellerid: raise ValueError('Seller ID is required')
-        spapi = self.client.db.spapi_accounts
-        try:
-            await spapi.getSeller(sellerid=data.sellerid)
-            return SuccessResponse(success=False, message=f"Seller already exists")
-        except ValueError as e:
-            data.refreshtoken = await self.getRefreshToken(data.refreshtoken, AmazonAccountType.SPAPI)
-            await spapi.addSeller(data)
-            return SuccessResponse(success=True)
-    
-    async def addAdvertisingAccount(self, data: AdvertisingAccountRequest)->SuccessResponse:
-        adv = self.client.db.advertising_accounts
-        data.refreshtoken = await self.getRefreshToken(data.refreshtoken, AmazonAccountType.ADVERTISING)
-        await adv.addAccount(data)
-        return SuccessResponse(success=True)
-    
-    async def getAdAccounts(self, id: str):
-        from dzgroshared.models.model import AdAccount
-        client = await self.adapi(id)
-        response = await client.common.adsAccountsClient.listAccounts()
-        accounts: list[AdAccount] = []
-        for acc in list(filter(lambda x: x.status in ["CREATED", "ACTIVE"], response.adsAccounts)):
-            for code in list(filter(lambda x: x in CountryCode.values(), acc.countryCodes)):
-                profileId = next((x.profileId for x in acc.alternateIds if x.countryCode==code and x.entityId is None), None)
-                entityId = next((x.entityId for x in acc.alternateIds if x.countryCode==code and x.profileId is None), None)
-                if profileId and entityId:
-                    adAccount = AdAccount(adsaccountid=acc.adsAccountId, accountname=acc.accountName, countryCode=CountryCode(code), profileid=profileId, entityid=entityId)
-                    accounts.append(adAccount)
-        return accounts
     
     async def getMarketplaceParticipations(self, id: str):
         client = await self.spapi(id)
@@ -88,30 +51,7 @@ class OnboardingHelper:
         return list(filter(lambda x: x.marketplace.id in MarketplaceId.values(), sellerMarketplaces.payload))
         
     
-    async def testLinkage(self, req: AddMarketplace):
-        spClient = await self.spapi(req.seller)
-        adClient = await self.adapi(req.ad)
-        listings = await spClient.listings.search_listings_items(
-            seller_id=req.sellerid, 
-            included_data=['summaries']
-        )
-        if not listings.items: raise ValueError("No listings found for the seller")
-        listing = listings.items[0]
-        asin = next((summary.asin for summary in listing.summaries if summary.marketplace_id==req.marketplaceid.value), None) if listing.summaries else None
-        if not asin: return SuccessResponse(success=False, message="Selected Marketplace has no active products")
-        from dzgroshared.amazonapi.adapi.common.products import ProductMetadataRequest
-        metadata = await adClient.common.productsMetadataClient.listProducts(
-            ProductMetadataRequest(skus=[listing.sku], pageIndex=0, pageSize=1)
-        )
-        if metadata.ProductMetadataList and metadata.ProductMetadataList[0].asin == asin: return SuccessResponse(success=True)
-        return SuccessResponse(success=False, message="Selected Ad Account and Marketplace do not belong to same seller account")
-
-    async def addMarketplace(self, req: AddMarketplace):
-        marketplaces = await self.getMarketplaceParticipations(req.seller)
-        if not any(marketplace.marketplace.id==req.marketplaceid.value for marketplace in marketplaces):
-            raise ValueError("Marketplace not found for the given seller")
-        await self.client.db.marketplaces.addMarketplace(req)
-        return SuccessResponse(success=True)
+    
     
     async def getPlanDetails(self, marketplaceid:str, planid:str):
         client = await self.spapi(marketplaceid)
@@ -120,7 +60,7 @@ class OnboardingHelper:
         return await self.client.db.pricing.getPlanDetailItemsById(planid, sales)
     
     async def __createRazorpayCustomer(self, name: str, email:str, phone:str|None=None):
-        customer = await self.client.razorpay.customer.create_customer( CreateCustomer( email=email, name=name, contact=phone, notes={"uid": self.uid} ) )
+        customer = await self.client.razorpay.customer.create_customer( RazorpayCreateCustomer( email=email, name=name, contact=phone, notes={"uid": self.uid} ) )
         return customer
     
     async def __createSubscription(self, customerid:str, body: CreateSubscriptionRequest, name: str, email:str, phone:str|None=None):

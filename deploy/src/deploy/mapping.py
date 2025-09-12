@@ -15,6 +15,7 @@ class Tag(BaseModel):
 
 
 class LambdaName(str, Enum):
+    CognitoTrigger = "CognitoTrigger"
     AmazonDailyReport = "AmazonDailyReport"
     DzgroReports = "DzgroReports"
     DzgroReportsS3Trigger = "DzgroReportsS3Trigger"
@@ -115,7 +116,9 @@ class LambdaRequirement(BaseModel):
 class LambdaProperty(BaseModel):
     name: LambdaName
     regions: list[LambdaRegion]
+    env: list[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD, ENVIRONMENT.LOCAL]
     requirements: list[LambdaRequirement]|SkipJsonSchema[None]=None
+    skipSharedLibraries: bool = False
 
 def createPolicy(region:Region, name:LambdaName, arns: list[str]):
     return {
@@ -165,6 +168,19 @@ def getAMSChangeSetPolicy(region: Region):
     return createPolicy(region, LambdaName.AmsChange, [f"arn:aws:sns:{region}:{id}:*" for id in ids])
 
 LAMBDAS = [
+    LambdaProperty(
+        name=LambdaName.CognitoTrigger,
+        requirements=[
+            LambdaRequirement(name="pymongo", version="4.15.0")
+        ],
+        regions=[
+            LambdaRegion(
+                region=Region.DEFAULT
+            ),
+        ],
+        skipSharedLibraries=True,
+        env = [ENVIRONMENT.PROD]
+    ),
     LambdaProperty(
         name=LambdaName.AmazonDailyReport,
         regions=[

@@ -3,23 +3,23 @@ from pydantic import BaseModel,Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from typing import Literal
 
-class CustomerEntity(Notes):
+class RazorpayCustomerEntity(Notes):
     name: str|SkipJsonSchema[None]=None
     email: str
     contact: str|SkipJsonSchema[None]=None
 
-class Customer(RazorpayId, CustomerEntity):
+class RazorpayCustomer(RazorpayId, RazorpayCustomerEntity):
     gstin: str|SkipJsonSchema[None]=None
     created_at: int
 
-class CustomerList(BaseModel):
-    items: list[Customer]
+class RazorpayCustomerList(BaseModel):
+    items: list[RazorpayCustomer]
     count: int
 
-class CreateCustomer(CustomerEntity):
+class RazorpayCreateCustomer(RazorpayCustomerEntity):
     fail_existing: str = "0"
 
-class EditCustomer(BaseModel):
+class RazorpayEditCustomer(BaseModel):
     name: str|SkipJsonSchema[None]=None
     email: str|SkipJsonSchema[None]=None
     contact: str|SkipJsonSchema[None]=None

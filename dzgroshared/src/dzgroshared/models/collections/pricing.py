@@ -1,6 +1,7 @@
 
+from enum import Enum
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 from dzgroshared.models.model import ItemId
 from dzgroshared.models.enums import PlanType
 
@@ -44,6 +45,26 @@ class PricingDetailItem(BaseModel):
     sublabel: Optional[str] = None
     value: float
 
+class PlanDuration(str, Enum):
+    MONTH = "1 Month"
+    QUARTER = "3 Months"
+    YEAR = "1 Year"
+
+class OfferType(str, Enum):
+    CASHBACK = "cashback"
+
+class PricingOffer(BaseModel):
+    duration: PlanDuration
+    discount: float
+
+class PricingOffers(BaseModel):
+    offerType: OfferType
+    offers: List[PricingOffer] = [
+        PricingOffer(duration=PlanDuration.MONTH, discount=0),
+        PricingOffer(duration=PlanDuration.QUARTER, discount=10),
+        PricingOffer(duration=PlanDuration.YEAR, discount=25)
+    ]
+
 class PricingDetail(BaseModel):
     currency: str
     currencyCode: str
@@ -52,4 +73,5 @@ class PricingDetail(BaseModel):
     groupId: str
     items: list[PricingDetailItem]
     total: float
+    offers: PricingOffers = PricingOffers(offerType=OfferType.CASHBACK)
     

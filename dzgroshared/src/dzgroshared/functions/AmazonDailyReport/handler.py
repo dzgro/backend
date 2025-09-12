@@ -110,7 +110,7 @@ class AmazonReportManager:
                 from dzgroshared.db.extras import Analytics
                 pipeline = Analytics.getQueriesPipeline(self.client.uid, self.client.marketplace, self.report.dates)
                 await self.client.db.query_results.deleteQueryResults()
-                await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+                await self.client.db.marketplaces.db.aggregate(pipeline)
             elif self.message.step==AmazonDailyReportAggregationStep.MARK_COMPLETION:
                 await self.client.db.amazon_daily_reports.deleteChildReports(self.message.index)
                 await self.client.db.amazon_daily_reports.markParentAsCompleted(self.message.index)

@@ -69,6 +69,7 @@ class CreateDzgroReportRequest(BaseModel):
 
 class DzgroReport(CreateDzgroReportRequest, ItemId):
     messageid: str
+    createdat: datetime
     count: int|SkipJsonSchema[None]=None
     key: str|SkipJsonSchema[None]=None
     error: str|SkipJsonSchema[None]=None

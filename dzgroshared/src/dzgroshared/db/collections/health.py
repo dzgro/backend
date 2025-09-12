@@ -1,4 +1,5 @@
 from bson import ObjectId
+from dzgroshared.models.collections.analytics import MarketplaceHealthResponse
 from dzgroshared.models.collections.marketplaces import MarketplaceCache
 from dzgroshared.models.enums import CollectionType
 from dzgroshared.db.DbUtils import DbManager
@@ -15,6 +16,6 @@ class HealthHelper:
 
     async def getHealth(self):
         data = await self.db.findOne({"_id": self.client.marketplaceId}, projectionInc=["health"], projectionExc=["_id"])
-        return data
+        return MarketplaceHealthResponse.model_validate(data)
     
     

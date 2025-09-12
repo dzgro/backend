@@ -84,10 +84,10 @@ class DbManager:
         data = [self.getFilterDict(item) for item in data]
         return (await self.collection.insert_many(data)).inserted_ids
     
-    async def insertOne(self, data: dict, timestamp:bool=True, timestampKey: str="createdat")->ObjectId:
+    async def insertOne(self, data: dict, timestamp:bool=True, timestampKey: str="createdat")->PyObjectId:
         if timestamp: data.update({timestampKey: datetime.now(timezone.utc)})
         data.update(self.getFilterDict(data))
-        try: return (await self.collection.insert_one(data)).inserted_id
+        try: return PyObjectId(str((await self.collection.insert_one(data)).inserted_id))
         except Exception as e:
             raise ValueError("Could not insert")
         

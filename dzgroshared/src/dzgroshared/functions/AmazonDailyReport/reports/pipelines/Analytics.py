@@ -112,7 +112,7 @@ class AnalyticsProcessor:
             self.__mergeToDateAnalytics()
         ])
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        await self.client.db.marketplaces.db.aggregate(pipeline)
 
 
     async def __executeAsinDate(self):
@@ -131,7 +131,7 @@ class AnalyticsProcessor:
             self.__mergeToDateAnalytics()
         ])
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        await self.client.db.marketplaces.db.aggregate(pipeline)
 
     async def __executeParentDate(self):
         pipeline = self.__matchMarketplaceSetAndOpenDates()
@@ -151,7 +151,7 @@ class AnalyticsProcessor:
             self.__mergeToDateAnalytics()
         ])
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        await self.client.db.marketplaces.db.aggregate(pipeline)
 
 
     async def __executeCategoryDate(self):
@@ -166,7 +166,7 @@ class AnalyticsProcessor:
             self.__mergeToDateAnalytics()
         ])
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        await self.client.db.marketplaces.db.aggregate(pipeline)
 
     async def __executeMarketplaceDate(self):
         pipeline = self.__matchMarketplaceSetAndOpenDates()
@@ -188,13 +188,13 @@ class AnalyticsProcessor:
             self.__mergeToDateAnalytics()
         ])
         mongo_pipeline_print.copy_pipeline(pipeline)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        await self.client.db.marketplaces.db.aggregate(pipeline)
 
     async def __executeStateAnalytics(self):
         from dzgroshared.functions.AmazonDailyReport.reports.pipelines import CreateStateAnalytics
         statepipeline = CreateStateAnalytics.pipeline(self.client.uid, self.client.marketplaceId, self.dates)
         mongo_pipeline_print.copy_pipeline(statepipeline)
-        await self.client.db.marketplaces.marketplaceDB.aggregate(statepipeline)
+        await self.client.db.marketplaces.db.aggregate(statepipeline)
 
 
     async def execute(self):

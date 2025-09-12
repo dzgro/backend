@@ -16,15 +16,20 @@ def snakeCaseToTitleCase():
 
 CustomerKeys = Literal['name','email','contact']
 
-
 class RazorpayEntity(BaseModel):
-    entity: Literal['payment','subscription','order','card']
+    entity: Literal['payment','subscription','order','card','invoice']
 
 class Currency(BaseModel):
     currency: str|SkipJsonSchema[None] = 'INR'
 
 class Amount(BaseModel):
     amount: int
+
+class RazorpayId(BaseModel):
+    id: str
+
+class Receipt(BaseModel):
+    receipt: str
 
 class Notes(BaseModel):
     notes: dict[str,str]|Any = {}
@@ -46,15 +51,13 @@ class RazorpayPagination(RazorpayCountSkip):
     )
     FROM: int
     TO: int
-class RazorpayId(BaseModel):
-    id: str
 
-class Item(Currency, Amount):
+class ItemWithNameDescriptionCurrencyAmount(Currency, Amount):
     name: str
     description: str|SkipJsonSchema[None]=None
 
 class ItemObject(BaseModel):
-    item: Item
+    item: ItemWithNameDescriptionCurrencyAmount
 
 
 class RazorpayObject(BaseModel):

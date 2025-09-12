@@ -1,6 +1,9 @@
 from bson import ObjectId
 from dzgroshared.models.collections.marketplaces import MarketplaceCache
+from dzgroshared.models.collections.user import User
 from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.models.razorpay.customer import RazorpayCreateCustomer
+from dzgroshared.razorpay.client import RazorpayClient
 from fastapi import Request
 from fastapi.exceptions import HTTPException
 import jwt   
@@ -11,6 +14,7 @@ UID_MISSING = HTTPException(status_code=403, detail="Missing User ID")
 INVALID_MARKETPLACE = HTTPException(status_code=403, detail="Invalid Marketplace for this user")
 from cachetools import TTLCache
 MARKETPLACE_CACHE  = TTLCache(maxsize=10000, ttl=600)
+USER_CACHE  = TTLCache(maxsize=10000, ttl=600)
 
 class RequestHelper:
     request: Request
@@ -47,19 +51,42 @@ class RequestHelper:
     def mongoClient(self)->AsyncIOMotorClient:
         return self.request.app.state.mongoClient
 
+    @property
+    def razorpayClient(self)->RazorpayClient:
+        return self.request.app.state.razorpayClient
+    
+    @property
+    def DB_NAME(self)->str:
+        return f'dzgro-{self.env.value.lower()}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+    
+    async def __userCache(self):
+        if self.uid in USER_CACHE: return USER_CACHE[self.uid]
+        users = self.mongoClient[self.DB_NAME]['users']
+        doc = await users.find_one({"_id": self.uid})
+        if not doc: raise UID_MISSING
+        user = User.model_validate(doc)
+        if not 'customerid' in doc or not doc['customerid']:
+            customerReq = RazorpayCreateCustomer(name=user.name, email=user.email, contact=user.phoneNumber)
+            customer = await self.razorpayClient.customer.create_customer(customerReq)
+            await users.update_one({"_id": self.uid}, {"$set": {"customerid": customer.id}})
+            user.customerid = customer.id
+        USER_CACHE[self.uid] = user
+        return user
+
     def __marketplace(self, request: Request):
         marketplaceId = request.headers.get("marketplace")
         if marketplaceId: return ObjectId(marketplaceId)
             
     async def __marketplaceCache(self)->MarketplaceCache:
-        key = f"{self.uid}:{str(self.marketplaceId)}"
-        if key in MARKETPLACE_CACHE: return MARKETPLACE_CACHE [key]
-        DB_NAME = f'dzgro-{self.env.value.lower()}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
-        doc = await self.mongoClient[DB_NAME]['marketplaces'].find_one({"_id": self.marketplaceId, "uid": self.uid})
+        marketplaceId = str(self.marketplaceId)
+        if marketplaceId in MARKETPLACE_CACHE: return MARKETPLACE_CACHE[marketplaceId]
+        marketplaces = self.mongoClient[self.DB_NAME]['marketplaces']
+        doc = await marketplaces.find_one({"_id": self.marketplaceId, "uid": self.uid})
         if not doc: raise INVALID_MARKETPLACE
-        cache = MarketplaceCache.model_validate(doc)
-        MARKETPLACE_CACHE[key] = cache
-        return cache
+        if doc.get('uid') != self.uid: raise INVALID_MARKETPLACE
+        marketplace = MarketplaceCache.model_validate(doc)
+        MARKETPLACE_CACHE[marketplaceId] = marketplace
+        return marketplace
     
     def __uid(self, request: Request):
         client: jwt.PyJWKClient = request.app.state.jwtClient
@@ -82,10 +109,12 @@ class RequestHelper:
     async def client(self):
         from dzgroshared.client import DzgroSharedClient
         client = DzgroSharedClient(self.env)
-        client.setUid(self.uid)
+        user = await self.__userCache()
+        client.setUser(user)
         if self.marketplaceId:
-            cache = await self.__marketplaceCache()
-            client.setMarketplace(cache)
+            marketplace = await self.__marketplaceCache()
+            client.setMarketplace(marketplace)
         client.setSecretsClient(self.secrets)
         client.setMongoClient(self.mongoClient)
+        client.setRazorpayClient(self.razorpayClient)
         return client

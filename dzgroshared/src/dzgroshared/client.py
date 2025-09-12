@@ -1,7 +1,9 @@
 from bson import ObjectId
 from dzgroshared.models.collections.marketplaces import MarketplaceCache
+from dzgroshared.models.collections.user import User
 from dzgroshared.models.enums import ENVIRONMENT
 from dzgroshared.models.model import DzgroSecrets, LambdaContext, PyObjectId
+from dzgroshared.razorpay.client import RazorpayClient
 from motor.motor_asyncio import AsyncIOMotorClient
 
 
@@ -11,6 +13,7 @@ class DzgroSharedClient:
     env: ENVIRONMENT
     DB_NAME: str
     uid: str
+    user: User
     marketplace: MarketplaceCache
     marketplaceId: ObjectId
     mongoClient: AsyncIOMotorClient
@@ -28,6 +31,10 @@ class DzgroSharedClient:
     
     def setUid(self, uid: str):
         self.uid = uid
+    
+    def setUser(self, user: User):
+        self.user= user
+        self.setUid(user.id)
 
     def setMarketplace(self, marketplace: MarketplaceCache):
         self.marketplace = marketplace
@@ -41,6 +48,9 @@ class DzgroSharedClient:
 
     def setMongoClient(self, mongoClient: AsyncIOMotorClient):
         self.mongoClient = mongoClient
+
+    def setRazorpayClient(self, razorpayClient: RazorpayClient):
+        self.razorpayClient = razorpayClient
 
     @property
     def secrets(self):
@@ -73,7 +83,6 @@ class DzgroSharedClient:
     @property
     def razorpay(self):
         if self.razorpayClient: return self.razorpayClient
-        from dzgroshared.razorpay.client import RazorpayClient
         self.razorpayClient = RazorpayClient(self.secrets.RAZORPAY_CLIENT_ID, self.secrets.RAZORPAY_CLIENT_SECRET)
         return self.razorpayClient
     

@@ -14,6 +14,20 @@ class CognitoManager:
         self.COGNITO_APP_CLIENT_ID = COGNITO_APP_CLIENT_ID
         self.COGNITO_USER_POOL_ID = COGNITO_USER_POOL_ID
 
+    def getAccessToken(self, username: str, password: str):
+        try:
+            response = self.client.initiate_auth(
+                ClientId=self.COGNITO_APP_CLIENT_ID,
+                AuthFlow='USER_PASSWORD_AUTH',
+                AuthParameters={
+                    'USERNAME': username,
+                    'PASSWORD': password
+                }
+            )
+            return response['AuthenticationResult'].get('AccessToken', None)
+        except Exception as e:
+            raise ValueError(e.args[0])
+
 
     def signout(self, token:str):
         try:

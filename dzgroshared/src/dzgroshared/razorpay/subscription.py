@@ -1,13 +1,15 @@
 from typing import Any, Dict, Optional
-import httpx
+from httpx import AsyncClient
 from dzgroshared.razorpay.error import razorpay_error_wrapper
 from dzgroshared.models.razorpay.subscription import CreateSubscription, UpdateSubscription, Subscription
 
 class RazorpaySubscriptionHelper:
+    base_url: str
+    client: AsyncClient
 
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(self, base_url: str, client: AsyncClient) -> None:
+        self.base_url = base_url
         self.client = client
-        self.base_url = "https://api.razorpay.com/v1"
 
     @razorpay_error_wrapper
     async def create_subscription(self, data: CreateSubscription) -> Subscription:

@@ -8,17 +8,18 @@ from dzgroshared.models.enums import ENVIRONMENT, CollateType, CountryCode, Mark
 from dzgroshared.models.model import DataCollections, MockLambdaContext, Paginator, PyObjectId, Sort, StartEndDate
 
 env = ENVIRONMENT.LOCAL
-client = DzgroSharedClient(env)
+# client = DzgroSharedClient(env)
 uid = "41e34d1a-6031-70d2-9ff3-d1a704240921"
-marketplace = MarketplaceCache(_id=PyObjectId("6895638c452dc4315750e826"), uid=uid, countrycode=CountryCode.INDIA, marketplaceid=MarketplaceId.IN,profileid=476214271739435, sellerid="AUYWKTHB2JM7A") 
-DB_NAME = f'dzgro-{env.value.lower()}' if env != ENVIRONMENT.LOCAL else 'dzgro-dev'
-client.setUid(uid)
-client.setMarketplace(marketplace)
-context = MockLambdaContext()
-enddate = datetime(2025, 8, 31)
-startdate= datetime(2025, 7, 3)
-date_range = StartEndDate(startdate=startdate, enddate=enddate)
-queryId=PyObjectId("686750af5ec9b6bf57fe9060")
+marketplaceId=  PyObjectId("6895638c452dc4315750e826")
+marketplace = MarketplaceCache(_id=marketplaceId, uid=uid, countrycode=CountryCode.INDIA, marketplaceid=MarketplaceId.IN,profileid=476214271739435, sellerid="AUYWKTHB2JM7A") 
+# DB_NAME = f'dzgro-{env.value.lower()}' if env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+# client.setUid(uid)
+# client.setMarketplace(marketplace)
+# context = MockLambdaContext()
+# enddate = datetime(2025, 8, 31)
+# startdate= datetime(2025, 7, 3)
+# date_range = StartEndDate(startdate=startdate, enddate=enddate)
+# queryId=PyObjectId("686750af5ec9b6bf57fe9060")
 
 
 async def buildStateDateAnalyticsAndQueries():
@@ -28,28 +29,44 @@ async def buildStateDateAnalyticsAndQueries():
     from dzgroshared.db.extras import Analytics
     pipeline = Analytics.getQueriesPipeline(client.marketplaceId, date_range)
     await client.db.query_results.deleteQueryResults()
-    await client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+    await client.db.marketplaces.db.aggregate(pipeline)
     print("Done")
 
 async def testapi():
     from dzgroshared.models.collections.analytics import PeriodDataResponse, PeriodDataRequest, ComparisonPeriodDataRequest,PerformancePeriodDataResponse,MonthDataRequest, StateMonthDataResponse,StateDetailedDataByStateRequest, StateDetailedDataResponse, AllStateData,MonthTableResponse, MonthDataResponse,MonthDateTableResponse
     from dzgroshared.models.collections.query_results import PerformanceTableRequest, PerformanceTableResponse
-    periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None)
-    comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, queryId=queryId)
-    monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, month="Jul 2025")
-    stateDetailsReq = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, state="Karnataka")
-    paginator = Paginator(skip=0, limit=10)
-    sort = Sort(field="revenue", order=-1)
-    performanceRequest = PerformanceTableRequest(collatetype=CollateType.SKU, queryId=queryId, value="Mad PD PC S 122", paginator=paginator, sort=sort)
+    # periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None)
+    # comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, queryId=queryId)
+    # monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, month="Jul 2025")
+    # stateDetailsReq = StateDetailedDataByStateRequest(collatetype=CollateType.MARKETPLACE, value=None, state="Karnataka")
+    # paginator = Paginator(skip=0, limit=10)
+    # sort = Sort(field="revenue", order=-1)
+    # performanceRequest = PerformanceTableRequest(collatetype=CollateType.SKU, queryId=queryId, value="Mad PD PC S 122", paginator=paginator, sort=sort)
 
     def showStatus(frame, SUCCESS: bool=True):
         if not frame: raise ValueError("Frame is required")
         print(f"{'Success' if SUCCESS else 'Failed'}: {frame.f_code.co_name.replace('_'," ").title()}")
 
+    async def dzgroshared()->DzgroSharedClient:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        shared = DzgroSharedClient(env)
+        shared.setMongoClient(AsyncIOMotorClient(shared.secrets.MONGO_DB_CONNECT_URI, appname="dzgro-api"))
+        shared.setUid(uid)
+        collection = shared.mongoClient[shared.DB_NAME]['marketplaces']
+        m = await collection.find_one({"_id": ObjectId(marketplaceId), "uid": uid})
+        marketplaceCache = MarketplaceCache.model_validate(m)
+        shared.setMarketplace(marketplaceCache)
+        return shared
+
+    async def getMarketplaces():
+        client = await dzgroshared()
+        await client.db.marketplaces.getMarketplaces(paginator)
+        showStatus( inspect.currentframe())
+
     async def get_performance_table():
         data = await client.db.query_results.getPerformanceListforPeriod(performanceRequest)
         PerformanceTableResponse.model_validate(data)
-        showStatus( inspect.currentframe())
+        
 
     async def get_period_data():
         data = await client.db.analytics.getPeriodData(periodreq)
@@ -57,9 +74,7 @@ async def testapi():
         showStatus( inspect.currentframe())
 
     async def get_health():
-        from dzgroshared.models.collections.analytics import MarketplaceHealthResponse
-        data = await client.db.health.getHealth()
-        MarketplaceHealthResponse.model_validate(data)
+        await client.db.health.getHealth()
         showStatus( inspect.currentframe())
 
     async def get_period_data_comparison():
@@ -107,7 +122,8 @@ async def testapi():
         # await get_month_lite_data()
         # await get_period_data()
         # await get_period_data_comparison()
-        await get_performance_table()
+        # await get_performance_table()
+        await getMarketplaces()
         print("Done")
     except Exception as e:
         print(f"Error occurred: {e}")

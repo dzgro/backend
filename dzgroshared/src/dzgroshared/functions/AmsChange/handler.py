@@ -51,7 +51,7 @@ class AmsChangeProcessor:
     
 
     async def getUidMarketplaces(self):
-        return await self.client.db.marketplaces.marketplaceDB.find({
+        return await self.client.db.marketplaces.db.find({
             "sellerid": self.sellerid,
             "marketplaceid": self.marketplaceId
         })

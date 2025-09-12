@@ -18,7 +18,7 @@ class QueryHelper:
 
     async def getQueries(self) -> QueryList:
         pipeline = GetQueries.pipeline(self.client.marketplaceId)
-        data = await self.client.db.marketplaces.marketplaceDB.aggregate(pipeline)
+        data = await self.client.db.marketplaces.db.aggregate(pipeline)
         return QueryList(queries=[Query(**item) for item in data])
     
     async def getQueryTable(self, req: SingleMetricPeriodDataRequest):

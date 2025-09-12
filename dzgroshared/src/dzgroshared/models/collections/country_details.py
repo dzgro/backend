@@ -45,11 +45,13 @@ class CountryUrls(CountryDetails):
     spapi_url: str
     spapi_auth_url: str
 
-class CountryCodeNameWithAuthUrl(BaseModel):
+class CountryCodeName(BaseModel):
     countryCode:CountryCode
     country:str
-    url: HttpUrl
 
 class CountriesByRegion(BaseModel):
-    region: Region
-    countries: list[CountryCodeNameWithAuthUrl]
+    region: str
+    countries: list[CountryCodeName]
+
+class CountriesByRegionList(BaseModel):
+    regions: list[CountriesByRegion]

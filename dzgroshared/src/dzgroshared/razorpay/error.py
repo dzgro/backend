@@ -1,14 +1,9 @@
 from typing import Callable, TypeVar, Awaitable
 import functools
 import httpx
-from dzgroshared.models.model import ErrorDetail
+from dzgroshared.models.model import DzgroError, ErrorDetail, ErrorList
 
 T = TypeVar("T")
-
-class RazorpayError(Exception):
-    def __init__(self, error_detail: ErrorDetail):
-        self.error_detail = error_detail
-        super().__init__(str(error_detail))
 
 def razorpay_error_wrapper(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     @functools.wraps(func)
@@ -16,15 +11,10 @@ def razorpay_error_wrapper(func: Callable[..., Awaitable[T]]) -> Callable[..., A
         try:
             return await func(*args, **kwargs)
         except httpx.HTTPStatusError as exc:
-            try:
-                raise RazorpayError(ErrorDetail(**exc.response.json()))
-            except Exception:
-                raise RazorpayError(ErrorDetail(code=400, description=str(exc)))
-        except Exception as exc:
-            raise RazorpayError(
-                ErrorDetail(
-                    code=400,
-                    description=str(exc)
-                )
-            )
+            detail: ErrorDetail
+            try: detail = ErrorDetail(**exc.response.json())
+            except Exception: detail = ErrorDetail(code=400, description=str(exc))
+        except Exception as exc: detail = ErrorDetail(code=400, description=str(exc))
+        error_list = ErrorList(errors=[detail])
+        raise DzgroError(error_list=error_list, status_code=detail.code)
     return wrapper

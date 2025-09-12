@@ -1,13 +1,15 @@
 from typing import Any, Dict, Optional
-import httpx
 from dzgroshared.razorpay.error import razorpay_error_wrapper
 from dzgroshared.models.razorpay.plan import Plan, CreatePlan
+from httpx import AsyncClient
 
 class RazorpayPlanHelper:
+    base_url: str
+    client: AsyncClient
 
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(self, base_url: str, client: AsyncClient) -> None:
+        self.base_url = base_url
         self.client = client
-        self.base_url = "https://api.razorpay.com/v1"
 
     @razorpay_error_wrapper
     async def create_plan(self, data: CreatePlan) -> Plan:

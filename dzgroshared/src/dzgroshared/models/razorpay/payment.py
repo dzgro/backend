@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict,Field
 from pydantic.json_schema import SkipJsonSchema
 from typing import Literal,Any
 
-class Card(RazorpayId,RazorpayEntity):
+class RazorpayCard(RazorpayId,RazorpayEntity):
     model_config = snakeCaseToTitleCase()
     name: str
     last4: str
@@ -14,12 +14,12 @@ class Card(RazorpayId,RazorpayEntity):
     emi: bool
     sub_type: str|Literal['customer','business','consumer']
 
-class Upi(BaseModel):
+class RazorpayUpi(BaseModel):
     payer_account_type: Literal['bank_account','credit_card','wallet']
     vpa: str
     flow: str
 
-class Payment(RazorpayId, RazorpayEntity,Currency, Amount, Notes):
+class RazorpayPayment(RazorpayId, RazorpayEntity,Currency, Amount, Notes):
     model_config = snakeCaseToTitleCase()
     status: Literal['created','authorized','captured','refunded','failed']
     method: Literal['card','netbanking','wallet','emi','upi','neft','imps','rtgs','cash','cheque','demand_draft','other']
@@ -31,8 +31,8 @@ class Payment(RazorpayId, RazorpayEntity,Currency, Amount, Notes):
     international: bool
     captured: str|bool|SkipJsonSchema[None]=None
     card_id: str|SkipJsonSchema[None]=None
-    card: Card|SkipJsonSchema[None]=None
-    upi: Upi|SkipJsonSchema[None]=None
+    card: RazorpayCard|SkipJsonSchema[None]=None
+    upi: RazorpayUpi|SkipJsonSchema[None]=None
     bank: str|SkipJsonSchema[None]=None
     wallet: str|SkipJsonSchema[None]=None
     vpa: str|SkipJsonSchema[None]=None
