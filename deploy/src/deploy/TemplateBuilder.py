@@ -4,7 +4,7 @@ from LambdaCustomLayerBuilder import CustomLambdaLayerBuilder
 from rolecreator import RoleCreator
 import mapping
 from mapping import LambdaRegion, Region, S3Property, QueueProperty, LambdaName, Tag, LambdaProperty, QueueRole, S3Role
-from dzgroshared.models.enums import ENVIRONMENT, S3Bucket, QueueName
+from dzgroshared.db.enums import ENVIRONMENT, S3Bucket, QueueName
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..'))
 class NoAliasDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):

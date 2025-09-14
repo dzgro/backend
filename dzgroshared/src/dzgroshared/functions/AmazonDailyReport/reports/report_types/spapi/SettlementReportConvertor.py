@@ -2,7 +2,7 @@
 from bson import ObjectId
 from datetime import datetime
 from pydantic import BaseModel, Field
-from dzgroshared.models.collections.settlements import Settlement
+from dzgroshared.db.settlements.model import Settlement
 
 class FileSettlement(BaseModel):
     settlementId:str =  Field(validation_alias='settlement-id')

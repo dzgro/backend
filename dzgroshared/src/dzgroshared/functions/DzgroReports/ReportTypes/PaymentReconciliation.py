@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.collections.dzgro_reports import DzgroPaymentReconRequest, DzgroReport
-from dzgroshared.models.enums import DzgroReportType, DzroReportPaymentReconSettlementRangeType, Operator,CollectionType
+from dzgroshared.db.dzgro_reports.model import DzgroPaymentReconRequest, DzgroReport
+from dzgroshared.db.enums import DzgroReportType, DzroReportPaymentReconSettlementRangeType, Operator,CollectionType
 from dzgroshared.db.PipelineProcessor import LookUpLetExpression, LookUpPipelineMatchExpression, PipelineProcessor
-from dzgroshared.models.model import PyObjectId
+from dzgroshared.db.model import PyObjectId
 
 class PaymentReconReportCreator:
     client: DzgroSharedClient

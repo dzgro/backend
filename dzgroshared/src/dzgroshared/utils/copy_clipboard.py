@@ -3,7 +3,7 @@ def copy(data):
         import os
         from dotenv import load_dotenv
         load_dotenv()
-        from dzgroshared.models.enums import ENVIRONMENT
+        from dzgroshared.db.enums import ENVIRONMENT
         env = ENVIRONMENT(os.getenv("ENV", None))
         if env==ENVIRONMENT.LOCAL:
             import subprocess

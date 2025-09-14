@@ -1,9 +1,9 @@
 import asyncio
 from dzgroshared.amazonapi.adapi import AdApiClient
-from dzgroshared.models.model import DzgroError
-from dzgroshared.models.amazonapi.adapi.common.portfolios import ListPortfoliosRequestContent, Portfolio
-from dzgroshared.models.enums import AdAssetType
-from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
+from dzgroshared.db.model import DzgroError
+from dzgroshared.amazonapi.adapi.common.portfolios.model import ListPortfoliosRequestContent, Portfolio
+from dzgroshared.db.enums import AdAssetType
+from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
 
 
 class PortfolioProcessor:

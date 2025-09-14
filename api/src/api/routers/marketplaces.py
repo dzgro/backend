@@ -1,13 +1,18 @@
-from dzgroshared.models.collections.pricing import PricingDetail
-from dzgroshared.models.razorpay.common import RazorpayOrderObject
+from calendar import Month
+from dzgroshared.db.marketplaces.model import MarketplaceOnboardPaymentRequest, UserMarketplaceList
+from dzgroshared.db.pricing.model import PricingDetail
+from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
+from dzgroshared.razorpay.common import RazorpayOrderObject
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
-from dzgroshared.models.collections.marketplaces import MarketplaceOnboardPaymentRequest, UserMarketplaceList
-from dzgroshared.models.model import AddMarketplaceRequest, Paginator, PyObjectId, SuccessResponse
-router = APIRouter(prefix="/marketplace", tags=["Marketplace"])
+router = APIRouter(prefix="/marketplaces", tags=["Marketplaces"])
 
 async def db(request: Request):
     return (await RequestHelper(request).client).db.marketplaces
+
+@router.get('/months/list', response_model=list[Month], response_model_exclude_none=True, response_model_by_alias=False)
+async def listMonths(request: Request):
+    return await (await db(request)).getMonths()
 
 @router.post("/list", response_model=UserMarketplaceList, response_model_exclude_none=True, response_model_by_alias=False)
 async def getUserMarketplaces(request: Request, paginator: Paginator):
@@ -28,3 +33,7 @@ async def getMarketplacePricing(request: Request, id: PyObjectId, planid: str):
 @router.post("/onboard/{id}", response_model=RazorpayOrderObject, response_model_exclude_none=True, response_model_by_alias=False)
 async def getPaymentObject(request: Request, req: MarketplaceOnboardPaymentRequest):
     return await (await db(request)).generateOrderForOnboarding(req)
+
+@router.post("/onboard/{id}", response_model=PeriodDataResponse, response_model_exclude_none=True, response_model_by_alias=False)
+async def getPeriodData(request: Request, req: PeriodDataRequest):
+    return await (await db(request)).getPeriodData(req)

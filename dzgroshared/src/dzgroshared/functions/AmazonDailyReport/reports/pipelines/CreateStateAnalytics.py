@@ -1,5 +1,5 @@
 from bson import ObjectId
-from dzgroshared.models.model import StartEndDate
+from dzgroshared.db.model import StartEndDate
 
 
 def pipeline(uid:str, marketplace: ObjectId, dates: StartEndDate):

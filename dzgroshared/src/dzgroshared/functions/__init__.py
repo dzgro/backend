@@ -1,5 +1,5 @@
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.model import LambdaContext
+from dzgroshared.db.model import LambdaContext
 
 class FunctionClient:
     client: DzgroSharedClient

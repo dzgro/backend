@@ -1,7 +1,7 @@
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
-from dzgroshared.models.enums import CollectionType
-from dzgroshared.models.model import PyObjectId
+from dzgroshared.db.enums import CollectionType
+from dzgroshared.db.model import PyObjectId
 
 
 class OutofStockReport:

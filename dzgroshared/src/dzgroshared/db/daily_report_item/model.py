@@ -1,0 +1,104 @@
+from datetime import datetime, timedelta
+from typing import Literal
+from dzgroshared.amazonapi.model import AmazonApiObject
+from dzgroshared.db.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemId, PyObjectId, StartEndDate
+from dzgroshared.db.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, QueryTag, DataKioskType, MarketplaceId, MarketplaceStatus, PlanType
+from pydantic import BaseModel, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
+from dzgroshared.amazonapi.adapi.common.reports.model import AdReportRequest, AdReport
+from dzgroshared.amazonapi.adapi.common.exports.model import ExportRequest, ExportResponse
+from dzgroshared.amazonapi.spapi.reports.model import SPAPIReport, SPAPICreateReportSpecification, SPAPIReportDocument
+from dzgroshared.amazonapi.spapi.datakiosk.model import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse
+
+class AdUnitParents(BaseModel):
+    portfolioId: str|SkipJsonSchema[None]=None
+    campaignId: str|SkipJsonSchema[None]=None
+    adGroupId: str|SkipJsonSchema[None]=None
+
+class AdUnitPerformance(BaseModel):
+    impressions: int|SkipJsonSchema[None]=None
+    viewableimpressions: int|SkipJsonSchema[None]=None
+    newtobrandpurchases: int|SkipJsonSchema[None]=None
+    newtobrandsales: float|SkipJsonSchema[None]=None
+    videofirstquartileviews: int|SkipJsonSchema[None]=None
+    videocompleteviews: int|SkipJsonSchema[None]=None
+    videomidpointviews: int|SkipJsonSchema[None]=None
+    videothirdquartileviews: int|SkipJsonSchema[None]=None
+    videounmutes: int|SkipJsonSchema[None]=None
+    clicks: int|SkipJsonSchema[None]=None
+    cost: float|SkipJsonSchema[None]=None
+    sales: float|SkipJsonSchema[None]=None
+    orders: int|SkipJsonSchema[None]=None
+    units: int|SkipJsonSchema[None]=None
+    acos: float|SkipJsonSchema[None]=None
+    roas: float|SkipJsonSchema[None]=None
+    cpc: float|SkipJsonSchema[None]=None
+    cvr: float|SkipJsonSchema[None]=None
+    topofsearchimpressionshare: float|SkipJsonSchema[None]=None
+
+    @model_validator(mode="before")
+    def setNoneWhereZero(cls, data):
+        data = {k:v for k, v in data.items() if v and v>0}
+        return data
+
+class SpSearchTerm():
+    matchType: Literal["BROAD", "PHRASE", "EXACT", "TARGETING_EXPRESSION", "TARGETING_EXPRESSION_PREDEFINED"]|SkipJsonSchema[None]=None
+    targeting: str|SkipJsonSchema[None]=None
+    searchTerm: str
+
+
+class AdReportRow(AdUnitPerformance, AdUnitParents):
+    id: str = Field(alias="_id")
+    # type: Literal['PORTFOLIO','CAMPAIGN','AD_GROUP','AD','SEARCH_TERM','TARGET','ADVERTISED_PRODUCT','PURCHASED_PRODUCT']
+    date: datetime
+    matchType: Literal["BROAD", "PHRASE", "EXACT", "TARGETING_EXPRESSION", "TARGETING_EXPRESSION_PREDEFINED"]|SkipJsonSchema[None]=None
+    placementClassification: str|SkipJsonSchema[None]=None
+    targeting: str|SkipJsonSchema[None]=None
+    searchTerm: str|SkipJsonSchema[None]=None
+    advertisedSku: str|SkipJsonSchema[None]=None
+    advertisedAsin: str|SkipJsonSchema[None]=None
+    purchasedSku: str|SkipJsonSchema[None]=None
+    purchasedAsin: str|SkipJsonSchema[None]=None
+
+class ReportStatus(ItemId):
+    filepath: str|SkipJsonSchema[None]=None
+    error: ErrorList|SkipJsonSchema[None]=None
+
+    
+class AmazonAdReport(BaseModel):
+    req: AdReportRequest|SkipJsonSchema[None]=None
+    res: AdReport|SkipJsonSchema[None]=None
+    
+class AmazonExportReport(BaseModel):
+    exportType: AdExportType
+    req: ExportRequest|SkipJsonSchema[None]=None
+    res: ExportResponse|SkipJsonSchema[None]=None
+
+class AmazonSpapiReport(BaseModel):
+    req: SPAPICreateReportSpecification|SkipJsonSchema[None]=None
+    res: SPAPIReport|SkipJsonSchema[None]=None
+    document: SPAPIReportDocument|SkipJsonSchema[None]=None
+    
+class AmazonDataKioskReport(BaseModel):
+    reporttype: DataKioskType
+    req: DataKioskCreateQueryRequest|SkipJsonSchema[None]=None
+    res: DataKioskQueryResponse|SkipJsonSchema[None]=None
+    document: DataKioskDocumentResponse|SkipJsonSchema[None]=None
+
+class AmazonSpapiReportDB(AmazonSpapiReport, ReportStatus):
+    pass
+
+class AmazonAdReportDB(AmazonAdReport, ReportStatus):
+    pass
+
+class AmazonAdExportDB(AmazonExportReport, ReportStatus):
+    pass
+class AmazonDataKioskReportDB(AmazonDataKioskReport, ReportStatus):
+    pass
+
+class AmazonDailyReportMessages(BaseModel):
+    messageid: str
+    step: AmazonDailyReportAggregationStep
+    params: dict|SkipJsonSchema[None]=None
+    status: AmazonParentReportTaskStatus = AmazonParentReportTaskStatus.PENDING
+

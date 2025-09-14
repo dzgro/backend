@@ -5,7 +5,7 @@ Maps function names to their deployment configuration, including AWS region and 
 from enum import Enum
 from typing import Literal
 
-from dzgroshared.models.enums import ENVIRONMENT, QueueName, S3Bucket
+from dzgroshared.db.enums import ENVIRONMENT, QueueName, S3Bucket
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 

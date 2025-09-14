@@ -1,9 +1,9 @@
 from datetime import datetime
 from dzgroshared.utils import date_util
-from dzgroshared.models.enums import MarketplaceId
-from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
+from dzgroshared.db.enums import MarketplaceId
+from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
 from pydantic import BaseModel, Field
-from dzgroshared.models.collections.orders import DbOrder, DbOrderItem
+from dzgroshared.db.orders.model import DbOrder, DbOrderItem
 
 
 class FileOrder(BaseModel):

@@ -3,9 +3,9 @@ from dzgroshared.client import DzgroSharedClient
 from bson import ObjectId
 import inspect
 
-from dzgroshared.models.collections.marketplaces import MarketplaceCache
-from dzgroshared.models.enums import ENVIRONMENT, CollateType, CountryCode, MarketplaceId, QueueName
-from dzgroshared.models.model import DataCollections, MockLambdaContext, Paginator, PyObjectId, Sort, StartEndDate
+from dzgroshared.db.marketplaces.model import MarketplaceCache
+from dzgroshared.db.enums import ENVIRONMENT, CollateType, CountryCode, MarketplaceId, QueueName
+from dzgroshared.db.model import DataCollections, MockLambdaContext, Paginator, PyObjectId, Sort, StartEndDate
 
 env = ENVIRONMENT.LOCAL
 # client = DzgroSharedClient(env)
@@ -26,15 +26,15 @@ async def buildStateDateAnalyticsAndQueries():
     from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
     processor = AnalyticsProcessor(client, date_range)
     await processor.execute()
-    from dzgroshared.db.extras import Analytics
-    pipeline = Analytics.getQueriesPipeline(client.marketplaceId, date_range)
+    from dzgroshared.analytics import controller
+    pipeline = controller.getQueriesPipeline(client.marketplaceId, date_range)
     await client.db.query_results.deleteQueryResults()
     await client.db.marketplaces.db.aggregate(pipeline)
     print("Done")
 
 async def testapi():
     from dzgroshared.models.collections.analytics import PeriodDataResponse, PeriodDataRequest, ComparisonPeriodDataRequest,PerformancePeriodDataResponse,MonthDataRequest, StateMonthDataResponse,StateDetailedDataByStateRequest, StateDetailedDataResponse, AllStateData,MonthTableResponse, MonthDataResponse,MonthDateTableResponse
-    from dzgroshared.models.collections.query_results import PerformanceTableRequest, PerformanceTableResponse
+    from dzgroshared.db.performance_period_results.model import PerformanceTableRequest, PerformanceTableResponse
     # periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None)
     # comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, queryId=queryId)
     # monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, month="Jul 2025")

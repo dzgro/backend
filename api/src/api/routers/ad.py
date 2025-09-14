@@ -2,14 +2,13 @@ import asyncio
 from bson import ObjectId
 from pydantic.json_schema import SkipJsonSchema
 from fastapi import APIRouter, BackgroundTasks, Body, Path, Request
-from dzgroshared.models.model import Paginator, SuccessResponse
-from dzgroshared.models.collections.adv_ad_group_mapping import AdGroupMapping
-from dzgroshared.models.enums import AdAssetType, AdProduct
-from dzgroshared.models.collections.adv_assets import AdBreadcrumb, ListAdAssetRequest, ListAdAssetRequestParams, AdAssetResponse
-from dzgroshared.models.extras.ad_structure import AdGroupCompliance,ViolatingAdGroupAd, ViolatingAdGroupMatchType, ViolatingAdGroupTarget, AdGroupOptimizationRequest, AdGroupOptimizationResponse
-from dzgroshared.db.extras.rule_executor import AdRuleExecutor
-from dzgroshared.models.collections.adv_rule_runs import AdRuleRun, AdRuleRunRequest, AdRuleRunResultParams, AdRuleWithRunDetails, AdRuleRunResult, RuleAvailableFilters
-from dzgroshared.models.collections.adv_rules import AdRuleAssetTypeWithAdProduct, AdRuleSummary, AdCriteriaParams, CreateAdRuleRequest, AdRule, SimplifyAdRuleRequest
+from dzgroshared.db.model import Paginator, SuccessResponse
+from dzgroshared.db.adv.adv_ad_group_mapping.model import AdGroupMapping
+from dzgroshared.db.enums import AdAssetType, AdProduct
+from dzgroshared.db.adv.adv_assets.model import AdBreadcrumb, ListAdAssetRequest, ListAdAssetRequestParams, AdAssetResponse
+from dzgroshared.db.adv.adv_structure_rules.model import AdGroupCompliance,ViolatingAdGroupAd, ViolatingAdGroupMatchType, ViolatingAdGroupTarget, AdGroupOptimizationRequest, AdGroupOptimizationResponse
+from dzgroshared.db.adv.adv_rule_runs.model import AdRuleRun, AdRuleRunRequest, AdRuleRunResultParams, AdRuleWithRunDetails, AdRuleRunResult, RuleAvailableFilters
+from dzgroshared.db.adv.adv_rules.model import AdRuleAssetTypeWithAdProduct, AdRuleSummary, AdCriteriaParams, CreateAdRuleRequest, AdRule, SimplifyAdRuleRequest
 router = APIRouter(prefix="/ad", tags=["Advertisement"])
 from api.Util import RequestHelper
 

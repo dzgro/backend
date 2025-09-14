@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
-from dzgroshared.models.model import PyObjectId, Sort
+from dzgroshared.db.model import PyObjectId, Sort
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorCollection
 from dzgroshared.db.PipelineProcessor import PipelineProcessor

@@ -2,10 +2,10 @@ from io import BytesIO, StringIO
 import pandas as pd
 from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.collections.dzgro_reports import DzgroReport, DzgroReportType
+from dzgroshared.db.dzgro_reports.model import DzgroReport, DzgroReportType
 from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerObject, S3TriggerType, S3FileType
-from dzgroshared.models.enums import S3Bucket
-from dzgroshared.models.s3 import S3GetObjectModel, S3PutObjectModel
+from dzgroshared.db.enums import S3Bucket
+from dzgroshared.storage.model import S3GetObjectModel, S3PutObjectModel
 
 class DzgroReportS3TriggerProcessor:
     client: DzgroSharedClient

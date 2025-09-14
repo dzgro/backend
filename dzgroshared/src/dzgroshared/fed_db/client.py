@@ -1,5 +1,5 @@
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.enums import CollectionType, S3Bucket
+from dzgroshared.db.enums import CollectionType, S3Bucket
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
 class FedDbClient:

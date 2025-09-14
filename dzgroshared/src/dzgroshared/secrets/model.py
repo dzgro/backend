@@ -1,0 +1,19 @@
+
+from pydantic import BaseModel
+
+
+class DzgroSecrets(BaseModel):
+    COGNITO_APP_CLIENT_ID: str
+    COGNITO_USER_POOL_ID: str
+    RAZORPAY_CLIENT_ID: str
+    RAZORPAY_CLIENT_SECRET: str
+    RAZORPAY_WEBHOOK_SECRET: str
+    SPAPI_CLIENT_ID: str
+    SPAPI_CLIENT_SECRET: str
+    SPAPI_APPLICATION_ID: str
+    ADS_CLIENT_ID: str
+    ADS_CLIENT_SECRET: str
+    MONGO_DB_CONNECT_URI: str
+    MONGO_DB_FED_CONNECT_URI: str
+    TEST_PASSWORD: str
+    AUTH_REDIRECT_URL: str

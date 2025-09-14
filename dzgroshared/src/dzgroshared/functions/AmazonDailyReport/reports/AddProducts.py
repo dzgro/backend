@@ -3,13 +3,13 @@ from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
-from dzgroshared.db.collections.products import ProductHelper
+from dzgroshared.db.products.controller import ProductHelper
 from dzgroshared.models.amazonapi.spapi.listings import Item
 from dzgroshared.db.DbUtils import PyObjectId
-from dzgroshared.models.enums import ENVIRONMENT, CollectionType
-from dzgroshared.models.extras.amazon_daily_report import MarketplaceObjectForReport
-from dzgroshared.models.model import LambdaContext, MockLambdaContext
-from dzgroshared.models.model import DzgroError
+from dzgroshared.db.enums import ENVIRONMENT, CollectionType
+from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
+from dzgroshared.db.model import LambdaContext, MockLambdaContext
+from dzgroshared.db.model import DzgroError
 
 class ListingsBuilder:
     client: DzgroSharedClient

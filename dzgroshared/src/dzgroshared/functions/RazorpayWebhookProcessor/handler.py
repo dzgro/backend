@@ -1,6 +1,6 @@
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.RazorpayWebhookProcessor.models import RazorpayWebhookPayload
-from dzgroshared.models.sqs import SQSEvent
+from dzgroshared.sqs.model import SQSEvent
 
 
 class RazorpayWebhookProcessor:
@@ -57,14 +57,14 @@ class RazorpayWebhookProcessor:
                 await self.client.db.payments.getPayment(body.payment.id)
             except Exception as e:
                 from datetime import datetime
-                from dzgroshared.models.collections.queue_messages import PaymentMessage
+                from dzgroshared.db.queue_messages.model import PaymentMessage
                 message = PaymentMessage(
                     index=body.payment.id, uid=uid,
                     amount=body.payment.amount / 100,
                     gst=18,
                     date= datetime.now()
                 )
-                from dzgroshared.models.enums import QueueName
-                from dzgroshared.models.sqs import SendMessageRequest
+                from dzgroshared.db.enums import QueueName
+                from dzgroshared.sqs.model import SendMessageRequest
                 req = SendMessageRequest(QueueUrl=QueueName.PAYMENT)
                 self.client.sqs.sendMessage(req, message)

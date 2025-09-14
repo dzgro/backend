@@ -3,8 +3,8 @@ import time
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.DataTransformer import Datatransformer
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
-from dzgroshared.models.enums import ENVIRONMENT, CollateType, CollectionType
-from dzgroshared.models.model import LambdaContext, StartEndDate
+from dzgroshared.db.enums import ENVIRONMENT, CollateType, CollectionType
+from dzgroshared.db.model import LambdaContext, StartEndDate
 from dzgroshared.utils import date_util, mongo_pipeline_print
 
 class AnalyticsProcessor:

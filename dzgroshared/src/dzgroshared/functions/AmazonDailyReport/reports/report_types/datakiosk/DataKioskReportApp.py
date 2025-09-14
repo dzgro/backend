@@ -1,14 +1,14 @@
 import json
-from dzgroshared.models.model import DzgroError
+from dzgroshared.db.model import DzgroError
 from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.models.amazonapi.spapi.datakiosk import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse, DataKioskCreateQuerySpecification
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus
-from dzgroshared.models.enums import CollectionType, DataKioskType
-from dzgroshared.models.extras.amazon_daily_report import AmazonDataKioskReport, AmazonDataKioskReportDB, MarketplaceObjectForReport
+from dzgroshared.db.enums import CollectionType, DataKioskType
+from dzgroshared.db.daily_report_group.model import AmazonDataKioskReport, AmazonDataKioskReportDB, MarketplaceObjectForReport
 from dzgroshared.functions.AmazonDailyReport.reports import DateUtility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
-from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
+from dzgroshared.db.model import ErrorDetail, ErrorList, PyObjectId
 from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 
 class AmazonDataKioskReportManager:
@@ -96,7 +96,7 @@ class AmazonDataKioskReportManager:
                     doc = await self.__getDocument(report.res.errorDocumentId)
                     if doc: error = await self.reportUtil.fetchData(doc.documentUrl, False)
                     else: error = "Report processing failed"
-                    raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=error)]))
+                    raise DzgroError(errors=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=error)]))
             if query_id and (not report.res or data_document_id is None) and not self.getThrottle: report.res = await self.__getReport(query_id)
             elif report.res:
                 if report.res.processingStatus==ProcessingStatus.DONE:
@@ -106,7 +106,7 @@ class AmazonDataKioskReportManager:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(errors=ErrorList(errors=[error]), status_code=500)
 
     async def processDataKioskReports(self, reports: list[AmazonDataKioskReportDB], reportUtil: ReportUtil, reportId: PyObjectId)->bool:
         self.reportUtil = reportUtil
@@ -126,7 +126,7 @@ class AmazonDataKioskReportManager:
                             dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.documentUrl, False)
                             await self.__saveData(dataStr, processedReport.reporttype)
                 except DzgroError as e:
-                    processedReport.error = e.error_list
+                    processedReport.error = e.errors
                     shouldContinue = False
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():

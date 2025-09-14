@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.PipelineProcessor import LookUpPipelineMatchExpression, PipelineProcessor
-from dzgroshared.models.enums import CollectionType
+from dzgroshared.db.enums import CollectionType
 
 class InventoryProcessor:
     pp: PipelineProcessor

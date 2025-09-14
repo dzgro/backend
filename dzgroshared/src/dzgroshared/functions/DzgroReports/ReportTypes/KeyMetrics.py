@@ -2,10 +2,10 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.DataTransformer import Datatransformer
-from dzgroshared.models.collections.dzgro_reports import KeyMetricsRequest, DzgroReport
-from dzgroshared.models.enums import DzgroReportType, DzroReportPaymentReconSettlementRangeType, Operator,CollectionType
+from dzgroshared.db.dzgro_reports.model import KeyMetricsRequest, DzgroReport
+from dzgroshared.db.enums import DzgroReportType, DzroReportPaymentReconSettlementRangeType, Operator,CollectionType
 from dzgroshared.db.PipelineProcessor import LookUpLetExpression, LookUpPipelineMatchExpression, PipelineProcessor
-from dzgroshared.models.model import PyObjectId
+from dzgroshared.db.model import PyObjectId
 
 class KeyMetricsReportCreator:
     client: DzgroSharedClient

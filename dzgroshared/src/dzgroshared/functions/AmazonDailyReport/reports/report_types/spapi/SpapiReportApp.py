@@ -3,12 +3,12 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
 from datetime import datetime
-from dzgroshared.models.model import DzgroError
+from dzgroshared.db.model import DzgroError
 from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus, SPAPICreateReportSpecification
-from dzgroshared.models.extras.amazon_daily_report import AmazonSpapiReport, AmazonSpapiReportDB, MarketplaceObjectForReport, PyObjectId, SPAPIReport,SPAPIReportDocument
-from dzgroshared.models.enums import CollectionType, SPAPIReportType
+from dzgroshared.db.daily_report_group.model import AmazonSpapiReport, AmazonSpapiReportDB, MarketplaceObjectForReport, PyObjectId, SPAPIReport,SPAPIReportDocument
+from dzgroshared.db.enums import CollectionType, SPAPIReportType
 from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
-from dzgroshared.models.model import ErrorDetail, ErrorList
+from dzgroshared.db.model import ErrorDetail, ErrorList
 
 class AmazonSpapiReportManager:
     client: DzgroSharedClient
@@ -121,7 +121,7 @@ class AmazonSpapiReportManager:
                             dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.document.url, processedReport.document.compression_algorithm is not None)
                             await self.__addSPAPIReport(dataStr, processedReport.req.report_type)
                 except DzgroError as e:
-                    processedReport.error = e.error_list
+                    processedReport.error = e.errors
                     shouldContinue = False
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():
@@ -195,10 +195,10 @@ class AmazonSpapiReportManager:
                     if report.res.report_document_id: 
                         report.document = await self.__getDocument(report.res.report_document_id)
                 elif report.res.processing_status == ProcessingStatus.FATAL:
-                    raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in {report.res.processing_status} status")]))
+                    raise DzgroError(errors=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in {report.res.processing_status} status")]))
             return report, True
         except DzgroError as e:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(errors=ErrorList(errors=[error]), status_code=500)

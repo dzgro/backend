@@ -1,5 +1,5 @@
 import os
-from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.db.enums import ENVIRONMENT
 ENV = ENVIRONMENT(os.environ.get("ENV"))
 from dzgroshared.client import DzgroSharedClient
 client = DzgroSharedClient(ENV)

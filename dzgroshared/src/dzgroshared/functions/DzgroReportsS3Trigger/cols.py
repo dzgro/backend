@@ -1,5 +1,5 @@
 from pandas import DataFrame
-from dzgroshared.models.collections.dzgro_reports import DzgroReportType
+from dzgroshared.db.dzgro_reports.model import DzgroReportType
 
 all_cols = {
     "expense": "Expense",

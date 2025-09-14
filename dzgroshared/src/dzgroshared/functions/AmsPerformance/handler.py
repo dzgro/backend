@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.sqs import SQSEvent
+from dzgroshared.sqs.model import SQSEvent
 
 numbers: list[str] = ['impressions','cost','clicks', "time_window_start"]
 keysmapping = {

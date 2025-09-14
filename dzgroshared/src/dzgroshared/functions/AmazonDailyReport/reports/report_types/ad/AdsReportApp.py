@@ -5,11 +5,11 @@ from dzgroshared.amazonapi.adapi import AdApiClient
 from dzgroshared.utils import date_util
 from datetime import datetime
 import json
-from dzgroshared.models.amazonapi.adapi.common.reports import AdReport, AdReportConfiguration, AdReportRequest, ReportStatus, TimeUnit, ReportFormat
-from dzgroshared.models.model import DzgroError
-from dzgroshared.models.extras.amazon_daily_report import AmazonAdReport, AmazonAdReportDB, MarketplaceObjectForReport
-from dzgroshared.models.enums import AdProduct, AdReportType, CollectionType
-from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
+from dzgroshared.amazonapi.adapi.common.reports.model import AdReport, AdReportConfiguration, AdReportRequest, ReportStatus, TimeUnit, ReportFormat
+from dzgroshared.db.model import DzgroError
+from dzgroshared.db.daily_report_group.model import AmazonAdReport, AmazonAdReportDB, MarketplaceObjectForReport
+from dzgroshared.db.enums import AdProduct, AdReportType, CollectionType
+from dzgroshared.db.model import ErrorDetail, ErrorList, PyObjectId
 
 
 class AmazonAdsReportManager:
@@ -128,8 +128,8 @@ class AmazonAdsReportManager:
             if self.createThrottle: return None
             return await self.api.common.reportClient.create_report(req)
         except DzgroError as e:
-            if e.status_code==425 and e.error_list.errors[0].details:
-                reportid = json.loads(e.error_list.errors[0].details)['detail'].split(':')[1].strip()
+            if e.status_code==425 and e.errors.errors[0].details:
+                reportid = json.loads(e.errors.errors[0].details)['detail'].split(':')[1].strip()
                 return await self.__getReport(reportid)
             elif e.status_code==429:
                 self.createThrottle = True
@@ -155,13 +155,13 @@ class AmazonAdsReportManager:
                 report.res = await self.__getReport(reportid)
                 if report.res:
                     if report.res.status==ReportStatus.FAILED:
-                        raise DzgroError(error_list=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in Failed status")]))
+                        raise DzgroError(errors=ErrorList(errors=[ErrorDetail(code=500, message="Report processing failed", details=f"Report {reportid} is in Failed status")]))
             return report, True
         except DzgroError as e:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(errors=ErrorList(errors=[error]), status_code=500)
         
     async def processAdReports(self, reports: list[AmazonAdReportDB], reportUtil: ReportUtil, reportId: PyObjectId)->bool:
         self.reportUtil = reportUtil
@@ -180,7 +180,7 @@ class AmazonAdsReportManager:
                             dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.res.url, True)
                             await self.__convertAdReport(processedReport.req.configuration.reportTypeId, dataStr)
                 except DzgroError as e:
-                    processedReport.error = e.error_list
+                    processedReport.error = e.errors
                     shouldContinue = False
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():

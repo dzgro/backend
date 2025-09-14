@@ -8,7 +8,7 @@ from io import BytesIO
 from num2words import num2words
 from math import cos, sin, pi
 import io, boto3
-from dzgroshared.models.collections.user import User
+from dzgroshared.db.users.model import User
 
 def draw_stamp(c, center_x, center_y, radius):
     # --- Outer Circle ---

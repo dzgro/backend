@@ -2,34 +2,27 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from typing import Optional, Dict, Any
-from dzgroshared.models.model import ErrorDetail
-
-class CustomAPIException(Exception):
-    def __init__(self, code: int, description: str, message: Optional[str] = None, details: Optional[str] = None, source: Optional[str] = None, step: Optional[str] = None, reason: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None, status_code: int = 400):
-        self.error = ErrorDetail(
-            code=code,
-            description=description,
-            message=message,
-            details=details,
-            source=source,
-            step=step,
-            reason=reason,
-            metadata=metadata
-        )
-        self.status_code = status_code
+from dzgroshared.db.model import DzgroError, ErrorDetail, ErrorList
 
 def register_exception_handlers(app):
-    @app.exception_handler(CustomAPIException)
-    async def custom_api_exception_handler(request: Request, exc: CustomAPIException):
+    @app.exception_handler(DzgroError)
+    async def custom_api_exception_handler(request: Request, exc: DzgroError):
         return JSONResponse(
-            status_code=exc.status_code,
-            content=exc.error.model_dump()
+            status_code=400,
+            content={"error": [{'errortype': 'Dzgro', **e.model_dump(exclude_none=True)} for e in exc.errors.errors]}
+        )
+    
+    @app.exception_handler(ValueError)
+    async def value_error_exception_handler(request: Request, exc: ValueError):
+        return JSONResponse(
+            status_code=400,
+            content={"error": [{'errortype': 'ValueError', 'message': exc.args[0] if exc.args else str(exc)}]}
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         error = ErrorDetail(
-            code=400,
+            code="Pydantic Validation Error",
             description="Request validation failed",
             message=str(exc),
             details=str(exc.errors()),
@@ -39,14 +32,14 @@ def register_exception_handlers(app):
             metadata=None
         )
         return JSONResponse(
-            status_code=422,
-            content=error.model_dump()
+            status_code=400,
+            content={"error": [{'errortype': 'Pydantic', **error.model_dump(exclude_none=True)}]}
         )
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         error = ErrorDetail(
-            code=400,
+            code="Unknown Error",
             description="An unexpected error occurred",
             message=str(exc),
             details=None,
@@ -56,6 +49,6 @@ def register_exception_handlers(app):
             metadata=None
         )
         return JSONResponse(
-            status_code=500,
-            content=error.model_dump()
+            status_code=400,
+            content={"error": [{'errortype': 'Unhandled', **error.model_dump(exclude_none=True)}]}
         )

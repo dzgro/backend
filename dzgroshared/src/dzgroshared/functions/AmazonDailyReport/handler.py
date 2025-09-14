@@ -1,16 +1,18 @@
 
 import asyncio
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.model import LambdaContext
-from dzgroshared.models.sqs import SQSEvent, SQSRecord
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
+from dzgroshared.db.model import LambdaContext
+from dzgroshared.sqs.model import QueueName, SQSEvent, SQSRecord
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from bson import ObjectId
-from dzgroshared.db.collections.products import ProductHelper
-from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage
-from dzgroshared.models.enums import AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, QueueName, SQSMessageStatus, ENVIRONMENT
-from dzgroshared.models.extras.amazon_daily_report import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonParentReport, MarketplaceObjectForReport, AmazonSpapiReport
-from dzgroshared.models.sqs import SendMessageRequest
+from dzgroshared.db.products.controller import ProductHelper
+from dzgroshared.db.queue_messages.model import AmazonParentReportQueueMessage
+from dzgroshared.db.enums import AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, ENVIRONMENT
+from dzgroshared.db.daily_report_group.model import AmazonParentReport
+from dzgroshared.db.daily_report_item.model import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonSpapiReport
+from dzgroshared.sqs.model import SendMessageRequest
 from pandas import date_range
 
 class AmazonReportManager:
@@ -51,7 +53,7 @@ class AmazonReportManager:
             self.messageId = record.messageId
             self.message = AmazonParentReportQueueMessage.model_validate(record.dictBody)
             self.client.setUid(self.message.uid)
-            self.client.setMarketplace(self.message.marketplace)
+            self.client.setMarketplaceId(self.message.marketplace)
             await self.setUserMarketplace()
             messageId, delay = await self.checkMessage()
             if self.client.env==ENVIRONMENT.LOCAL:
@@ -67,7 +69,7 @@ class AmazonReportManager:
         except Exception as e:
             error = e.args[0] if len(e.args) > 0 else "Some error Occurred"
             if self.message.index:
-                await self.client.db.amazon_daily_reports.terminateParent(self.message.index, error)
+                await self.client.db.daily_report_group.terminateParent(self.message.index, error)
             raise e
     
     async def checkMessage(self):
@@ -76,7 +78,7 @@ class AmazonReportManager:
         return await self.exitAndContinue()
     
     async def setUserMarketplace(self):
-        self.userMarketplace = MarketplaceObjectForReport(**await self.client.db.marketplaces.getMarketplaceObjectForReport(ObjectId(self.message.marketplace)))
+        self.userMarketplace = await self.client.db.marketplaces.getMarketplaceObjectForReport(self.message.marketplace)
         self.userMarketplace.spapi.client_id = self.client.secrets.SPAPI_CLIENT_ID
         self.userMarketplace.spapi.client_secret = self.client.secrets.SPAPI_CLIENT_SECRET
         self.userMarketplace.ad.client_id = self.client.secrets.ADS_CLIENT_ID
@@ -89,7 +91,7 @@ class AmazonReportManager:
             if self.message.step==AmazonDailyReportAggregationStep.CREATE_REPORTS: await self.createReports()
         else:
             reportid = ObjectId(self.message.index)
-            self.report = await self.client.db.amazon_daily_reports.getParentReport(reportid)
+            self.report = await self.client.db.daily_report_group.getParentReport(reportid)
             if self.message.step==AmazonDailyReportAggregationStep.ADD_PRODUCTS:
                 if not self.message.date: self.message.date = self.userMarketplace.lastrefresh
                 from dzgroshared.functions.AmazonDailyReport.reports.AddProducts import ListingsBuilder
@@ -107,13 +109,13 @@ class AmazonReportManager:
                 from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
                 await AnalyticsProcessor(self.client,self.report.dates).execute()
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_QUERIES:
-                from dzgroshared.db.extras import Analytics
-                pipeline = Analytics.getQueriesPipeline(self.client.uid, self.client.marketplace, self.report.dates)
-                await self.client.db.query_results.deleteQueryResults()
+                from dzgroshared.analytics import controller
+                pipeline = controller.getQueriesPipeline(self.client.marketplaceId, self.report.dates)
+                await self.client.db.performance_period_results.deletePerformanceResults()
                 await self.client.db.marketplaces.db.aggregate(pipeline)
             elif self.message.step==AmazonDailyReportAggregationStep.MARK_COMPLETION:
-                await self.client.db.amazon_daily_reports.deleteChildReports(self.message.index)
-                await self.client.db.amazon_daily_reports.markParentAsCompleted(self.message.index)
+                await self.client.db.daily_report_item.deleteChildReports(self.message.index)
+                await self.client.db.daily_report_group.markParentAsCompleted(self.message.index)
                 if self.report.createdat:
                     if self.userMarketplace.dates: self.report.dates.startdate = self.userMarketplace.dates.startdate
                     await self.client.db.marketplaces.completeReportProcessing(
@@ -131,7 +133,7 @@ class AmazonReportManager:
         elif self.message.step==AmazonDailyReportAggregationStep.ADD_PRODUCTS:
             if self.message.date: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
             else: 
-                await self.client.db.amazon_daily_reports.markProductsComplete(ObjectId(self.message.index))
+                await self.client.db.daily_report_group.markProductsComplete(ObjectId(self.message.index))
                 if self.client.env==ENVIRONMENT.LOCAL: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
         elif self.message.step==AmazonDailyReportAggregationStep.PROCESS_REPORTS:
             if self.report.productsComplete and self.report.progress==100: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS)
@@ -189,7 +191,7 @@ class AmazonReportManager:
             AmazonReportType.KIOSK: kioskReports
         }
         dates = self.dateUtil.getMarketplaceRefreshDates()
-        self.message.index = str(await self.client.db.amazon_daily_reports.insertParentReport(reports, dates))
+        self.message.index = str(await self.client.db.daily_report_item.addReports(reports, dates))
         await self.client.db.sqs_messages.addIndex(self.messageId,self.message.index)
         
     async def processReports(self):

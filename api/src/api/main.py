@@ -13,21 +13,21 @@ import io, yaml, os
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
 load_dotenv()
-from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.db.enums import ENVIRONMENT
 env = ENVIRONMENT(os.getenv("ENV", None))
 if not env: raise ValueError("ENV environment variable not set")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.env = env
     from dzgroshared.secrets.client import SecretManager
-    app.state.secrets = SecretManager(app.state.env).secrets
     from motor.motor_asyncio import AsyncIOMotorClient
-    app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI, appname="dzgro-api")
     from dzgroshared.razorpay.client import RazorpayClient
-    app.state.razorpayClient = RazorpayClient(app.state.secrets.RAZORPAY_CLIENT_ID, app.state.secrets.RAZORPAY_CLIENT_SECRET)
     import jwt
+    app.state.env = env
+    app.state.secrets = SecretManager(app.state.env).secrets
+    app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI, appname="dzgro-api")
+    app.state.razorpayClient = RazorpayClient(app.state.secrets.RAZORPAY_CLIENT_ID, app.state.secrets.RAZORPAY_CLIENT_SECRET)
     jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{app.state.secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
     app.state.jwtClient = jwt.PyJWKClient(jwks_url)
     yield
@@ -97,19 +97,24 @@ async def log_request_time(request: Request, call_next):
 
 register_exception_handlers(app)
 
-from api.routers import user, payments, ad, analytics,reports, product, marketplaces,plans, spapi, adv_account, gstin, pg_orders
-app.include_router(spapi.router)
-app.include_router(adv_account.router)
-app.include_router(user.router)
-app.include_router(payments.router)
+from api.routers import gstin, advertising_accounts, razorpay_orders, spapi_accounts, users, marketplaces, performance_periods, performance_results, state_analytics, date_analytics, products, payments, pricing, ad, health, analytics, dzgro_reports
 app.include_router(ad.router)
+app.include_router(advertising_accounts.router)
 app.include_router(analytics.router)
-app.include_router(product.router)
-app.include_router(reports.router)
-app.include_router(marketplaces.router)
-app.include_router(plans.router)
+app.include_router(date_analytics.router)
+app.include_router(dzgro_reports.router)
 app.include_router(gstin.router)
-app.include_router(pg_orders.router)
+app.include_router(health.router)
+app.include_router(marketplaces.router)
+app.include_router(payments.router)
+app.include_router(performance_periods.router)
+app.include_router(performance_results.router)
+app.include_router(pricing.router)
+app.include_router(products.router)
+app.include_router(spapi_accounts.router)
+app.include_router(razorpay_orders.router)
+app.include_router(state_analytics.router)
+app.include_router(users.router)
 
 use_route_names_as_operation_ids(app)
 

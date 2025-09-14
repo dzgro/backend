@@ -2,11 +2,11 @@
 import asyncio
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.collections.queue_messages import AmazonParentReportQueueMessage, DailyReportMessage
+from dzgroshared.db.queue_messages.model import AmazonParentReportQueueMessage, DailyReportMessage
 from dzgroshared.models.collections.report_failures import DailyReportFailure
-from dzgroshared.models.enums import ENVIRONMENT, AmazonDailyReportAggregationStep, CollectionType, CountryCode, MarketplaceStatus, QueueName
-from dzgroshared.models.model import LambdaContext, MockLambdaContext
-from dzgroshared.models.sqs import BatchMessageRequest, SQSEvent, SQSRecord, SendMessageRequest
+from dzgroshared.db.enums import ENVIRONMENT, AmazonDailyReportAggregationStep, CollectionType, CountryCode, MarketplaceStatus, QueueName
+from dzgroshared.db.model import LambdaContext, MockLambdaContext
+from dzgroshared.sqs.model import BatchMessageRequest, SQSEvent, SQSRecord, SendMessageRequest
 from dzgroshared.utils import date_util
 
 

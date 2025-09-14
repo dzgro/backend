@@ -1,8 +1,8 @@
-from dzgroshared.models.collections.gstin import BusinessDetails, GSTDetail, LinkedGSTs
-from dzgroshared.models.enums import GSTStateCode
+from dzgroshared.db.gstin.model import BusinessDetails, GSTDetail, LinkedGSTs
+from dzgroshared.db.enums import GSTStateCode
 from fastapi import APIRouter, Request, Depends
 from api.Util import RequestHelper
-from dzgroshared.models.model import PyObjectId, SuccessResponse
+from dzgroshared.db.model import PyObjectId, SuccessResponse
 router = APIRouter(prefix="/gst", tags=["GST"])
 
 async def db(request: Request):

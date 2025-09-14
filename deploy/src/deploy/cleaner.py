@@ -1,5 +1,5 @@
 
-from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.db.enums import ENVIRONMENT
 
 
 def cleanup_deployment_assets(env: ENVIRONMENT):

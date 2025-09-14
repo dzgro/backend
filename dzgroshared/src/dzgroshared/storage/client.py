@@ -1,34 +1,29 @@
-from sys import prefix
 from typing import Union
 from botocore.exceptions import ClientError
-import boto3
 from botocore.config import Config
-from dzgroshared.client import DzgroSharedClient
-from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerObject
-from dzgroshared.models.model import CustomError
-from dzgroshared.models.enums import S3Bucket
-from dzgroshared.models.s3 import S3PutObjectModel, S3GetObjectModel
 from mypy_boto3_s3 import S3Client
 from botocore.exceptions import ClientError, NoCredentialsError, EndpointConnectionError
+from ..client import DzgroSharedClient
+from ..db.model import DzgroError, ErrorDetail, ErrorList
+from .model import S3PutObjectModel, S3GetObjectModel, S3Bucket
 
 def s3_exception_handler(func):
     def wrapper(*args, **kwargs):
+        details: list[ErrorDetail] = []
         try:
             return func(*args, **kwargs)
-
-        except NoCredentialsError:
-            raise CustomError({"error": "AWS credentials not found. Please configure them."})
+        except NoCredentialsError as e:
+            details.append(ErrorDetail(message="AWS credentials not found. Please configure them.", code="NoCredentialsError"))
         except EndpointConnectionError as e:
-            raise CustomError({"error": f"Could not connect to the endpoint"})
-        
+            details.append(ErrorDetail(message=f"Could not connect to the endpoint", code="EndpointConnectionError"))
         except ClientError as e:
             error = e.response.get("Error", {})
             code = error.get("Code", "UnknownClientError")
             message = error.get("Message", str(e))
-            raise CustomError({"error" :message})
-
+            details.append(ErrorDetail(message=message, code=code))
         except Exception as e:
-            raise ValueError(f"An unexpected error occurred")
+            details.append(ErrorDetail(message=str(e), code="UnknownError"))
+        if details: raise DzgroError(errors=ErrorList(errors = details))
     return wrapper
 
 

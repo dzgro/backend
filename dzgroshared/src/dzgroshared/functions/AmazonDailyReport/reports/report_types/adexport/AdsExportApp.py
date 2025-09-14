@@ -2,11 +2,11 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
 import json
-from dzgroshared.models.amazonapi.adapi.common.exports import ExportRequest, ExportResponse, ExportStatus
-from dzgroshared.models.model import DzgroError
-from dzgroshared.models.extras.amazon_daily_report import AmazonExportReport, AmazonAdExportDB, MarketplaceObjectForReport
-from dzgroshared.models.enums import AdExportType, AdProduct, AdReportType, AdState, CollectionType
-from dzgroshared.models.model import ErrorDetail, ErrorList, PyObjectId
+from dzgroshared.amazonapi.adapi.common.exports.model import ExportRequest, ExportResponse, ExportStatus
+from dzgroshared.db.model import DzgroError
+from dzgroshared.db.daily_report_group.model import AmazonExportReport, AmazonAdExportDB, MarketplaceObjectForReport
+from dzgroshared.db.enums import AdExportType, AdProduct, AdReportType, AdState, CollectionType
+from dzgroshared.db.model import ErrorDetail, ErrorList, PyObjectId
 
 
 class AmazonAdsExportManager:
@@ -81,7 +81,7 @@ class AmazonAdsExportManager:
             raise e
         except Exception as e:
             error = ErrorDetail(code=500, message="Some Error Occurred", details=str(e))
-            raise DzgroError(error_list=ErrorList(errors=[error]), status_code=500)
+            raise DzgroError(errors=ErrorList(errors=[error]), status_code=500)
 
     async def processExportReports(self, reports: list[AmazonAdExportDB], reportUtil: ReportUtil, reportId: PyObjectId)->bool:
         self.reportUtil = reportUtil
@@ -100,7 +100,7 @@ class AmazonAdsExportManager:
                             dataStr, processedReport.filepath = await reportUtil.insertToS3(key, processedReport.res.url, True)
                             await self.__convertExportReport(report.exportType, dataStr)
                 except DzgroError as e:
-                    processedReport.error = e.error_list
+                    processedReport.error = e.errors
                     shouldContinue = False
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():

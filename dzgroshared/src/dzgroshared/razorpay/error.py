@@ -1,7 +1,7 @@
 from typing import Callable, TypeVar, Awaitable
 import functools
 import httpx
-from dzgroshared.models.model import DzgroError, ErrorDetail, ErrorList
+from dzgroshared.db.model import DzgroError, ErrorDetail, ErrorList
 
 T = TypeVar("T")
 
@@ -16,5 +16,5 @@ def razorpay_error_wrapper(func: Callable[..., Awaitable[T]]) -> Callable[..., A
             except Exception: detail = ErrorDetail(code=400, description=str(exc))
         except Exception as exc: detail = ErrorDetail(code=400, description=str(exc))
         error_list = ErrorList(errors=[detail])
-        raise DzgroError(error_list=error_list, status_code=detail.code)
+        raise DzgroError(errors=error_list, status_code=detail.code)
     return wrapper

@@ -1,5 +1,5 @@
 from enum import Enum
-from dzgroshared.models.enums import S3Bucket
+from dzgroshared.db.enums import S3Bucket
 from pydantic import BaseModel, model_validator
 
 class S3FileType(str, Enum):

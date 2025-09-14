@@ -1,8 +1,8 @@
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.collections.queue_messages import DailyReportMessage
-from dzgroshared.models.enums import ENVIRONMENT, CountryCode, QueueName
-from dzgroshared.models.model import LambdaContext
-from dzgroshared.models.sqs import SQSEvent, SQSRecord, SendMessageRequest
+from dzgroshared.db.queue_messages.model import DailyReportMessage
+from dzgroshared.db.enums import ENVIRONMENT, CountryCode, QueueName
+from dzgroshared.db.model import LambdaContext
+from dzgroshared.sqs.model import SQSEvent, SQSRecord, SendMessageRequest
 
 
 async def sendMessage(client: DzgroSharedClient, event: dict, context: LambdaContext):
@@ -19,7 +19,7 @@ async def sendMessage(client: DzgroSharedClient, event: dict, context: LambdaCon
             )
 
             if client.env==ENVIRONMENT.LOCAL:
-                from dzgroshared.models.model import MockLambdaContext
+                from dzgroshared.db.model import MockLambdaContext
                 sqsEvent = client.sqs.mockSQSEvent(messageid, message.model_dump_json())
                 await client.functions(sqsEvent, context).daily_report_refresh
     except Exception as e:

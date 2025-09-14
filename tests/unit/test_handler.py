@@ -1,7 +1,7 @@
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.enums import ENVIRONMENT
-from dzgroshared.models.model import PyObjectId, StartEndDate
+from dzgroshared.db.enums import ENVIRONMENT
+from dzgroshared.db.model import PyObjectId, StartEndDate
 import pytest
 
 

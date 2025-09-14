@@ -1,8 +1,8 @@
 from io import BytesIO
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.collections.user import User
-from dzgroshared.models.sqs import SQSEvent
-from dzgroshared.models.collections.queue_messages import PaymentMessage
+from dzgroshared.db.users.model import User
+from dzgroshared.sqs.model import SQSEvent
+from dzgroshared.db.queue_messages.model import PaymentMessage
 
 
 class PaymentProcessor:
@@ -22,8 +22,7 @@ class PaymentProcessor:
             print(f"[ERROR] Failed to process message {record.messageId}: {e}")
 
     async def process_message(self, messageid: str, message: PaymentMessage):
-        count, id = await self.client.db.sqs_messages.setMessageAsProcessing(messageid)
-        if count > 0:
+        if await self.client.db.sqs_messages.setMessageAsProcessing(messageid):
             invoiceId = await self.process_payment(message)
             buffer = await self.generateInvoice(invoiceId, message)
             self.saveToS3(buffer, invoiceId, message.uid)
@@ -31,7 +30,7 @@ class PaymentProcessor:
 
 
     async def process_payment(self, message: PaymentMessage):
-        invoiceId = await self.client.db.defaults.getNextInvoiceId()
+        invoiceId = await self.client.db.invoice_number.getNextInvoiceId()
         await self.client.db.payments.addPayment(
             message.index,
             message.amount / 100,
@@ -40,20 +39,19 @@ class PaymentProcessor:
         return invoiceId   
 
     async def generateInvoice(self, invoiceId:str, message: PaymentMessage):
-        user = User(**await self.client.db.user.getUser())
+        user = User(**await self.client.db.users.getUser())
         from dzgroshared.functions.PaymentProcessor.invoice import generate_gst_invoice
         return generate_gst_invoice(user, message.amount, message.gst, invoiceId, message.date)
     
     def saveToS3(self, buffer: BytesIO, invoiceId:str, uid: str):
         buffer.seek(0)
-        from dzgroshared.models.s3 import S3PutObjectModel, S3Bucket
+        from dzgroshared.storage.model import S3PutObjectModel, S3Bucket
         bucket = S3Bucket.INVOICES
         key = f'{uid}/invoices/{invoiceId}.pdf'
         obj = S3PutObjectModel(
             Bucket=bucket,
             Key=key,
-            Body=buffer.getvalue(),
             ContentType='application/pdf'
         )
-        self.client.storage.put_object(obj)
+        self.client.storage.put_object(obj, buffer.getvalue())
         return key

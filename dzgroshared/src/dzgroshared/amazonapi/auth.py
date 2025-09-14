@@ -3,7 +3,7 @@ import time
 import httpx
 import backoff
 
-from dzgroshared.models.amazonapi.model import AmazonApiObject
+from dzgroshared.amazonapi.model import AmazonApiObject
 import time
 from typing import Optional
 import httpx

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
-from dzgroshared.models.collections.payments import PaymentStatus, PaymentList, Payment
-from dzgroshared.models.model import Paginator
+from dzgroshared.db.payments.model import PaymentStatus, PaymentList, Payment
+from dzgroshared.db.model import Paginator
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 async def client(request: Request):
@@ -23,6 +23,6 @@ async def generateInvoiceLink(request: Request, id: str):
     elif payment.status == PaymentStatus.CAPTURED: raise ValueError("Invoice will be generated soon. Please try after some time.")
     path = f'{_client.uid}/invoices/INV-{payment.invoice}.pdf'
     from dzgroshared.storage.client import S3Storage
-    from dzgroshared.models.s3 import S3Bucket
+    from dzgroshared.storage.model import S3Bucket
     payment.invoicelink = S3Storage(_client).create_signed_url_by_path(path, bucket=S3Bucket.INVOICES)
     return payment

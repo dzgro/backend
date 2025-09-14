@@ -1,5 +1,5 @@
 from mapping import LambdaName, LambdaRequirement, Region
-from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.db.enums import ENVIRONMENT
 import os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..'))
 

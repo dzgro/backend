@@ -1,6 +1,6 @@
 from datetime import datetime
-from dzgroshared.models.enums import AdAssetType, AdReportType
-from dzgroshared.models.extras.amazon_daily_report import AdUnitPerformance
+from dzgroshared.db.enums import AdAssetType, AdReportType
+from dzgroshared.db.daily_report_group.model import AdUnitPerformance
 
 class AdsReportConvertor:
     marketplace: str

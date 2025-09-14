@@ -1,8 +1,8 @@
 from bson import ObjectId
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.sqs import SQSEvent
-from dzgroshared.models.enums import AMSDataSet, AdAssetType
+from dzgroshared.sqs.model import SQSEvent
+from dzgroshared.db.enums import AMSDataSet, AdAssetType
 from dzgroshared.models.functions.ams_change import CampaignDataSet, AdGroupDataSet, AdDataSet, TargetDataSet
 
 

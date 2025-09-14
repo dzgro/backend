@@ -1,9 +1,9 @@
-from dzgroshared.models.enums import ENVIRONMENT, QueueName, SQSMessageStatus
 from pydantic import BaseModel
-from dzgroshared.models.sqs import BatchMessageRequest, DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, SQSBatchFailedMessage, SQSBatchSendResponse, SQSBatchSuccessMessage, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, DeleteMessageBatchEntry, BatchResultErrorEntry
 import uuid, botocore.exceptions
 from mypy_boto3_sqs import SQSClient
-from dzgroshared.client import DzgroSharedClient
+from .model import BatchMessageRequest, DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, SQSBatchFailedMessage, SQSBatchSendResponse, SQSBatchSuccessMessage, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, QueueName, BatchResultErrorEntry
+from ..db.enums import ENVIRONMENT, SQSMessageStatus
+from ..client import DzgroSharedClient
 
 class SqsHelper:
     sqsclient: SQSClient

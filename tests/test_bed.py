@@ -1,5 +1,5 @@
-from dzgroshared.models.enums import ENVIRONMENT
-from dzgroshared.models.model import DzgroSecrets, Paginator, PyObjectId
+from dzgroshared.db.enums import ENVIRONMENT
+from dzgroshared.db.model import DzgroSecrets, Paginator, PyObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from httpx import AsyncClient
 import pytest, json

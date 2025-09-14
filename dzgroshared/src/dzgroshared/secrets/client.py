@@ -1,7 +1,7 @@
 import json
 from boto3.session import Session
-from dzgroshared.models.model import DzgroSecrets
-from dzgroshared.models.enums import ENVIRONMENT
+from .model import DzgroSecrets
+from ..db.enums import ENVIRONMENT
 
 class SecretManager:
 

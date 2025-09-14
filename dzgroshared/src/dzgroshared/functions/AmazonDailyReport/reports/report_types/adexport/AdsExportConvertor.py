@@ -1,5 +1,5 @@
 
-from dzgroshared.models.enums import AdAssetType, AdExportType
+from dzgroshared.db.enums import AdAssetType, AdExportType
 
 
 class AdsExportConvertor:

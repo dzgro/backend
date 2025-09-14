@@ -4,7 +4,7 @@ __version__ = "1.0.0"
 
 from functools import cached_property
 
-from dzgroshared.models.amazonapi.model import AmazonApiObject
+from dzgroshared.amazonapi.model import AmazonApiObject
 from dzgroshared.amazonapi.adapi.sp import AdApiSPClient
 from dzgroshared.amazonapi.adapi.common import AdApiCommonClient
 

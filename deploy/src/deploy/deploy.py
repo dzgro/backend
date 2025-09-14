@@ -1,5 +1,5 @@
 import inquirer, cleaner, mapping
-from dzgroshared.models.enums import ENVIRONMENT
+from dzgroshared.db.enums import ENVIRONMENT
 from docker_manager import start_docker_desktop, close_docker_desktop
 
 
