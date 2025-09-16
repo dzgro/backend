@@ -21,12 +21,6 @@ class AmazonParentReportQueueMessage(MessageIndexOptional, MarketplaceObjectId):
 class DzgroReportQueueMessage(MessageIndex, MarketplaceObjectId):
     reporttype: DzgroReportType
 
-class PaymentMessage(MessageIndex):
-    uid: str
-    amount:float
-    gst: int
-    date: datetime
-
 class DailyReportMessage(BaseModel):
     index: CountryCode
     success: int|SkipJsonSchema[None]=None
@@ -43,11 +37,10 @@ class NewUserQueueMessage(BaseModel):
     uid: str
     details: UserDetails
 
-QueueMessageModel = Union[AmazonParentReportQueueMessage, NewUserQueueMessage, DzgroReportQueueMessage, PaymentMessage]
+QueueMessageModel = Union[AmazonParentReportQueueMessage, NewUserQueueMessage, DzgroReportQueueMessage]
 
 MODEL_REGISTRY: dict[str, Type[QueueMessageModel]] = {
     "AmazonParentReportQueueMessage": AmazonParentReportQueueMessage,
     "NewUserQueueMessage": NewUserQueueMessage,
     "DzgroReportQueueMessage": DzgroReportQueueMessage,
-    "PaymentMessage": PaymentMessage,
 }

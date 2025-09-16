@@ -1,4 +1,5 @@
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.db.daily_report_item.model import AmazonAdReport
 from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
@@ -7,7 +8,8 @@ from datetime import datetime
 import json
 from dzgroshared.amazonapi.adapi.common.reports.model import AdReport, AdReportConfiguration, AdReportRequest, ReportStatus, TimeUnit, ReportFormat
 from dzgroshared.db.model import DzgroError
-from dzgroshared.db.daily_report_group.model import AmazonAdReport, AmazonAdReportDB, MarketplaceObjectForReport
+from dzgroshared.db.daily_report_group.model import  AmazonAdReportDB
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.db.enums import AdProduct, AdReportType, CollectionType
 from dzgroshared.db.model import ErrorDetail, ErrorList, PyObjectId
 
@@ -185,7 +187,7 @@ class AmazonAdsReportManager:
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():
                     shouldContinue = processedReport.error is None
-                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.daily_report_item.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
         return not hasError
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:
@@ -195,7 +197,7 @@ class AmazonAdsReportManager:
         from dzgroshared.functions.AmazonDailyReport.reports.report_types.ad.AdsReportConvertor import AdsReportConvertor
         convertor = AdsReportConvertor(self.marketplace.id)
         data = convertor.getAdReportData(reportType, self.__convertExportFileToList(dataStr))
-        await self.reportUtil.update(CollectionType.ADV, data, self.reportId)
+        await self.reportUtil.update(CollectionType.ADV_PERFORMANCE, data, self.reportId)
     
     
 

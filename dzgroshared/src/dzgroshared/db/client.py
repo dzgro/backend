@@ -23,13 +23,6 @@ class DbClient:
         self.countryDetailsHelper = CountryDetailsHelper(self.client)
         return self.countryDetailsHelper
     
-    @property
-    def pricing(self):
-        from dzgroshared.db.pricing.controller import PricingHelper
-        if self.pricingHelper:
-            return self.pricingHelper
-        self.pricingHelper = PricingHelper(self.client)
-        return self.pricingHelper
 
     @property
     def invoice_number(self):
@@ -55,6 +48,15 @@ class DbClient:
             return self.queueMessagesHelper
         self.queueMessagesHelper = QueueMessagesHelper(self.client)
         return self.queueMessagesHelper
+    
+    
+    @property
+    def pricing(self):
+        from dzgroshared.db.pricing.controller import PricingHelper
+        if self.pricingHelper:
+            return self.pricingHelper
+        self.pricingHelper = PricingHelper(self.client)
+        return self.pricingHelper
     
     @property
     def users(self):

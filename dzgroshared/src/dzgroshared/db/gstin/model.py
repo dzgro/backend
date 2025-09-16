@@ -15,8 +15,8 @@ class BusinessDetails(BaseModel):
     state: GSTStateCode
 
 
-class GSTDetail(ItemId, BusinessDetails):
+class GstDetail(ItemId, BusinessDetails):
     pass
 
-class LinkedGSTs(BaseModel):
-    data: List[GSTDetail]
+class LinkedGsts(BaseModel):
+    data: List[GstDetail]

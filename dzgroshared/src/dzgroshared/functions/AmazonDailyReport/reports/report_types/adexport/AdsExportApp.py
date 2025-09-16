@@ -1,10 +1,12 @@
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.db.daily_report_item.model import AmazonExportReport
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.adapi import AdApiClient
 import json
 from dzgroshared.amazonapi.adapi.common.exports.model import ExportRequest, ExportResponse, ExportStatus
 from dzgroshared.db.model import DzgroError
-from dzgroshared.db.daily_report_group.model import AmazonExportReport, AmazonAdExportDB, MarketplaceObjectForReport
+from dzgroshared.db.daily_report_group.model import AmazonAdExportDB
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.db.enums import AdExportType, AdProduct, AdReportType, AdState, CollectionType
 from dzgroshared.db.model import ErrorDetail, ErrorList, PyObjectId
 
@@ -105,7 +107,7 @@ class AmazonAdsExportManager:
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():
                     shouldContinue = processedReport.error is None
-                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.daily_report_item.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
         return not hasError
 
     def __convertExportFileToList(self, dataStr: str)->list[dict]:

@@ -3,8 +3,7 @@ from dzgroshared.amazonapi.adapi import AdApiClient
 from dzgroshared.db.model import DzgroError
 from dzgroshared.amazonapi.adapi.common.portfolios.model import ListPortfoliosRequestContent, Portfolio
 from dzgroshared.db.enums import AdAssetType
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
-
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 
 class PortfolioProcessor:
     marketplace: MarketplaceObjectForReport

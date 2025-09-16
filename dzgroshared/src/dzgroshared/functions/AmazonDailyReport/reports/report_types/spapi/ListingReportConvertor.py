@@ -1,6 +1,6 @@
 
 
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 
 
 class ListingReportConvertor:

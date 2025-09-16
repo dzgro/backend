@@ -147,7 +147,7 @@ class RequestObject(BaseModel):
 
 
 class ErrorDetail(BaseModel):
-    code: str = Field(..., description="Error code returned by the API")
+    code: int = 500
     message: str|SkipJsonSchema[None] = None
     details: str|SkipJsonSchema[None] = None
     description: str|SkipJsonSchema[None] = None
@@ -161,8 +161,9 @@ class ErrorList(BaseModel):
 
 
 class DzgroError(Exception):
-    def __init__(self, errors: ErrorList):
+    def __init__(self, errors: ErrorList, status_code: int=500):
         self.errors = errors
+        self.status_code= status_code
         super().__init__(str(errors))
 
 

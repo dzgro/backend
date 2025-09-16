@@ -4,10 +4,10 @@ from dzgroshared.client import DzgroSharedClient
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.db.products.controller import ProductHelper
-from dzgroshared.models.amazonapi.spapi.listings import Item
+from dzgroshared.amazonapi.spapi.listings.model import Item
 from dzgroshared.db.DbUtils import PyObjectId
 from dzgroshared.db.enums import ENVIRONMENT, CollectionType
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.db.model import LambdaContext, MockLambdaContext
 from dzgroshared.db.model import DzgroError
 

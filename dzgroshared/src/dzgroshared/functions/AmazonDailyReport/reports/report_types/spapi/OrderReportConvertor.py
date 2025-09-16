@@ -1,7 +1,7 @@
 from datetime import datetime
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.utils import date_util
 from dzgroshared.db.enums import MarketplaceId
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
 from pydantic import BaseModel, Field
 from dzgroshared.db.orders.model import DbOrder, DbOrderItem
 

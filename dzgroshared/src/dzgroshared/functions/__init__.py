@@ -30,11 +30,6 @@ class FunctionClient:
     async def dzgro_reports_s3_trigger(self):
         from dzgroshared.functions.DzgroReportsS3Trigger.handler import DzgroReportS3TriggerProcessor
         return await DzgroReportS3TriggerProcessor(self.client).execute(self.event)
-
-    @property
-    async def payment_processor(self):
-        from dzgroshared.functions.PaymentProcessor.handler import PaymentProcessor
-        return await PaymentProcessor(self.client).execute(self.event)
     
     @property
     async def razorpay_webhook_processor(self):

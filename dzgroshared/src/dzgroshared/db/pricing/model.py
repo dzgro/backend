@@ -1,12 +1,13 @@
 
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
+from pydantic.json_schema import SkipJsonSchema
 from typing import List, Optional
-from dzgroshared.db.model import ItemId
+from dzgroshared.db.model import ItemId, PyObjectId
 from dzgroshared.db.enums import PlanType
 
 class PlanDetails(BaseModel):
-    name: PlanType
+    plantype: PlanType
     baseprice: int
     variable: Optional[float] = None
 
@@ -65,13 +66,15 @@ class PricingOffers(BaseModel):
         PricingOffer(duration=PlanDuration.YEAR, discount=25)
     ]
 
+class PlanWithPricingDetail(BaseModel):
+    plantype: PlanType
+    total: float
+    items: list[PricingDetailItem]
+
 class PricingDetail(BaseModel):
     currency: str
     currencyCode: str
-    planid: str
-    name:str
+    plans: list[PlanWithPricingDetail]
     groupId: str
-    items: list[PricingDetailItem]
-    total: float
     offers: PricingOffers = PricingOffers(offerType=OfferType.CASHBACK)
     

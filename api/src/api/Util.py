@@ -18,6 +18,7 @@ USER_CACHE  = TTLCache(maxsize=10000, ttl=600)
 
 class RequestHelper:
     request: Request
+    excludedPath: bool = False
     
     # Routes that don't require authentication
     EXCLUDED_ROUTES = {
@@ -26,7 +27,8 @@ class RequestHelper:
 
     def __init__(self, request: Request):
         self.request = request
-        if not self._should_exclude_auth(request):
+        self.excludedPath = self._should_exclude_auth(request)
+        if not self.excludedPath:
             self.uid = self.__uid(request)
             self.marketplaceId = self.__marketplace(request)
 
@@ -36,8 +38,7 @@ class RequestHelper:
 
     def _should_exclude_auth(self, request: Request) -> bool:
         """Check if the current route should exclude authentication"""
-        path = request.url.path
-        return path in self.EXCLUDED_ROUTES or any(path.startswith(route) for route in self.EXCLUDED_ROUTES)
+        return any(request.url.path.startswith(route) for route in self.EXCLUDED_ROUTES)
     
     @property
     def secrets(self)->DzgroSecrets:
@@ -109,11 +110,12 @@ class RequestHelper:
     async def client(self):
         from dzgroshared.client import DzgroSharedClient
         client = DzgroSharedClient(self.env)
-        user = await self.__userCache()
-        client.setUser(user)
-        if self.marketplaceId:
-            marketplace = await self.__marketplaceCache()
-            client.setMarketplace(marketplace)
+        if not self.excludedPath:
+            user = await self.__userCache()
+            client.setUser(user)
+            if self.marketplaceId:
+                marketplace = await self.__marketplaceCache()
+                client.setMarketplace(marketplace)
         client.setSecretsClient(self.secrets)
         client.setMongoClient(self.mongoClient)
         client.setRazorpayClient(self.razorpayClient)

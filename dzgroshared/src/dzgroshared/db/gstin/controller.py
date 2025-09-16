@@ -1,5 +1,5 @@
 from bson import ObjectId
-from dzgroshared.db.gstin.model import BusinessDetails, LinkedGSTs, GSTDetail
+from dzgroshared.db.gstin.model import BusinessDetails, LinkedGsts, GstDetail
 from dzgroshared.db.enums import CollectionType
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
@@ -15,11 +15,11 @@ class GSTHelper:
 
     async def listGSTs(self):
         data = await self.db.find({"uid": self.client.uid})
-        return LinkedGSTs.model_validate({"data": data})
+        return LinkedGsts.model_validate({"data": data})
 
     async def getGST(self, id: PyObjectId):
         data = await self.db.findOne({"_id": id, "uid": self.client.uid})
-        return GSTDetail.model_validate({"data": data})
+        return GstDetail.model_validate({"data": data})
     
     async def addGST(self, req: BusinessDetails):
         data = {**req.model_dump(mode="json"), "uid": self.client.uid}

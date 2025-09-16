@@ -1,11 +1,13 @@
 import json
+from dzgroshared.db.daily_report_item.model import AmazonDataKioskReport
 from dzgroshared.db.model import DzgroError
 from dzgroshared.amazonapi.spapi import SpApiClient
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.models.amazonapi.spapi.datakiosk import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse, DataKioskCreateQuerySpecification
-from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus
+from dzgroshared.amazonapi.spapi.datakiosk.model import DataKioskCreateQueryRequest, DataKioskQueryResponse, DataKioskDocumentResponse, DataKioskCreateQuerySpecification
+from dzgroshared.amazonapi.spapi.reports.model import ProcessingStatus
 from dzgroshared.db.enums import CollectionType, DataKioskType
-from dzgroshared.db.daily_report_group.model import AmazonDataKioskReport, AmazonDataKioskReportDB, MarketplaceObjectForReport
+from dzgroshared.db.daily_report_group.model import AmazonDataKioskReportDB
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.functions.AmazonDailyReport.reports import DateUtility
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.db.model import ErrorDetail, ErrorList, PyObjectId
@@ -131,7 +133,7 @@ class AmazonDataKioskReportManager:
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():
                     shouldContinue = processedReport.error is None
-                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.daily_report_item.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
         return not hasError
 
     def __convertDataKioskFileToList(self, dataStr: str)->list[dict]:

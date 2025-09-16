@@ -1,11 +1,13 @@
 import json
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.db.daily_report_item.model import AmazonSpapiReport
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUtil
 from dzgroshared.amazonapi.spapi import SpApiClient
 from datetime import datetime
-from dzgroshared.db.model import DzgroError
-from dzgroshared.models.amazonapi.spapi.reports import ProcessingStatus, SPAPICreateReportSpecification
-from dzgroshared.db.daily_report_group.model import AmazonSpapiReport, AmazonSpapiReportDB, MarketplaceObjectForReport, PyObjectId, SPAPIReport,SPAPIReportDocument
+from dzgroshared.db.model import DzgroError, PyObjectId
+from dzgroshared.amazonapi.spapi.reports.model import ProcessingStatus, SPAPICreateReportSpecification, SPAPIReport, SPAPIReportDocument
+from dzgroshared.db.daily_report_group.model import AmazonSpapiReportDB
 from dzgroshared.db.enums import CollectionType, SPAPIReportType
 from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from dzgroshared.db.model import ErrorDetail, ErrorList
@@ -126,7 +128,7 @@ class AmazonSpapiReportManager:
                     hasError = True
                 if report.model_dump() != processedReport.model_dump():
                     shouldContinue = processedReport.error is None
-                    await self.client.db.amazon_daily_reports.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
+                    await self.client.db.daily_report_item.updateChildReport(processedReport.id, processedReport.model_dump(exclude_none=True, exclude_defaults=True, by_alias=True))
         return not hasError
 
     def __convertSPAPIFileToList(self, dataStr: str)->list[dict]:

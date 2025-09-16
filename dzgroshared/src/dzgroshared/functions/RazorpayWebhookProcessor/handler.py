@@ -1,5 +1,8 @@
+from io import BytesIO
+from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.functions.RazorpayWebhookProcessor.models import RazorpayWebhookPayload
+from dzgroshared.db.payments.model import PaymentRequest
+from dzgroshared.functions.RazorpayWebhookProcessor.models import OrderEntity, OrderPaidBody, InvoiceExpiredBody, InvoicePaidBody, PaymentEntity
 from dzgroshared.sqs.model import SQSEvent
 
 
@@ -21,12 +24,13 @@ class RazorpayWebhookProcessor:
                             if not signature: raise ValueError("Missing Razorpay signature")
                             event_id = record.messageAttributes['X-Razorpay-Event-Id'].stringValue
                             if not event_id: raise ValueError("Missing Razorpay event ID")
-                            self.verified = self.verify_razorpay_signature(record.body, signature, 'dzgrotest')
+                            self.verified = self.verify_razorpay_signature(record.body, signature, self.client.secrets.RAZORPAY_WEBHOOK_SECRET)
                             if not self.verified: raise ValueError("Signature verification failed")
-                            message = RazorpayWebhookPayload.model_validate(record.dictBody)
-                            await self.processMessage(message)
+                            if record.dictBody: await self.processMessage(record.dictBody)
+                            return True
             except Exception as e:
                 print(f"[ERROR] Failed to process message {record.messageId}: {e}")
+                return True
 
     def verify_razorpay_signature(self, payload: str, received_signature: str, secret: str) -> bool:
         import hmac
@@ -38,33 +42,59 @@ class RazorpayWebhookProcessor:
         ).hexdigest()
         return hmac.compare_digest(generated_signature, received_signature)
     
-    async def processMessage(self, message: RazorpayWebhookPayload):
-        uid = await self.updateSubscription(message)
-        if uid:
-            await self.updatePayment(uid, message)
+    async def processMessage(self, message: dict):
+        if message['event']=="order.paid":
+            obj = OrderPaidBody.model_validate(message['payload'])
+            await self.updateOrder(obj)
+        elif message['event']=="invoice.paid":
+            obj = InvoicePaidBody.model_validate(message['payload'])
+            await self.updatePaidInvoice(obj)
+        elif message['event']=="invoice.expired":
+            obj = InvoiceExpiredBody.model_validate(message['payload'])
+            await self.updateExpiredInvoice(obj)        
 
-    async def updateSubscription(self, body: RazorpayWebhookPayload):
-        if body.subscription and body.subscription.notes:
-            uid = body.subscription.notes.get('uid', None)
-            if uid:
-                self.client.uid = uid
-                await self.client.db.subscriptions.updateSubscriptionStatus(body.subscription.id, body.subscription.status)
-                return uid
+    def setNotes(self, notes: dict):
+        if notes:
+            uid = notes.get('uid', None)
+            marketplace = notes.get('marketplace', None)
+            if uid: self.client.uid = uid
+            if marketplace: self.client.marketplaceId = ObjectId(marketplace)
 
-    async def updatePayment(self, uid: str, body: RazorpayWebhookPayload):
-        if body.payment:
-            try:
-                await self.client.db.payments.getPayment(body.payment.id)
-            except Exception as e:
-                from datetime import datetime
-                from dzgroshared.db.queue_messages.model import PaymentMessage
-                message = PaymentMessage(
-                    index=body.payment.id, uid=uid,
-                    amount=body.payment.amount / 100,
-                    gst=18,
-                    date= datetime.now()
-                )
-                from dzgroshared.db.enums import QueueName
-                from dzgroshared.sqs.model import SendMessageRequest
-                req = SendMessageRequest(QueueUrl=QueueName.PAYMENT)
-                self.client.sqs.sendMessage(req, message)
+    async def updateOrder(self, order: OrderPaidBody):
+        self.setNotes(order.order.notes)
+        success = await self.client.db.razorpay_orders.setOrderAsPaid(order.order.id, order.payment.id)
+        if success: await self.generateInvoice(order.order, order.payment)
+                
+
+    async def updatePaidInvoice(self, invoice: InvoicePaidBody):
+        self.setNotes(invoice.invoice.notes)
+        success = await self.client.db.razorpay_orders.setOrderAsPaid(invoice.invoice.order_id, invoice.payment.id)
+        if success: await self.generateInvoice(invoice.order, invoice.payment)
+
+
+    async def updateExpiredInvoice(self, invoice: InvoiceExpiredBody):
+        self.setNotes(invoice.invoice.notes)
+        await self.client.db.razorpay_orders.setInvoiceOrderAsExpired(invoice.invoice.order_id)
+
+    async def generateInvoice(self, orderEntity:OrderEntity, paymentEntity: PaymentEntity):
+        invoiceId = await self.client.db.invoice_number.getNextInvoiceId()
+        payment = await self.client.db.payments.addPayment(PaymentRequest(_id=invoiceId, paymentId=paymentEntity.id, amount=round(paymentEntity.amount / 100,2), gstrate=18))
+        from dzgroshared.functions.RazorpayWebhookProcessor.invoice import generate_gst_invoice
+        order = await self.client.db.razorpay_orders.getOrderById(orderEntity.id)
+        gstin = None if not order.gstin else await self.client.db.gstin.getGST(order.gstin)
+        user = await self.client.db.users.getUser()
+        buffer = generate_gst_invoice(invoiceId, user, payment, gstin)
+        self.saveToS3(buffer, invoiceId)
+                
+    def saveToS3(self, buffer: BytesIO, invoiceId:str):
+        buffer.seek(0)
+        from dzgroshared.storage.model import S3PutObjectModel, S3Bucket
+        bucket = S3Bucket.INVOICES
+        key = f'{self.client.uid}/invoices/{invoiceId}.pdf'
+        obj = S3PutObjectModel(
+            Bucket=bucket,
+            Key=key,
+            ContentType='application/pdf'
+        )
+        self.client.storage.put_object(obj, buffer.getvalue())
+        return key

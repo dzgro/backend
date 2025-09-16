@@ -5,7 +5,9 @@ Maps function names to their deployment configuration, including AWS region and 
 from enum import Enum
 from typing import Literal
 
-from dzgroshared.db.enums import ENVIRONMENT, QueueName, S3Bucket
+from dzgroshared.db.enums import ENVIRONMENT
+from dzgroshared.sqs.model import QueueName
+from dzgroshared.storage.model import S3Bucket
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 
@@ -19,7 +21,6 @@ class LambdaName(str, Enum):
     AmazonDailyReport = "AmazonDailyReport"
     DzgroReports = "DzgroReports"
     DzgroReportsS3Trigger = "DzgroReportsS3Trigger"
-    PaymentProcessor = "PaymentProcessor"
     RazorpayWebhookProcessor = "RazorpayWebhookProcessor"
     AmsChange = "AmsChange"
     AmsPerformance = "AmsPerformance"
@@ -234,22 +235,11 @@ LAMBDAS = [
         ]
     ),
     LambdaProperty(
-        name=LambdaName.PaymentProcessor,
+        name=LambdaName.RazorpayWebhookProcessor,
         requirements=[
             LambdaRequirement(name="num2words", version="0.5.14"),
             LambdaRequirement(name="reportlab", version="4.4.3")
         ],
-        regions=[LambdaRegion(
-            region=Region.DEFAULT,
-            queue=QueueProperty(
-                name=QueueName.PAYMENT_PROCESSOR,
-                roles=QueueRole.all()
-            ),
-            s3=S3Property(name=S3Bucket.INVOICES, roles=S3Role.all())
-        )]
-    ),
-    LambdaProperty(
-        name=LambdaName.RazorpayWebhookProcessor,
         regions=[LambdaRegion(
             region=Region.DEFAULT,
             queue=QueueProperty(

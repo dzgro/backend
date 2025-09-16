@@ -1,8 +1,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from typing import Optional, Dict, Any
-from dzgroshared.db.model import DzgroError, ErrorDetail, ErrorList
+from dzgroshared.db.model import DzgroError, ErrorDetail
 
 def register_exception_handlers(app):
     @app.exception_handler(DzgroError)
@@ -22,7 +21,7 @@ def register_exception_handlers(app):
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         error = ErrorDetail(
-            code="Pydantic Validation Error",
+            code=400,
             description="Request validation failed",
             message=str(exc),
             details=str(exc.errors()),
@@ -39,7 +38,7 @@ def register_exception_handlers(app):
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         error = ErrorDetail(
-            code="Unknown Error",
+            code=400,
             description="An unexpected error occurred",
             message=str(exc),
             details=None,

@@ -1,8 +1,8 @@
 from datetime import datetime
-from dzgroshared.db.collections.storage_fees import FnSkuStorageFees
+from dzgroshared.db.storage_fees.model import FnSkuStorageFees
 from dzgroshared.utils import date_util
 from dzgroshared.db.enums import MarketplaceId
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from pydantic import BaseModel, Field
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.db.orders.model import DbOrder, DbOrderItem

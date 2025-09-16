@@ -1,8 +1,7 @@
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.db.client import DbClient
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
 from dzgroshared.db.model import PyObjectId
-from dzgroshared.db.enums import CollectionType, S3Bucket
+from dzgroshared.db.enums import CollectionType
+from dzgroshared.storage.model import S3Bucket
 dateFormat = ["%d.%m.%Y %H:%M:%S %Z","%Y-%m-%dT%H:%M:%S%z","%d.%m.%Y"]
 bucket = S3Bucket.AMAZON_REPORTS
 

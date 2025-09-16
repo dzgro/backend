@@ -1,7 +1,5 @@
 from datetime import datetime
-
-from dzgroshared.utils import date_util
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 
 class TrafficReportConvertor:
     dateFormat = "%Y-%m-%d"

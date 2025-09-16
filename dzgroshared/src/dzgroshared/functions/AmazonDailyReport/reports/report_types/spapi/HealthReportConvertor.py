@@ -1,6 +1,6 @@
 from typing import Literal
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
 from dzgroshared.db.health.model import AmazonHealthReport, AmazonHealthReportConverted, AHR, DefectRateItem, DefectRatesByFulfillment, FulfillmentDefectRates, InvoiceDefectRate, InvoiceDefectRates, InvoiceDefectRateItem, OnTimeDeliveryRate, OrderDefectRate, PreFulfillmentCancellationRate, RateMetrics, HealthViolationItem, HealthViolation, LateShipmentRate, ReportingDates, ValidTrackingRate, Violations
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 valueError = ValueError("Error in Seller Performance Report")
 
 class HealthReportConvertor:

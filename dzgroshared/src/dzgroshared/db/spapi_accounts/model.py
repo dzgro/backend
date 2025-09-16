@@ -3,6 +3,7 @@ from typing import List
 from dzgroshared.db.marketplaces.model import SellerMarketplace
 from dzgroshared.db.model import Count, ItemId
 from pydantic import BaseModel
+from datetime import datetime
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.db.enums import CountryCode, AmazonAccountType
 
@@ -16,6 +17,7 @@ class SPAPIAccountUrlResponse(BaseModel):
 
 class SPAPIAccount(ItemId):
     name: str
+    createdat: datetime
     countrycode: CountryCode
     sellerid: str
     accounttype: AmazonAccountType = AmazonAccountType.SPAPI

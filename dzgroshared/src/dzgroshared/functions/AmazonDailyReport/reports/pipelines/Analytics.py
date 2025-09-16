@@ -1,7 +1,6 @@
 from datetime import datetime
 import time
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.db.DataTransformer import Datatransformer
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
 from dzgroshared.db.enums import ENVIRONMENT, CollateType, CollectionType
 from dzgroshared.db.model import LambdaContext, StartEndDate
@@ -34,7 +33,7 @@ class AnalyticsProcessor:
         return {"$unwind": "$date"}
 
     def __collateData(self, key:str='data'):
-        return Datatransformer(self.pp, key).collateData()
+        return self.pp.collateData()
     
     def __setData(self, collatetype:CollateType):
         curr = { "marketplace": "$$current.marketplace", "date": "$$current.date", "data": ["$$current.data"] }

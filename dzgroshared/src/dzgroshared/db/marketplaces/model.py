@@ -113,15 +113,17 @@ class Marketplace(ItemId):
     marketplaceid: MarketplaceId
     profileid: int
     status: MarketplaceStatus
-    storename: str|SkipJsonSchema[None]=None
+    storename: str
     dates: StartEndDate
+    pricing: PyObjectId
 
 class MarketplaceOnboardOffer(ItemId):
     offerType: OfferType
     offer: PricingOffer
 
 class MarketplaceOnboardPaymentRequest(ItemId):
-    planid: str
+    plantype: PlanType
+    pricing: PyObjectId
     offer: MarketplaceOnboardOffer|SkipJsonSchema[None]=None
     
 

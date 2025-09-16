@@ -1,3 +1,5 @@
+from dzgroshared.db.gstin.model import GstDetail
+from dzgroshared.db.payments.model import Payment
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -8,7 +10,7 @@ from io import BytesIO
 from num2words import num2words
 from math import cos, sin, pi
 import io, boto3
-from dzgroshared.db.users.model import User
+from dzgroshared.db.users.model import User, UserBasicDetails
 
 def draw_stamp(c, center_x, center_y, radius):
     # --- Outer Circle ---
@@ -57,26 +59,22 @@ def draw_stamp(c, center_x, center_y, radius):
     arc_radius = radius - 4  # tight spacing inside outer ring
     draw_arc_text(arc_text, center_x, center_y, arc_radius, start_at_top=True, angle_per_char_deg=12)
 
-def generate_gst_invoice(user: User,
-    amount: float, gst_rate: int,
-    invoice_number: str, date: datetime
-):
+def generate_gst_invoice(invoiceId:str, user: UserBasicDetails, payment: Payment, gstin: GstDetail|None):
     seller_gstin = "08DQAPS9574Q1ZN"
     seller_name = "DZGRO TECHNOLOGIES"
     seller_address1 = "4TH FLOOR, B4-401, Kanchanjunga Apartments"
     seller_address2 = "Sector 8, Indira Gandhi Nagar, Jagatpura"
     seller_address3 = "Jaipur, Rajasthan, 302017"
 
-    gst_amount = round(amount-amount/ (100+gst_rate)*100, 2)
-    is_intrastate = user.business.gstin.startswith("08") if user.business else True
+    is_intrastate = gstin.gstin.startswith("08") if gstin else True
     cgst = sgst = igst = 0.0
 
     if is_intrastate:
-        cgst = sgst = round(gst_amount / 2, 2)
+        cgst = sgst = round(payment.gst / 2, 2)
     else:
-        igst = gst_amount
-    total = round(amount, 2)
-    amount = round(amount-gst_amount,2)
+        igst = payment.gst
+    total = round(payment.amount, 2)
+    amount = round(payment.amount-payment.gst,2)
 
     # Convert total to words in Indian format
     def amount_in_words(n):
@@ -97,9 +95,9 @@ def generate_gst_invoice(user: User,
     # --- Invoice No. and Date (just below title, no gap from Bill From) ---
     y = title_y - 25
     c.setFont("Helvetica-Bold", 9)
-    c.drawString(30, y, f"Invoice No: {invoice_number}")
-    from date_util import DateHelper
-    dateString = DateHelper().convertDateToZonalDate(date, 'Asia/Kolkata').strftime('%d-%m-%Y')
+    c.drawString(30, y, f"Invoice No: {invoiceId}")
+    from dzgroshared.utils import date_util
+    dateString = date_util.convertDateToZonalDate(datetime.now(), 'Asia/Kolkata').strftime('%d-%m-%Y')
     c.drawRightString(width - 30, y, f"Date: {dateString}")
 
     # --- Logo under title, aligned to top-right ---
@@ -133,13 +131,13 @@ def generate_gst_invoice(user: User,
     c.setFont("Helvetica-Bold", 10)
     c.drawString(30, y, "Bill To:")
     c.setFont("Helvetica", 9)
-    if user.business:
-        c.drawString(30, y - 12, f"{user.business.name}")
-        c.drawString(30, y - 24, user.business.addressline1)
-        c.drawString(30, y - 36, user.business.addressline2)
-        c.drawString(30, y - 48, user.business.addressline3)
-        c.drawString(30, y - 60, f'{user.business.city} {user.business.state} - {user.business.pincode}')
-        c.drawString(30, y - 72, f"GSTIN: {user.business.gstin}")
+    if gstin:
+        c.drawString(30, y - 12, f"{gstin.name}")
+        c.drawString(30, y - 24, gstin.addressline1)
+        c.drawString(30, y - 36, gstin.addressline2)
+        c.drawString(30, y - 48, gstin.addressline3)
+        c.drawString(30, y - 60, f'{gstin.city} {gstin.state} - {gstin.pincode}')
+        c.drawString(30, y - 72, f"GSTIN: {gstin.gstin}")
     else: c.drawString(30, y - 12, f"{user.name}")
     c.drawString(30, y - 84, f"Place of Supply: Rajasthan")
 
@@ -151,10 +149,10 @@ def generate_gst_invoice(user: User,
     rows = [["Description", "Amount (INR)"]]
     rows.append(["Subscription Charges", f"{amount:.2f}"])
     if is_intrastate:
-        rows.append([f"CGST @ {gst_rate / 2:.1f}%", f"{cgst:.2f}"])
-        rows.append([f"SGST @ {gst_rate / 2:.1f}%", f"{sgst:.2f}"])
+        rows.append([f"CGST @ {payment.gstrate / 2:.1f}%", f"{cgst:.2f}"])
+        rows.append([f"SGST @ {payment.gstrate / 2:.1f}%", f"{sgst:.2f}"])
     else:
-        rows.append([f"IGST @ {gst_rate:.1f}%", f"{igst:.2f}"])
+        rows.append([f"IGST @ {payment.gstrate:.1f}%", f"{igst:.2f}"])
     rows.append(["Total Payable", f"{total:.2f}"])
 
     c.setFont("Helvetica", 9)

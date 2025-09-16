@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from dzgroshared.db.daily_report_group.model import MarketplaceObjectForReport
+from dzgroshared.db.marketplaces.model import MarketplaceObjectForReport
 from dzgroshared.db.model import StartEndDate
 from dzgroshared.utils import date_util
 from pytz import timezone as PytzTimezone, utc

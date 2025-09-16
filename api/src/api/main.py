@@ -1,16 +1,15 @@
-import time
+from dzgroshared.client import DzgroSharedClient
 from fastapi import Depends, FastAPI, Request, Security
 from fastapi.responses import Response, RedirectResponse
 from api.exception_handlers import register_exception_handlers
 from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exception_handlers import http_exception_handler,request_validation_exception_handler
 from contextlib import asynccontextmanager
-import functools
 from fastapi.security import APIKeyHeader
-import io, yaml, os
+import io, yaml, os, functools, time
 from fastapi.openapi.utils import get_openapi
+from dzgroshared.db.pricing.model import Pricing
 from dotenv import load_dotenv
 load_dotenv()
 from dzgroshared.db.enums import ENVIRONMENT
@@ -97,7 +96,7 @@ async def log_request_time(request: Request, call_next):
 
 register_exception_handlers(app)
 
-from api.routers import gstin, advertising_accounts, razorpay_orders, spapi_accounts, users, marketplaces, performance_periods, performance_results, state_analytics, date_analytics, products, payments, pricing, ad, health, analytics, dzgro_reports
+from api.routers import gstin, advertising_accounts, razorpay_orders, spapi_accounts, users, marketplaces, performance_periods, performance_results, state_analytics, date_analytics, products, payments, ad, health, analytics, dzgro_reports
 app.include_router(ad.router)
 app.include_router(advertising_accounts.router)
 app.include_router(analytics.router)
@@ -109,7 +108,6 @@ app.include_router(marketplaces.router)
 app.include_router(payments.router)
 app.include_router(performance_periods.router)
 app.include_router(performance_results.router)
-app.include_router(pricing.router)
 app.include_router(products.router)
 app.include_router(spapi_accounts.router)
 app.include_router(razorpay_orders.router)
@@ -129,6 +127,14 @@ def read_items(
     marketplace: str = Security(marketplace_scheme)
 ):
     return {"Authorization": authorization, "Marketplace": marketplace}
+
+@app.get("/plans", response_model=Pricing, response_model_exclude_none=True, response_model_by_alias=False)
+@functools.lru_cache()
+async def plans():
+    helper = DzgroSharedClient(env)
+    helper.setMongoClient(app.state.mongoClient)
+    data = await helper.dbClient.database['pricing'].find_one({"active": True})
+    return Pricing.model_validate(data)
 
 @app.get('/openapi.yaml', include_in_schema=False)
 @functools.lru_cache()
