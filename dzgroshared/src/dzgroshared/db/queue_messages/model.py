@@ -1,9 +1,11 @@
+from enum import Enum
 from dzgroshared.db.model import MarketplaceObjectId, PyObjectId
+from dzgroshared.functions.RazorpayWebhookProcessor.models import InvoiceExpiredQM, InvoicePaidQM, OrderPaidQM
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
 from bson import ObjectId
-from dzgroshared.db.enums import AmazonDailyReportAggregationStep, CountryCode
+from dzgroshared.db.enums import AmazonDailyReportAggregationStep, CountryCode, QueueMessageModelType
 from typing import Type, Union
 from dzgroshared.db.dzgro_reports.model import DzgroReportType
 
@@ -13,34 +15,28 @@ class MessageIndexOptional(BaseModel):
 class MessageIndex(BaseModel):
     index: str
 
-class AmazonParentReportQueueMessage(MessageIndexOptional, MarketplaceObjectId):
+class AmazoMarketplaceDailyReportQM(MessageIndexOptional, MarketplaceObjectId):
     uid:str
     step: AmazonDailyReportAggregationStep
     date: datetime|SkipJsonSchema[None]=None
 
-class DzgroReportQueueMessage(MessageIndex, MarketplaceObjectId):
+class DzgroReportQM(MessageIndex, MarketplaceObjectId):
+    uid:str
     reporttype: DzgroReportType
 
-class DailyReportMessage(BaseModel):
+class DailyReportByCountryQM(BaseModel):
     index: CountryCode
     success: int|SkipJsonSchema[None]=None
     failed: int|SkipJsonSchema[None]=None
     total: int|SkipJsonSchema[None]=None
 
-class UserDetails(BaseModel):
-    name: str
-    email: str
-    phone: str|SkipJsonSchema[None]=None
-    userpoolid: str
+QueueMessageModel = Union[AmazoMarketplaceDailyReportQM, DzgroReportQM, DailyReportByCountryQM, OrderPaidQM, InvoicePaidQM, InvoiceExpiredQM]
 
-class NewUserQueueMessage(BaseModel):
-    uid: str
-    details: UserDetails
-
-QueueMessageModel = Union[AmazonParentReportQueueMessage, NewUserQueueMessage, DzgroReportQueueMessage]
-
-MODEL_REGISTRY: dict[str, Type[QueueMessageModel]] = {
-    "AmazonParentReportQueueMessage": AmazonParentReportQueueMessage,
-    "NewUserQueueMessage": NewUserQueueMessage,
-    "DzgroReportQueueMessage": DzgroReportQueueMessage,
+MODEL_REGISTRY: dict[QueueMessageModelType, Type[QueueMessageModel]] = {
+    QueueMessageModelType.AMAZON_DAILY_REPORT: AmazoMarketplaceDailyReportQM,
+    QueueMessageModelType.DZGRO_REPORT: DzgroReportQM,
+    QueueMessageModelType.COUNTRY_REPORT: DailyReportByCountryQM,
+    QueueMessageModelType.ORDER_PAID: OrderPaidQM,
+    QueueMessageModelType.INVOICE_PAID: InvoicePaidQM,
+    QueueMessageModelType.INVOICE_EXPIRED: InvoiceExpiredQM,
 }

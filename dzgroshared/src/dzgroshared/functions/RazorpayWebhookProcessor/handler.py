@@ -2,8 +2,8 @@ from io import BytesIO
 from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.payments.model import PaymentRequest
-from dzgroshared.functions.RazorpayWebhookProcessor.models import OrderEntity, OrderPaidBody, InvoiceExpiredBody, InvoicePaidBody, PaymentEntity
-from dzgroshared.sqs.model import SQSEvent
+from dzgroshared.functions.RazorpayWebhookProcessor.models import OrderEntity, OrderPaidQM, InvoiceExpiredQM, InvoicePaidQM, PaymentEntity
+from dzgroshared.sqs.model import SQSEvent, SQSRecord
 
 
 class RazorpayWebhookProcessor:
@@ -12,25 +12,16 @@ class RazorpayWebhookProcessor:
     def __init__(self, client: DzgroSharedClient):
         self.client = client
 
-    async def execute(self, event: dict):
-        records = event.get('Records',[])
-        for record in records:
-            try:
-                parsed = SQSEvent.model_validate(event)
-                for record in parsed.Records:
-                    if record.messageAttributes:
-                        if 'X-Razorpay-Signature' in record.messageAttributes and 'X-Razorpay-Event-Id' in record.messageAttributes:
-                            signature = record.messageAttributes['X-Razorpay-Signature'].stringValue
-                            if not signature: raise ValueError("Missing Razorpay signature")
-                            event_id = record.messageAttributes['X-Razorpay-Event-Id'].stringValue
-                            if not event_id: raise ValueError("Missing Razorpay event ID")
-                            self.verified = self.verify_razorpay_signature(record.body, signature, self.client.secrets.RAZORPAY_WEBHOOK_SECRET)
-                            if not self.verified: raise ValueError("Signature verification failed")
-                            if record.dictBody: await self.processMessage(record.dictBody)
-                            return True
-            except Exception as e:
-                print(f"[ERROR] Failed to process message {record.messageId}: {e}")
-                return True
+    async def execute(self, record: SQSRecord):
+        if 'X-Razorpay-Signature' in record.messageAttributes and 'X-Razorpay-Event-Id' in record.messageAttributes:
+            signature = record.messageAttributes['X-Razorpay-Signature'].stringValue
+            if not signature: raise ValueError("Missing Razorpay signature")
+            event_id = record.messageAttributes['X-Razorpay-Event-Id'].stringValue
+            if not event_id: raise ValueError("Missing Razorpay event ID")
+            self.verified = self.verify_razorpay_signature(record.body, signature, self.client.secrets.RAZORPAY_WEBHOOK_SECRET)
+            if not self.verified: raise ValueError("Signature verification failed")
+            if record.dictBody: await self.processMessage(record.dictBody)
+            return True
 
     def verify_razorpay_signature(self, payload: str, received_signature: str, secret: str) -> bool:
         import hmac
@@ -44,13 +35,13 @@ class RazorpayWebhookProcessor:
     
     async def processMessage(self, message: dict):
         if message['event']=="order.paid":
-            obj = OrderPaidBody.model_validate(message['payload'])
+            obj = OrderPaidQM.model_validate(message['payload'])
             await self.updateOrder(obj)
         elif message['event']=="invoice.paid":
-            obj = InvoicePaidBody.model_validate(message['payload'])
+            obj = InvoicePaidQM.model_validate(message['payload'])
             await self.updatePaidInvoice(obj)
         elif message['event']=="invoice.expired":
-            obj = InvoiceExpiredBody.model_validate(message['payload'])
+            obj = InvoiceExpiredQM.model_validate(message['payload'])
             await self.updateExpiredInvoice(obj)        
 
     def setNotes(self, notes: dict):
@@ -60,19 +51,19 @@ class RazorpayWebhookProcessor:
             if uid: self.client.uid = uid
             if marketplace: self.client.marketplaceId = ObjectId(marketplace)
 
-    async def updateOrder(self, order: OrderPaidBody):
+    async def updateOrder(self, order: OrderPaidQM):
         self.setNotes(order.order.notes)
         success = await self.client.db.razorpay_orders.setOrderAsPaid(order.order.id, order.payment.id)
         if success: await self.generateInvoice(order.order, order.payment)
                 
 
-    async def updatePaidInvoice(self, invoice: InvoicePaidBody):
+    async def updatePaidInvoice(self, invoice: InvoicePaidQM):
         self.setNotes(invoice.invoice.notes)
         success = await self.client.db.razorpay_orders.setOrderAsPaid(invoice.invoice.order_id, invoice.payment.id)
         if success: await self.generateInvoice(invoice.order, invoice.payment)
 
 
-    async def updateExpiredInvoice(self, invoice: InvoiceExpiredBody):
+    async def updateExpiredInvoice(self, invoice: InvoiceExpiredQM):
         self.setNotes(invoice.invoice.notes)
         await self.client.db.razorpay_orders.setInvoiceOrderAsExpired(invoice.invoice.order_id)
 

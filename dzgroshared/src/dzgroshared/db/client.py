@@ -9,7 +9,14 @@ class DbClient:
 
     def __init__(self, client: DzgroSharedClient):
         self.client = client
-        if not self.client.mongoClient: raise ValueError("MongoDB client is not initialized.")
+        if not self.client.mongoClient: 
+            raise ValueError("MongoDB client is not initialized.")
+        
+        # Debug: Check if mongoClient is a coroutine
+        import inspect
+        if inspect.iscoroutine(self.client.mongoClient):
+            raise ValueError(f"MongoDB client is a coroutine, not a client instance: {type(self.client.mongoClient)}")
+            
         self.database = self.client.mongoClient[client.DB_NAME]
 
     def __getattr__(self, item):

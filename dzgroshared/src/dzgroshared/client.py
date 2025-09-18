@@ -50,9 +50,6 @@ class DzgroSharedClient:
     def setMongoClient(self, mongoClient: AsyncIOMotorClient):
         self.mongoClient = mongoClient
 
-    def setRazorpayClient(self, razorpayClient: RazorpayClient):
-        self.razorpayClient = razorpayClient
-
     @property
     def secrets(self):
         if self.secretsClient: return self.secretsClient
@@ -84,7 +81,9 @@ class DzgroSharedClient:
     @property
     def razorpay(self):
         if self.razorpayClient: return self.razorpayClient
-        self.razorpayClient = RazorpayClient(self.secrets.RAZORPAY_CLIENT_ID, self.secrets.RAZORPAY_CLIENT_SECRET)
+        key = self.secrets.RAZORPAY_CLIENT_ID_PROD if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_ID_TEST
+        secret = self.secrets.RAZORPAY_CLIENT_SECRET_PROD if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_SECRET_TEST
+        self.razorpayClient = RazorpayClient(key, secret)
         return self.razorpayClient
     
     @property

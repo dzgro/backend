@@ -14,7 +14,7 @@
       "name": "Deploy",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/deploy/src/deploy/deploy.py",
+      "program": "${workspaceFolder}/deploy/src/deploy/TemplateBuilder/Builder.py",
       "cwd": "${workspaceFolder}/deploy",
       "console": "integratedTerminal",
       "justMyCode": true

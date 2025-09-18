@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import cast
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.sqs.model import BatchMessageRequest
+from dzgroshared.sqs.model import QueueName
 from pydantic import BaseModel
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.db.enums import CollectionType, QueueName, SQSMessageStatus
-from dzgroshared.db.queue_messages.model import MODEL_REGISTRY, AmazonParentReportQueueMessage, QueueMessageModel
+from dzgroshared.db.enums import CollectionType, SQSMessageStatus
+from dzgroshared.db.queue_messages.model import MODEL_REGISTRY, AmazoMarketplaceDailyReportQM, QueueMessageModel, QueueMessageModelType
 
 class QueueMessagesHelper:
     dbManager: DbManager
@@ -24,7 +24,6 @@ class QueueMessagesHelper:
     async def setMessageAsProcessing(self, messageid: str):
         count, id = await self.dbManager.updateOne({"_id": messageid, "status": SQSMessageStatus.PENDING.value},setDict={"status": SQSMessageStatus.PROCESSING.value})
         if count == 0: raise ValueError(f"Message {messageid} is not in PENDING status")
-        return True
 
     async def setMessageAsCompleted(self, messageid: str, extras: dict ={}):
         setDict = {"status": SQSMessageStatus.COMPLETED.value}
@@ -54,7 +53,7 @@ class QueueMessagesHelper:
         return [self.__deserialize_message(doc) for doc in result]
     
     def __deserialize_message(self, doc: dict) -> QueueMessageModel:
-        model_name = doc.get("model")
+        model_name = QueueMessageModelType(doc.get("model"))
         body = doc.get("body")
         if model_name not in MODEL_REGISTRY:
             raise ValueError(f"Unknown model: {model_name}")
@@ -67,8 +66,8 @@ class QueueMessagesHelper:
         message = await self.dbManager.findOne(filterdict)
         return self.__deserialize_message(message)
 
-    async def getAmazonParentReportQueueMessage(self, messageid: str, status: SQSMessageStatus | None = None) -> AmazonParentReportQueueMessage:
+    async def getAmazonParentReportQueueMessage(self, messageid: str, status: SQSMessageStatus | None = None) -> AmazoMarketplaceDailyReportQM:
         message = await self.getMessage(messageid, status)
-        if not isinstance(message, AmazonParentReportQueueMessage):
+        if not isinstance(message, AmazoMarketplaceDailyReportQM):
             raise ValueError(f"Message {messageid} is not of type AmazonParentReportQueueMessage")
         return message

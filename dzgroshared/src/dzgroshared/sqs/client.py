@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 import uuid, botocore.exceptions
 from mypy_boto3_sqs import SQSClient
-from .model import BatchMessageRequest, DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, SQSBatchFailedMessage, SQSBatchSendResponse, SQSBatchSuccessMessage, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, QueueName, BatchResultErrorEntry
+from .model import BatchMessageRequest, DeleteMessageBatchRequest, DeleteMessageBatchResponse, DeleteMessageBatchResultEntry, MessageAttributeDataType, SQSBatchFailedMessage, SQSBatchSendResponse, SQSBatchSuccessMessage, SendMessageAttribute, SendMessageRequest, SQSSendMessageResponse, SQSEvent, ReceiveMessageRequest, SQSMessageAttribute, SQSRecord, catch_sqs_exceptions, QueueName, BatchResultErrorEntry
 from ..db.enums import ENVIRONMENT, SQSMessageStatus
 from ..client import DzgroSharedClient
 
@@ -41,9 +41,10 @@ class SqsHelper:
                 "MessageBody": MessageBody.model_dump_json(),
                 "DelaySeconds": payload.DelaySeconds or 0,
             }
+            payload.MessageAttributes.update({"model":SendMessageAttribute(StringValue=MessageBody.__class__.__name__, DataType=MessageAttributeDataType.STRING)})
             if payload.MessageAttributes: 
                 send_args["MessageAttributes"] = { 
-                    key: attr.model_dump(exclude_none=True) 
+                    key: attr.model_dump(exclude_none=True)
                     for key, attr in payload.MessageAttributes.items() 
                 }
             

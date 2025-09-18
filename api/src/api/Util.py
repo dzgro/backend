@@ -118,5 +118,4 @@ class RequestHelper:
                 client.setMarketplace(marketplace)
         client.setSecretsClient(self.secrets)
         client.setMongoClient(self.mongoClient)
-        client.setRazorpayClient(self.razorpayClient)
         return client

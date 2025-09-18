@@ -7,29 +7,136 @@ from fastapi.routing import APIRoute
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.security import APIKeyHeader
-import io, yaml, os, functools, time
+import io, yaml, os, functools, time, asyncio
 from fastapi.openapi.utils import get_openapi
 from dzgroshared.db.pricing.model import Pricing
+
 from dotenv import load_dotenv
 load_dotenv()
-from dzgroshared.db.enums import ENVIRONMENT
+from dzgroshared.db.enums import ENVIRONMENT, CountryCode
 env = ENVIRONMENT(os.getenv("ENV", None))
 if not env: raise ValueError("ENV environment variable not set")
+
+# Move imports to module level for better performance
+from dzgroshared.secrets.client import SecretManager
+from motor.motor_asyncio import AsyncIOMotorClient
+from dzgroshared.razorpay.client import RazorpayClient
+import jwt
+
+
+def is_running_on_lambda():
+    """
+    Detect if the application is running on AWS Lambda
+    """
+    return bool(os.getenv('AWS_LAMBDA_FUNCTION_NAME')) or bool(os.getenv('LAMBDA_RUNTIME_DIR'))
+
+
+def get_secrets_from_env_or_ssm(environment: ENVIRONMENT):
+    """
+    Load secrets based on runtime environment:
+    - Lambda: Use environment variables only (fail if missing)
+    - EC2: Use SSM Parameter Store only
+    """
+    from dzgroshared.secrets.model import DzgroSecrets
+    
+    is_lambda = is_running_on_lambda()
+    
+    if is_lambda:
+        print("🔍 Detected Lambda environment - using environment variables")
+        # For Lambda: Only use environment variables, validate against DzgroSecrets model
+        env_secrets = {}
+        missing_secrets = []
+        
+        # Get all required secrets from DzgroSecrets model fields
+        required_secrets = list(DzgroSecrets.model_fields.keys())
+        
+        for secret_name in required_secrets:
+            value = os.getenv(secret_name)
+            if value:
+                env_secrets[secret_name] = value
+            else:
+                missing_secrets.append(secret_name)
+        
+        if missing_secrets:
+            raise ValueError(f"Lambda deployment missing required environment variables: {missing_secrets}")
+        
+        # Create a simple object to mimic SecretManager.secrets
+        class EnvSecrets:
+            def __init__(self, secrets_dict):
+                for key, value in secrets_dict.items():
+                    setattr(self, key, value)
+        
+        print("✅ Successfully loaded all secrets from environment variables")
+        return EnvSecrets(env_secrets)
+    
+    else:
+        print("🔍 Detected EC2/local environment - using SSM Parameter Store")
+        # For EC2: Only use SSM Parameter Store
+        return SecretManager(environment).secrets
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from dzgroshared.secrets.client import SecretManager
-    from motor.motor_asyncio import AsyncIOMotorClient
-    from dzgroshared.razorpay.client import RazorpayClient
-    import jwt
-    app.state.env = env
-    app.state.secrets = SecretManager(app.state.env).secrets
-    app.state.mongoClient = AsyncIOMotorClient(app.state.secrets.MONGO_DB_CONNECT_URI, appname="dzgro-api")
-    app.state.razorpayClient = RazorpayClient(app.state.secrets.RAZORPAY_CLIENT_ID, app.state.secrets.RAZORPAY_CLIENT_SECRET)
-    jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{app.state.secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
-    app.state.jwtClient = jwt.PyJWKClient(jwks_url)
+    try:
+        app.state.env = env
+        app.state.is_lambda = is_running_on_lambda()  # Store runtime detection
+        
+        print(f"🚀 Starting application in {'Lambda' if app.state.is_lambda else 'EC2/Local'} environment")
+        
+        # Load secrets using environment-specific approach
+        secrets = await asyncio.to_thread(get_secrets_from_env_or_ssm, env)
+        app.state.secrets = secrets
+        
+        # Setup clients concurrently with error handling - pass secrets as parameters
+        async def setup_mongo(secrets):
+            return AsyncIOMotorClient(
+                secrets.MONGO_DB_CONNECT_URI, 
+                appname="dzgro-api",
+                maxPoolSize=1,  # Lambda processes one request at a time
+                minPoolSize=0,  # No need to maintain connections when idle
+                maxIdleTimeMS=900000,  # Keep connection for 15 minutes (Lambda warm period)
+                serverSelectionTimeoutMS=3000,  # Faster timeout for Lambda
+                connectTimeoutMS=3000,  # Faster connection timeout
+                socketTimeoutMS=10000,  # Socket timeout for operations
+                heartbeatFrequencyMS=60000  # Heartbeat every minute
+            )
+        
+        async def setup_jwt(secrets):
+            jwks_url = f"https://cognito-idp.ap-south-1.amazonaws.com/{secrets.COGNITO_USER_POOL_ID}/.well-known/jwks.json"
+            return jwt.PyJWKClient(
+                jwks_url,
+                cache_keys=True,  # Cache the keys
+                max_cached_keys=16  # Limit cache size
+            )
+        
+        
+        # Run all client setups concurrently with timeout - pass parameters
+        mongo_task = asyncio.create_task(setup_mongo(secrets))
+        jwt_task = asyncio.create_task(setup_jwt(secrets))
+        
+        # Wait for all to complete with timeout
+        app.state.mongoClient, app.state.jwtClient = await asyncio.wait_for(
+            asyncio.gather(mongo_task, jwt_task),
+            timeout=15.0  # 15 second total timeout
+        )
+        
+        print("✅ All clients initialized successfully")
+        
+    except asyncio.TimeoutError:
+        print("❌ Client initialization timeout - some services may be unavailable")
+        raise
+    except Exception as e:
+        print(f"❌ Error during startup: {e}")
+        raise
+    
     yield
+    
+    # Cleanup on shutdown
+    try:
+        if hasattr(app.state, 'mongoClient'):
+            app.state.mongoClient.close()
+    except Exception as e:
+        print(f"Warning: Error during cleanup: {e}")
 
 
 def use_route_names_as_operation_ids(application: FastAPI) -> None:
@@ -94,9 +201,15 @@ async def log_request_time(request: Request, call_next):
         else: print(f"{request.method} {request.url.path} completed in {process_time_seconds*1000:.2f} milliseconds")
     return response
 
-register_exception_handlers(app)
+# Move router imports to module level for better performance
+from api.routers import (
+    gstin, advertising_accounts, razorpay_orders, spapi_accounts, 
+    users, marketplaces, performance_periods, performance_results, 
+    state_analytics, date_analytics, products, payments, ad, 
+    health, analytics, dzgro_reports
+)
 
-from api.routers import gstin, advertising_accounts, razorpay_orders, spapi_accounts, users, marketplaces, performance_periods, performance_results, state_analytics, date_analytics, products, payments, ad, health, analytics, dzgro_reports
+register_exception_handlers(app)
 app.include_router(ad.router)
 app.include_router(advertising_accounts.router)
 app.include_router(analytics.router)
@@ -121,7 +234,7 @@ async def docs_redirect():
     return RedirectResponse(url='/docs')
 
 
-@app.get("/items/")
+@app.get("/items")
 def read_items(
     authorization: str = Security(authorization_scheme),
     marketplace: str = Security(marketplace_scheme)
@@ -129,11 +242,10 @@ def read_items(
     return {"Authorization": authorization, "Marketplace": marketplace}
 
 @app.get("/plans", response_model=Pricing, response_model_exclude_none=True, response_model_by_alias=False)
-@functools.lru_cache()
 async def plans():
     helper = DzgroSharedClient(env)
     helper.setMongoClient(app.state.mongoClient)
-    data = await helper.dbClient.database['pricing'].find_one({"active": True})
+    data = await helper.db.pricing.getActivePlan(CountryCode.INDIA)
     return Pricing.model_validate(data)
 
 @app.get('/openapi.yaml', include_in_schema=False)

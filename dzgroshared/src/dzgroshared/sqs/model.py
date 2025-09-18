@@ -1,3 +1,4 @@
+from dzgroshared.db.enums import QueueMessageModelType
 from dzgroshared.db.model import DzgroError
 from dzgroshared.db.model import ErrorDetail, ErrorList
 from pydantic import BaseModel, model_validator, Field, computed_field, ConfigDict, conint
@@ -17,6 +18,10 @@ class QueueName(str, Enum):
     AMS_PERFORMANCE = "AmsPerformance"
     PAYMENT_PROCESSOR = "PaymentProcessor"
     DAILY_REPORT_REFRESH_BY_COUNTRY_CODE = "DailyReportRefreshByCountryCode"
+
+    @classmethod
+    def all(cls):
+        return list(cls)
 
 
 # ================================
@@ -67,7 +72,7 @@ class SQSRecord(BaseModel):
     receiptHandle: str
     body: str
     attributes: SQSAttributes | SkipJsonSchema[None] = None
-    messageAttributes: dict[str, SQSMessageAttribute] = {}
+    messageAttributes: Dict[str, SQSMessageAttribute]
     md5OfBody: str | SkipJsonSchema[None] = None
 
     def _safe_json_parse(self) -> Any:
@@ -79,8 +84,6 @@ class SQSRecord(BaseModel):
     @computed_field
     @property
     def flat_message_attributes(self) -> Dict[str, str]:
-        if not self.messageAttributes:
-            return {}
         result = {}
         for key, attr in self.messageAttributes.items():
             val = attr.stringValue or attr.binaryValue
@@ -132,6 +135,13 @@ class SQSRecord(BaseModel):
     def boolBody(self) -> Optional[bool]:
         return self.parsed_body if isinstance(self.parsed_body, bool) else None
 
+    @computed_field
+    @property
+    def model(self) -> QueueMessageModelType:
+        model = self.flat_message_attributes.get("model", None)
+        if not model: raise ValueError("Message attribute 'model' is required to identify the message type")
+        return QueueMessageModelType(model)
+
 
 class SQSEvent(BaseModel):
     Records: List[SQSRecord]
@@ -179,9 +189,9 @@ class ReceiveMessageRequest(BaseModel):
 # ================================
 
 class MessageAttributeDataType(str, Enum):
-    string = "String"
-    number = "Number"
-    binary = "Binary"
+    STRING = "String"
+    NUMBER = "Number"
+    BINARY = "Binary"
 
 
 class SendMessageAttribute(BaseModel):
@@ -191,17 +201,17 @@ class SendMessageAttribute(BaseModel):
 
     @model_validator(mode="after")
     def validate_content_by_datatype(self) -> "SendMessageAttribute":
-        if self.DataType in {"String", "Number"}:
+        if self.DataType in [MessageAttributeDataType.STRING, MessageAttributeDataType.NUMBER]:
             if self.StringValue is None:
                 raise ValueError(f"{self.DataType} requires 'StringValue'")
-        elif self.DataType == "Binary":
+        elif self.DataType == MessageAttributeDataType.BINARY:
             if self.BinaryValue is None:
                 raise ValueError("Binary requires 'BinaryValue'")
         return self
 class SendMessageRequest(BaseModel):
     Queue: QueueName
     DelaySeconds: int = Field( default=0, ge=0, le=900)
-    MessageAttributes: Dict[str, SendMessageAttribute] | SkipJsonSchema[None] = None
+    MessageAttributes: Dict[str, SendMessageAttribute] = {}
 
 class BatchMessageRequest(BaseModel):
     DelaySeconds: int = Field( default=0, ge=0, le=900)
@@ -306,7 +316,7 @@ def catch_sqs_exceptions(func):
                 error.message = f"Unhandled SQS error: {error.code} - {e.response['Error']['Message']}"
             return DzgroError(errors=ErrorList(errors=[error]))
         except Exception as e:
-            return DzgroError(errors=ErrorList(errors=[ErrorDetail(code="UNKNOWN", message=str(e))]))
+            return DzgroError(errors=ErrorList(errors=[ErrorDetail(code=400, message=str(e))]))
     return wrapper
 
 

@@ -13,11 +13,11 @@ class PricingHelper:
         self.db = DbManager(client.db.database.get_collection(CollectionType.PRICING.value))
     
     async def getActivePlan(self, countrycode: CountryCode):
-        result = await self.db.findOne({"countryCode": countrycode})
+        result = await self.db.findOne({"countryCode": countrycode.value, "active": True})
         return Pricing.model_validate(result)
     
     async def getActivePlanId(self, countrycode: CountryCode):
-        result = await self.db.findOne({"countryCode": countrycode}, projectionInc=["_id"])
+        result = await self.db.findOne({"countryCode": countrycode.value, "active": True}, projectionInc=["_id"])
         return result['_id']
     
     async def getPlan(self, id: PyObjectId):

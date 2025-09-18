@@ -1,56 +1,48 @@
 from bson import ObjectId
 from dzgroshared.db.dzgro_reports.model import DzgroReport, DzgroReportType
-from dzgroshared.db.enums import ENVIRONMENT, CollateType, QueryTag, S3Bucket
-from dzgroshared.sqs.model import SQSEvent
-from dzgroshared.db.queue_messages.model import DzgroReportQueueMessage
+from dzgroshared.db.enums import ENVIRONMENT, CollateType
+from dzgroshared.sqs.model import SQSEvent, SQSRecord
+from dzgroshared.db.queue_messages.model import DzgroReportQM
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.sqs.model import SQSEvent
+from dzgroshared.storage.model import S3Bucket
 
 class DzgroReportProcessor:
     client: DzgroSharedClient
     messageid: str
-    message: DzgroReportQueueMessage
+    message: DzgroReportQM
     report: DzgroReport
     filename: str
 
     def __init__(self, client: DzgroSharedClient):
         self.client = client
 
-    async def execute(self, event: dict):
-        try:
-            parsed = SQSEvent.model_validate(event)
-            for record in parsed.Records:
-                message = DzgroReportQueueMessage.model_validate(record.dictBody)
-                self.client.setUid(message.uid)
-                self.client.setMarketplace(message.marketplace)
-                self.messageid = record.messageId
-                self.message = message
-                self.report = await self.client.db.dzgro_reports.getReport(self.message.index)
-                if self.report.messageid==self.messageid:
-                    if await self.setMessageAsProcessing():
-                        try:
-                            self.filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/{self.report.reporttype.value.replace(' ','_')}'
-                            count = await self.getCount()
-                            if count==0: 
-                                return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
-                            elif count<12000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere()
-                            else: await self.runFedQuery()
-                            await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
-                            await self.client.db.dzgro_reports_data.deleteReportData(self.report.id)
-                        except Exception as e:
-                            await self.setError(e)
-                    else: print(f"[WARNING] Message {record.messageId} is already being processed")
-                else: print(f"[WARNING] Message {record.messageId} is not for this report")
-
-        except Exception as e:
-            print(f"[ERROR] Failed to process message {record.messageId}: {e}")
+    async def execute(self, record: SQSRecord):
+        message = DzgroReportQM.model_validate(record.dictBody)
+        self.client.setUid(message.uid)
+        self.client.setMarketplaceId(message.marketplace)
+        self.messageid = record.messageId
+        self.message = message
+        self.report = await self.client.db.dzgro_reports.getReport(self.message.index)
+        if self.report.messageid==self.messageid:
+            try:
+                await self.client.db.sqs_messages.setMessageAsProcessing(self.messageid)
+                try:
+                    self.filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/{self.report.reporttype.value.replace(' ','_')}'
+                    count = await self.getCount()
+                    if count==0: 
+                        return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
+                    elif count<12000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere()
+                    else: await self.runFedQuery()
+                    await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
+                    await self.client.db.dzgro_reports_data.deleteReportData(self.report.id)
+                except Exception as e:
+                    await self.setError(e)
+            except Exception as e: print(f"[WARNING] Message {self.messageid} is already being processed")
+        else: print(f"[WARNING] Message {self.messageid} is not for this report")
 
     def __getattr__(self, item):
         return None
-    
-    async def setMessageAsProcessing(self):
-        updated, id = await self.client.db.sqs_messages.setMessageAsProcessing(self.messageid)
-        return updated==1
     
     async def setError(self, e: Exception):
         error = e.args[0] if e.args else str(e)

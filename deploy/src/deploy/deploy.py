@@ -34,19 +34,6 @@ def run_connect_ec2_script():
         print(f"Unexpected error running connect-ec2.ps1: {e}")
 
 
-def askForSelection():
-    question = [
-        inquirer.List(
-            "script",
-            message="Select an Environment to run:",
-            choices=[x.value for x in ENVIRONMENT.all()],
-        )
-    ]
-    answer = inquirer.prompt(question)
-    if not answer or "script" not in answer:
-        print("No selection made.")
-        exit(1)
-    return ENVIRONMENT(answer["script"])
 
 
 def main():

@@ -3,9 +3,10 @@
 Maps function names to their deployment configuration, including AWS region and other metadata.
 """
 from enum import Enum
-from typing import Literal
+from typing import List, Literal
 
 from dzgroshared.db.enums import ENVIRONMENT
+from dzgroshared.db.queue_messages.model import QueueMessageModelType
 from dzgroshared.sqs.model import QueueName
 from dzgroshared.storage.model import S3Bucket
 from pydantic import BaseModel
@@ -15,16 +16,30 @@ class Tag(BaseModel):
     Project: str = 'Dzgro'
     Environment: ENVIRONMENT
 
+class LAYER_NAME(str, Enum):
+    API = "ApiLayer"
+    MANGUM  = "MangumLayer"
+    DZGRO_SHARED = "DzgroSharedLayer"
+    PYMONGO = "PymongoLayer"
+    INVOICE_GENERATOR = "InvoiceGeneratorLayer"
+
+LAYER_DEPENDENCIES = {
+    LAYER_NAME.PYMONGO: ["pymongo==4.15.0"],
+    LAYER_NAME.INVOICE_GENERATOR: [
+        "num2words==0.5.14",
+        "reportlab==4.4.3"
+    ],
+    LAYER_NAME.MANGUM: ["mangum==0.19.0"]
+}
 
 class LambdaName(str, Enum):
+    Api = "Api"
+    CognitoCustomMessage = "CognitoCustomMessage"
     CognitoTrigger = "CognitoTrigger"
-    AmazonDailyReport = "AmazonDailyReport"
-    DzgroReports = "DzgroReports"
+    QueueModelMessageProcessor = "QueueModelMessageProcessor"
     DzgroReportsS3Trigger = "DzgroReportsS3Trigger"
-    RazorpayWebhookProcessor = "RazorpayWebhookProcessor"
     AmsChange = "AmsChange"
     AmsPerformance = "AmsPerformance"
-    DailyReportRefreshByCountryCode = "DailyReportRefreshByCountryCode"
 
 
 class QueueRole(str, Enum):
@@ -72,12 +87,14 @@ class Region(str, Enum):
         return [Region.EU, Region.NA, Region.FE]
     
 class ApiGatewayRoute(BaseModel):
-    method: Literal['POST', 'GET', 'PUT', 'DELETE', 'PATCH']
+    method: Literal['POST', 'GET', 'PUT', 'DELETE', 'PATCH', 'ANY']
     path: str
+    parameters: dict|SkipJsonSchema[None]=None
 
     
 class APIGatewaySQSTrigger(ApiGatewayRoute):
     headers: list[str] = []
+    modeltype: QueueMessageModelType|SkipJsonSchema[None]=None
 
 class QueueProperty(BaseModel):
     name: QueueName
@@ -91,8 +108,15 @@ class S3TriggerEvent(BaseModel):
     eventName: str
     filter: dict|SkipJsonSchema[None]=None
 
+class S3Method(str, Enum):
+    GET = "GET"
+    PUT = "PUT"
+    POST = "POST"
+    DELETE = "DELETE"
+    HEAD = "HEAD"
+
 class S3CorsRule(BaseModel):
-    methods = list[Literal['GET', 'PUT', 'POST', 'DELETE', 'HEAD']]
+    methods: list[S3Method]
 
 class S3Property(BaseModel):
     name: S3Bucket
@@ -103,23 +127,18 @@ class S3Property(BaseModel):
 
 class LambdaRegion(BaseModel):
     region: Region
-    memorySize: int = 128
-    timeout: int = 900
     description: str = "General Description"
-    queue: QueueProperty|SkipJsonSchema[None]=None
-    s3: S3Property|SkipJsonSchema[None]=None
+    queue: List[QueueProperty] = []
+    s3: List[S3Property] = []
     api: ApiGatewayRoute|SkipJsonSchema[None]=None
-
-class LambdaRequirement(BaseModel):
-    name: str
-    version: str
 
 class LambdaProperty(BaseModel):
     name: LambdaName
-    regions: list[LambdaRegion]
-    env: list[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD, ENVIRONMENT.LOCAL]
-    requirements: list[LambdaRequirement]|SkipJsonSchema[None]=None
-    skipSharedLibraries: bool = False
+    memorySize: int = 128
+    timeout: int = 900
+    regions: List[LambdaRegion]
+    env: List[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD, ENVIRONMENT.LOCAL]
+    layers: List[LAYER_NAME] = []
 
 def createPolicy(region:Region, name:LambdaName, arns: list[str]):
     return {
@@ -170,51 +189,102 @@ def getAMSChangeSetPolicy(region: Region):
 
 LAMBDAS = [
     LambdaProperty(
-        name=LambdaName.CognitoTrigger,
-        requirements=[
-            LambdaRequirement(name="pymongo", version="4.15.0")
-        ],
+        name=LambdaName.CognitoCustomMessage,
+        memorySize=256,
+        timeout=30,
+        layers = [],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT
             ),
         ],
-        skipSharedLibraries=True,
-        env = [ENVIRONMENT.PROD]
+        env = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD]
     ),
     LambdaProperty(
-        name=LambdaName.AmazonDailyReport,
+        name=LambdaName.CognitoTrigger,
+        memorySize=512,
+        timeout=10,
+        layers = [LAYER_NAME.PYMONGO],
+        regions=[
+            LambdaRegion(
+                region=Region.DEFAULT
+            ),
+        ],
+        env = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD]
+    ),
+    LambdaProperty(
+        name=LambdaName.Api,
+        memorySize=1024,
+        timeout=30,
+        layers = [LAYER_NAME.API,LAYER_NAME.MANGUM, LAYER_NAME.DZGRO_SHARED],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
-                queue=QueueProperty(
-                    name=QueueName.AMAZON_REPORTS,
-                    roles=QueueRole.all()
+                api = ApiGatewayRoute(
+                    method='ANY',
+                    path='/api/{proxy+}',
                 ),
-                s3=S3Property(name=S3Bucket.AMAZON_REPORTS, roles=S3Role.all())
+                queue = [QueueProperty(name=name, roles=QueueRole.all()) for name in QueueName.all()],
+                s3 = [S3Property(name=name, roles=S3Role.all()) for name in S3Bucket.all()]
+            )
+        ],
+        env = [ENVIRONMENT.TEST, ENVIRONMENT.DEV]
+    ),
+    LambdaProperty(
+        name=LambdaName.QueueModelMessageProcessor,
+        layers = [LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.DZGRO_SHARED],
+        regions=[
+            LambdaRegion(
+                region=Region.DEFAULT,
+                queue=[
+                    QueueProperty(
+                        name=QueueName.AMAZON_REPORTS,
+                        roles=QueueRole.all()
+                    ),
+                    QueueProperty(
+                        name=QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE,
+                        roles=QueueRole.all()
+                    ),
+                    QueueProperty(
+                        name=QueueName.DZGRO_REPORTS,
+                        roles=QueueRole.all()
+                    ),
+                    QueueProperty(
+                name=QueueName.RAZORPAY_WEBHOOK,
+                roles=QueueRole.all(),
+                apiTrigger=[
+                    APIGatewaySQSTrigger(
+                        method='POST',
+                        path='/webhook/rzrpay/order/paid',
+                        headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
+                        modeltype=QueueMessageModelType.ORDER_PAID
+                    ),
+                    APIGatewaySQSTrigger(
+                        method='POST',
+                        path='/webhook/rzrpay/invoice/paid',
+                        headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
+                        modeltype=QueueMessageModelType.INVOICE_PAID
+                    ),
+                    APIGatewaySQSTrigger(
+                        method='POST',
+                        path='/webhook/rzrpay/invoice/expired',
+                        headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
+                        modeltype=QueueMessageModelType.INVOICE_EXPIRED
+                    )
+                ]
+            )
+                ],
+                s3=[S3Property(name=S3Bucket.AMAZON_REPORTS, roles=S3Role.all())]
             )
         ]
     ),
     LambdaProperty(
-        name=LambdaName.DzgroReports,
-        regions=[LambdaRegion(
-            region=Region.DEFAULT,
-            queue=QueueProperty(
-                name=QueueName.DZGRO_REPORTS,
-                roles=QueueRole.all()
-            ),
-        )],
-    ),
-    LambdaProperty(
         name=LambdaName.DzgroReportsS3Trigger,
-        requirements=[
-            LambdaRequirement(name="pandas", version="2.3.2"),
-            LambdaRequirement(name="openpyxl", version="3.1.5")
-        ],
+        layers = [LAYER_NAME.DZGRO_SHARED],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
-                s3=S3Property(
+                s3=[S3Property(
                     name=S3Bucket.DZGRO_REPORTS, 
                     roles=S3Role.all(), 
                     trigger=S3TriggerEvent(
@@ -230,67 +300,36 @@ LAMBDAS = [
                             }
                         ]
                     )
-                )
+                )]
             ),
         ]
     ),
     LambdaProperty(
-        name=LambdaName.RazorpayWebhookProcessor,
-        requirements=[
-            LambdaRequirement(name="num2words", version="0.5.14"),
-            LambdaRequirement(name="reportlab", version="4.4.3")
-        ],
-        regions=[LambdaRegion(
-            region=Region.DEFAULT,
-            queue=QueueProperty(
-                name=QueueName.RAZORPAY_WEBHOOK,
-                roles=QueueRole.all(),
-                apiTrigger=[
-                    APIGatewaySQSTrigger(
-                    method='POST',
-                    path='/webhook/rzrpay',
-                    headers=['x-razorpay-event-id', 'X-Razorpay-Signature']
-                )]
-            )
-        )]  
-    ),
-    LambdaProperty(
         name=LambdaName.AmsChange,
+        layers = [LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(
                 region=region,
-                queue=QueueProperty(
+                queue=[QueueProperty(
                     name=QueueName.AMS_CHANGE,
                     roles=QueueRole.read(),
                     policy = getAMSChangeSetPolicy(region)
-                ),
+                )],
             ) for region in Region.others()
         ],
     ),
     LambdaProperty(
         name=LambdaName.AmsPerformance,
+        layers = [LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(
                 region=region,
-                queue=QueueProperty(
+                queue=[QueueProperty(
                     name=QueueName.AMS_PERFORMANCE,
                     roles=QueueRole.read(),
                     policy = getAMSPerformancePolicy(region)
-                ),
+                )],
             ) for region in Region.others()
         ],
     ),
-    LambdaProperty(
-        name=LambdaName.DailyReportRefreshByCountryCode,
-        regions=[
-            LambdaRegion(
-                region=region,
-                queue=QueueProperty(
-                    name=QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE,
-                    roles=QueueRole.read(),
-                ),
-            ) for region in Region.others()
-        ],
-    )
-
 ]

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator, model_validator
-from typing import Optional, Dict, Any, List, Literal
+from typing import Optional, Dict, Any, List, Literal, Union
 from pydantic.json_schema import SkipJsonSchema
 
 class Id(BaseModel):
@@ -18,15 +18,16 @@ class InvoiceExpiredEntity(Id):
 class InvoicePaidEntity(InvoiceExpiredEntity):
     payment_id: str
 
-class InvoicePaidBody(BaseModel):
+class InvoicePaidQM(BaseModel):
     order: OrderEntity
     payment: PaymentEntity
     invoice: InvoicePaidEntity
 
-class InvoiceExpiredBody(BaseModel):
+class InvoiceExpiredQM(BaseModel):
     order: OrderEntity
     invoice: InvoiceExpiredEntity
 
-class OrderPaidBody(BaseModel):
+class OrderPaidQM(BaseModel):
     order: OrderEntity
     payment: PaymentEntity
+

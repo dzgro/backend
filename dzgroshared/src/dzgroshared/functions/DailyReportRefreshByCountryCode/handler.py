@@ -2,12 +2,10 @@
 import asyncio
 from datetime import datetime
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.db.queue_messages.model import AmazonParentReportQueueMessage, DailyReportMessage
-from dzgroshared.models.collections.report_failures import DailyReportFailure
-from dzgroshared.db.enums import ENVIRONMENT, AmazonDailyReportAggregationStep, CollectionType, CountryCode, MarketplaceStatus, QueueName
-from dzgroshared.db.model import LambdaContext, MockLambdaContext
-from dzgroshared.sqs.model import BatchMessageRequest, SQSEvent, SQSRecord, SendMessageRequest
-from dzgroshared.utils import date_util
+from dzgroshared.db.queue_messages.model import AmazoMarketplaceDailyReportQM, DailyReportByCountryQM
+from dzgroshared.db.enums import ENVIRONMENT, AmazonDailyReportAggregationStep, CollectionType, CountryCode, MarketplaceStatus
+from dzgroshared.db.model import LambdaContext
+from dzgroshared.sqs.model import BatchMessageRequest, QueueName, SQSEvent, SQSRecord
 
 
 class DailyReportRefreshByCountryCodeProcessor:
@@ -18,20 +16,12 @@ class DailyReportRefreshByCountryCodeProcessor:
     def __init__(self, client: DzgroSharedClient):
         self.client = client
 
-    async def execute(self, event: dict, context: LambdaContext):
+    async def execute(self, context,  record: SQSRecord):
         self.context = context
-        try:
-            parsed = SQSEvent.model_validate(event)
-            for record in parsed.Records:
-                try:
-                    self.messageid = record.messageId
-                    message = DailyReportMessage.model_validate(record.dictBody)
-                    return await self.buildMessages(message.index)
-                except Exception as e:
-                    await self.client.db.sqs_messages.setMessageAsFailed(self.messageid, str(e))
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            pass
+        self.messageid = record.messageId
+        message = DailyReportByCountryQM.model_validate(record.dictBody)
+        return await self.buildMessages(message.index)
+            
         
 
     async def buildMessages(self, countryCode: CountryCode):
@@ -42,7 +32,7 @@ class DailyReportRefreshByCountryCodeProcessor:
         for item in data:
             uid=item.get("uid")
             marketplace=item.get("_id")
-            message = AmazonParentReportQueueMessage(
+            message = AmazoMarketplaceDailyReportQM(
                 uid=uid,
                 marketplace=marketplace,
                 step=AmazonDailyReportAggregationStep.CREATE_REPORTS,

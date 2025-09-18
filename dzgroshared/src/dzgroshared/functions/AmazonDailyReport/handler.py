@@ -8,7 +8,7 @@ from dzgroshared.functions.AmazonDailyReport.reports.ReportUtils import ReportUt
 from dzgroshared.functions.AmazonDailyReport.reports.DateUtility import MarketplaceDatesUtility
 from bson import ObjectId
 from dzgroshared.db.products.controller import ProductHelper
-from dzgroshared.db.queue_messages.model import AmazonParentReportQueueMessage
+from dzgroshared.db.queue_messages.model import AmazoMarketplaceDailyReportQM
 from dzgroshared.db.enums import AmazonDailyReportAggregationStep, AmazonReportType, CollectionType, ENVIRONMENT
 from dzgroshared.db.daily_report_group.model import AmazonParentReport
 from dzgroshared.db.daily_report_item.model import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonSpapiReport
@@ -22,7 +22,7 @@ class AmazonReportManager:
     userMarketplace: MarketplaceObjectForReport
     productsDb: ProductHelper
     report: AmazonParentReport
-    message: AmazonParentReportQueueMessage
+    message: AmazoMarketplaceDailyReportQM
     messageId: str
     reportUtil: ReportUtil
     dateUtil: MarketplaceDatesUtility
@@ -35,12 +35,11 @@ class AmazonReportManager:
     
     
 
-    async def execute(self, event: dict|SQSEvent, context: LambdaContext):
+    async def execute(self, event: dict|SQSEvent, context: LambdaContext, record: SQSRecord):
         try:
             self.event = SQSEvent.model_validate(event) if isinstance(event, dict) else event
             self.context = context
-            for record in self.event.Records:
-                await self.processRecord(record)
+            await self.processRecord(record)
         except Exception as e:
             error = e.args[0] if len(e.args) > 0 else "Some error Occurred"
             await self.client.db.sqs_messages.setMessageAsFailed(self.messageId, error)
@@ -51,7 +50,7 @@ class AmazonReportManager:
     async def processRecord(self, record: SQSRecord):
         try:
             self.messageId = record.messageId
-            self.message = AmazonParentReportQueueMessage.model_validate(record.dictBody)
+            self.message = AmazoMarketplaceDailyReportQM.model_validate(record.dictBody)
             self.client.setUid(self.message.uid)
             self.client.setMarketplaceId(self.message.marketplace)
             await self.setUserMarketplace()

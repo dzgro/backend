@@ -271,3 +271,6 @@ secrets.json
 *.yaml
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode
+
+# Lambda layer cache
+.cache/

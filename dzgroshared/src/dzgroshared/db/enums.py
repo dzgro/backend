@@ -223,6 +223,15 @@ class AmazonReportAction(str, Enum):
     def list():
         return list(map(lambda c: c, AmazonReportAction))
     
+
+class QueueMessageModelType(str, Enum):
+    AMAZON_DAILY_REPORT = "AmazoMarketplaceDailyReportQM"
+    DZGRO_REPORT = "DzgroReportQM"
+    COUNTRY_REPORT = "DailyReportByCountryQM"
+    ORDER_PAID = "OrderPaidQM"
+    INVOICE_PAID = "InvoicePaidQM"
+    INVOICE_EXPIRED = "InvoiceExpiredQM"
+    
 class CountryCode(Enum):
     CANADA = 'CA'
     UNITED_STATES = 'US'

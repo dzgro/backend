@@ -10,6 +10,10 @@ class S3Bucket(str, Enum):
     AMAZON_REPORTS = "dzgro-amz-report-data"
     INVOICES = "dzgro-invoice"
 
+    @classmethod
+    def all(cls):
+        return list(cls)
+
 
 class S3PutObjectModel(BaseModel):
     Bucket: S3Bucket

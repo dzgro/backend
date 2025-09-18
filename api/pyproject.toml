@@ -13,21 +13,10 @@ pyjwt = "2.8.0"
 cryptography = "42.0.5"
 python = ">=3.12,<4.0"
 python-dotenv = "1.1.1"
-pandas = "2.3.2"
-openpyxl = "3.1.5"
-inquirer = "*"
-toml = "*"
-pyyaml = "*"
-psutil = "7.0.0"
 cachetools = "6.2.0"
 pytest = "8.4.2"
 pytest-asyncio =  "1.1.0"
-num2words = "0.5.14"
-reportlab = "4.4.3"
-
-
-
-
+pyyaml = "6.0.2"
 
 
 [tool.poetry.group.dev.dependencies]

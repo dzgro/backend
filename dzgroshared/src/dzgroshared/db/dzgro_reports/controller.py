@@ -1,7 +1,7 @@
 from bson import ObjectId
 from dzgroshared.db.dzgro_reports.model import CreateDzgroReportRequest, DzgroReport
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.db.queue_messages.model import DzgroReportQueueMessage
+from dzgroshared.db.queue_messages.model import DzgroReportQM
 from dzgroshared.db.enums import ENVIRONMENT, CollectionType
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.model import Paginator, Sort
@@ -22,7 +22,7 @@ class DzgroReportHelper:
         try:
             id = await self.db.insertOne(request.model_dump(exclude_none=True))
             reportId = str(id)
-            message = DzgroReportQueueMessage(marketplace=self.client.marketplaceId, index=reportId, reporttype=request.reporttype)
+            message = DzgroReportQM(marketplace=self.client.marketplaceId, index=reportId, reporttype=request.reporttype)
             req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
             message_id = await self.client.sqs.sendMessage(req, message)
             await self.addMessageId(reportId,message_id)
