@@ -3,7 +3,7 @@ from dzgroshared.sqs.model import QueueName
 from dzgroshared.storage.model import S3Bucket
 from deploy.TemplateBuilder.StarterMapping import Region, LambdaName, Tag
 from dzgroshared.db.enums import ENVIRONMENT
-import os
+import os, boto3
 
 
     
@@ -51,17 +51,27 @@ class TemplateBuilder:
         for region in regions:
             try:
                 self.resources = {}
-                if region==Region.DEFAULT and self.env != ENVIRONMENT.LOCAL:
-                    from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
-                    optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
-                    layerArns = optimized_builder.execute_optimized()
-                    optimized_builder.print_performance_summary()
-                    from deploy.TemplateBuilder.BuildCertificates import CertificateBuilder
-                    CertificateBuilder(self).execute()
-                    from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
-                    ApiGatewayBuilder(self).execute()
-                    from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
-                    CognitoBuilder(self).execute()
+                if self.env==ENVIRONMENT.LOCAL:
+                    buckets = [self.getBucketName(bucket) for bucket in S3Bucket.all()]
+                    s3 = boto3.client('s3', region_name=region.value)
+                    for bucket in buckets:
+                        try: 
+                            s3.create_bucket(Bucket=bucket)
+                            print(f"Bucket {bucket} created")
+                        except Exception as e: print(f"Error creating bucket {bucket}: {e}")
+                else:
+                    if region==Region.DEFAULT:
+                        from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
+                        optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
+                        layerArns = optimized_builder.execute_optimized()
+                        optimized_builder.print_performance_summary()
+                        certificateArn = self.getAuthCertificateArn()
+                        from deploy.TemplateBuilder.BuildCertificates import CertificateBuilder
+                        CertificateBuilder(self).execute(certificateArn)
+                        from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
+                        ApiGatewayBuilder(self).execute()
+                        from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
+                        CognitoBuilder(self).execute()
                     from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
                     LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
                     from deploy.TemplateBuilder.SamExecutor import SAMExecutor
@@ -70,7 +80,29 @@ class TemplateBuilder:
                 print(f"Error occurred while building SAM template for region {region.value}: {e}")
                 raise e
 
-    def getDomain(self):
+    def getAuthCertificateArn(self) -> str:
+        acm = boto3.client("acm", region_name='us-east-1')
+        certificates = acm.list_certificates(CertificateStatuses=['PENDING_VALIDATION', 'ISSUED', 'INACTIVE', 'EXPIRED', 'VALIDATION_TIMED_OUT', 'REVOKED', 'FAILED'])
+        domain = self.getAuthDomainName()
+        for cert in certificates['CertificateSummaryList']:
+            if cert['DomainName'] == domain:
+                return cert['CertificateArn']
+        certificate = acm.request_certificate(
+            DomainName=self.getAuthDomainName(),
+            ValidationMethod="DNS",
+            Tags=self.getListTag()
+        )
+        return certificate['CertificateArn']
+            
+    def getApiDomainName(self):
+        domain = self._getDomain()
+        return f'api.{domain}'
+
+    def getAuthDomainName(self):
+        domain = self._getDomain()
+        return f'auth.{domain}'
+
+    def _getDomain(self):
         if self.env == ENVIRONMENT.PROD:return "dzgro.com"
         elif self.env == ENVIRONMENT.TEST:return "test.dzgro.com"
         else:return "dev.dzgro.com"

@@ -10,7 +10,6 @@ class LambdasBucketsQueuesBuilder:
         self.builder = builder
 
     def execute(self, region: Region, LayerArn: dict[LAYER_NAME, str]):
-        # Get secrets for Lambda environment variables
         from dzgroshared.secrets.client import SecretManager
         secrets = SecretManager(self.builder.env).secrets.model_dump(mode="json")
         print(f"Loaded {len(secrets)} secrets for Lambda environment variables")
@@ -20,7 +19,7 @@ class LambdasBucketsQueuesBuilder:
                 for _lambdaRegion in _lambda.regions:
                     if _lambdaRegion.region == region:
                         if region==Region.DEFAULT:
-                            self.addBucket(region, _lambdaRegion.s3)
+                            self.addBucket(_lambdaRegion.s3)
                             if self.builder.env != ENVIRONMENT.LOCAL:
                                 self.createLambdaRole(_lambda, region)
                                 if _lambdaRegion.queue: 
@@ -54,7 +53,7 @@ class LambdasBucketsQueuesBuilder:
         resource = { 'Type': 'AWS::Serverless::Function', 'Properties': properties }
         self.builder.resources[fnName] = resource
 
-    def addBucket(self, region: Region, s3Properties: list[S3Property]):
+    def addBucket(self, s3Properties: list[S3Property]):
         for s3 in s3Properties:
             resource_name = self.builder.getBucketResourceName(s3.name)
             properties = {

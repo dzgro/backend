@@ -8,23 +8,27 @@ class CertificateBuilder:
     def __init__(self, builder: TemplateBuilder) -> None:
         self.builder = builder
 
-    def execute(self):
-        domain = self.builder.getDomain()
+    def execute(self, AuthCertificateArn: str):
+        authDomain = self.builder.getAuthDomainName()
+        apiDomain = self.builder.getApiDomainName()
         resource: dict = {
-            'ApiCertificate': {
-                "Type": "AWS::CertificateManager::Certificate",
-                "Properties": {
-                    "DomainName": f"api.{domain}",
-                    "ValidationMethod": "DNS"
-                }
-            },
             'ApiDomain': {
                 "Type": "AWS::ApiGateway::DomainName",
                 "Properties": {
-                    "DomainName": f'api.{domain}',
+                    "DomainName": apiDomain,
                     "RegionalCertificateArn": { "Ref": "ApiCertificate" },
                     "EndpointConfiguration": {
                         "Types": ["REGIONAL"]
+                    }
+                }
+            },
+            "AuthDomain": {
+                "Type": "AWS::Cognito::UserPoolDomain",
+                "Properties": {
+                    "Domain": authDomain,
+                    "UserPoolId": { "Ref": "UserPool" },
+                    "CustomDomainConfig": {
+                    "CertificateArn": AuthCertificateArn
                     }
                 }
             },
