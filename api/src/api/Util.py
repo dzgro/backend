@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.marketplaces.model import MarketplaceCache
-from dzgroshared.db.users.model import User
+from dzgroshared.db.users.model import User, UserBasicDetails
 from dzgroshared.db.enums import ENVIRONMENT
 from dzgroshared.razorpay.customer.model import RazorpayCreateCustomer
 from dzgroshared.razorpay.client import RazorpayClient
@@ -8,7 +8,7 @@ from fastapi import Request
 from fastapi.exceptions import HTTPException
 import jwt   
 from dzgroshared.secrets.model import DzgroSecrets
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 MARKETING_MISSING = HTTPException(status_code=403, detail="Missing Marketplace ID")
 UID_MISSING = HTTPException(status_code=403, detail="Missing User ID")
 INVALID_MARKETPLACE = HTTPException(status_code=403, detail="Invalid Marketplace for this user")
@@ -54,23 +54,31 @@ class RequestHelper:
 
     @property
     def razorpayClient(self)->RazorpayClient:
+        razorpay_client = getattr(self.request.app.state, "razorpayClient", None)
+        if razorpay_client is None:
+            key = self.secrets.RAZORPAY_CLIENT_ID if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_ID
+            secret = self.secrets.RAZORPAY_CLIENT_SECRET if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_SECRET
+            self.request.app.state.razorpayClient = RazorpayClient(key, secret)
         return self.request.app.state.razorpayClient
     
     @property
     def DB_NAME(self)->str:
-        return f'dzgro-{self.env.value.lower()}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+        return f'dzgro-{self.env.value}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+
+    async def _createRazorpayCustomer(self, user:UserBasicDetails, collection: AsyncIOMotorCollection):
+        customerReq = RazorpayCreateCustomer(name=user.name, email=user.email, contact=user.phone_number)
+        customer = await self.razorpayClient.customer.create_customer(customerReq)
+        await collection.update_one({"_id": self.uid}, {"$set": {"customerid": customer.id}})
+        return customer.id
     
     async def __userCache(self):
         if self.uid in USER_CACHE: return USER_CACHE[self.uid]
         users = self.mongoClient[self.DB_NAME]['users']
         doc = await users.find_one({"_id": self.uid})
         if not doc: raise UID_MISSING
+        if 'customerid' not in doc:
+            doc['customerid'] = await self._createRazorpayCustomer(UserBasicDetails.model_validate(doc), users)
         user = User.model_validate(doc)
-        if not 'customerid' in doc or not doc['customerid']:
-            customerReq = RazorpayCreateCustomer(name=user.name, email=user.email, contact=user.phoneNumber)
-            customer = await self.razorpayClient.customer.create_customer(customerReq)
-            await users.update_one({"_id": self.uid}, {"$set": {"customerid": customer.id}})
-            user.customerid = customer.id
         USER_CACHE[self.uid] = user
         return user
 
@@ -105,6 +113,7 @@ class RequestHelper:
         key = client.get_signing_key(header["kid"]).key
         payload = jwt.decode(token, key, [header["alg"]])
         return payload['username']
+    
 
     @property
     async def client(self):

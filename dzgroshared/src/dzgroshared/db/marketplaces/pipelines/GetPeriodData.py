@@ -1,10 +1,11 @@
 
+from bson import ObjectId
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
 from dzgroshared.db.model import PeriodDataRequest
 
 
-def pipeline(pp: PipelineProcessor, req: PeriodDataRequest):
-    match = { '$match': { '_id': pp.marketplace, 'uid': pp.uid } }
+def pipeline(uid:str, marketplaceId: ObjectId, req: PeriodDataRequest):
+    match = { '$match': { '_id': marketplaceId, 'uid': uid } }
     lookuplet= { 'uid': '$uid', 'marketplace': '$_id', 'collatetype': req.collatetype.value, 'startdate': '$dates.startdate', 'enddate': '$dates.enddate' }
     if req.value: lookuplet.update({ 'value': req.value })
     lookupmatch = { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$collatetype', '$$collatetype' ] } ] } } }

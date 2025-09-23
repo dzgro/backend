@@ -1,21 +1,18 @@
 import os
 import json
 import boto3
-from pymongo import MongoClient
-
-secrets_client = boto3.client("secretsmanager")
 
 def get_mongo_client():
-    secret_name = "dzgro/prod"
-    secret_value = secrets_client.get_secret_value(SecretId=secret_name)
-    secret = json.loads(secret_value["SecretString"])
-    mongo_uri = secret["MONGO_DB_CONNECT_URI"]
-    db_name = f"dzgro-dev"
+    mongo_uri = os.environ["MONGO_DB_CONNECT_URI"]
+    env = os.environ["ENV"]
+    if not env or not mongo_uri: raise Exception("Missing ENV or other required env vars")
+    db_name = f"dzgro-{env.lower()}"
+    from pymongo import MongoClient
     return MongoClient(mongo_uri)[db_name]
 
 db = None
 
-def lambda_handler(event, context):
+def handler(event, context):
     print("Event:", json.dumps(event))
     global db
     if db is None:  # lazy init so cold start only
@@ -25,7 +22,7 @@ def lambda_handler(event, context):
     if username:
         if event["triggerSource"] == "PostConfirmation_ConfirmSignUp":
             attrs = event["request"]["userAttributes"]
-            user_doc = { "_id": username, "name": attrs.get("name"), "email": attrs.get("email"), "phone_number": attrs.get("phone_number"), "status": "new" }
+            user_doc = { "_id": username, "name": attrs.get("name"), "email": attrs.get("email"), "phone_number": attrs.get("phone_number"), "status": "Pending Onboarding" }
             try:
                 db.users.update_one( {"_id": username}, {"$setOnInsert": user_doc}, upsert=True )
                 print(f"✅ User {username} inserted in {db.name}")

@@ -1,3 +1,4 @@
+
 from pydantic_core import core_schema
 from pydantic import BaseModel,Field, ConfigDict, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -290,8 +291,8 @@ class RenameAccountRequest(ItemId):
 
 
 class ValueWithValueString(BaseModel):
-    value: float
-    valueString: str
+    value: float|SkipJsonSchema[None]=None
+    valueString: str|SkipJsonSchema[None]=None
 
 class AnalyticPeriodValuesItem(BaseModel):
     label: str
@@ -355,3 +356,29 @@ class SingleMetricPeriodDataRequest(PeriodDataRequest):
 
 class MonthDataRequest(PeriodDataRequest):
     month: str
+
+class DashboardKeyMetricItemChartData(BaseModel):
+    values: list[float]
+    labels: list[str]
+
+
+class SingleAnalyticsMetricTableResponseItem(BaseModel):
+    tag: QueryTag
+    curr: str
+    pre: str
+    growth: str
+
+class SingleAnalyticsMetricTableResponse(BaseModel):
+    data: list[SingleAnalyticsMetricTableResponseItem]
+    
+
+class DashboardKeyMetricItem(MetricItem):
+    last30Days: DashboardKeyMetricItemChartData
+    performance: list[SingleAnalyticsMetricTableResponseItem]
+    periods: list[LabelValue]
+    months: list[LabelValue]
+
+
+class DashboardKeyMetricGroup(BaseModel):
+    metric: AnalyticGroupMetricLabel
+    items: list[DashboardKeyMetricItem]

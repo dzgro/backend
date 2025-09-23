@@ -50,7 +50,8 @@ class LambdaLayerBuilder:
     
     def __init__(self, env: ENVIRONMENT, region: Region, max_workers: int = 4):
         self.env = env
-        self.envtextlower = env.value.lower()
+        self.envtextlower = env.value
+        self.envtextTitle = env.value.title()
         self.region = region
         self.max_workers = max_workers
         
@@ -109,7 +110,7 @@ class LambdaLayerBuilder:
         deps_string = "|".join(sorted_deps)
         
         # Include environment and Python version in hash (no region needed)
-        hash_input = f"{deps_string}|{self.env.value}|python3.12"
+        hash_input = f"{deps_string}|{self.envtextTitle}|python3.12"
         
         return hashlib.sha256(hash_input.encode()).hexdigest()
 
@@ -159,7 +160,7 @@ class LambdaLayerBuilder:
         
         # Handle both enum and string values for layer_name
         layer_name_str = layer_name.value if hasattr(layer_name, 'value') else str(layer_name)
-        env_str = self.env.value if hasattr(self.env, 'value') else str(self.env)
+        env_str = self.envtextTitle if hasattr(self.env, 'value') else str(self.env)
         
         if source_path:
             # For custom layers, include both dependency and code hashes
@@ -174,7 +175,7 @@ class LambdaLayerBuilder:
     def get_layer_cache_key(self, layer_name, combined_hash: str) -> str:
         """Generate simple cache key without hash suffix"""
         layer_name_str = layer_name.value if hasattr(layer_name, 'value') else str(layer_name)
-        env_str = self.env.value if hasattr(self.env, 'value') else str(self.env)
+        env_str = self.envtextTitle if hasattr(self.env, 'value') else str(self.env)
         return f"{layer_name_str.lower()}-{env_str.lower()}"
 
     def get_cached_layer_path(self, cache_key: str) -> Path:
@@ -236,9 +237,9 @@ class LambdaLayerBuilder:
         combined_hash = self.generate_combined_hash(layer_name, deps, source_path)
         
         if source_path:
-            return f"Dependencies + Code for {layer_name.value} in {self.env.value}: {deps_string} [Hash: {combined_hash[:8]}]"
+            return f"Dependencies + Code for {layer_name.value} in {self.envtextTitle}: {deps_string} [Hash: {combined_hash[:8]}]"
         else:
-            return f"Dependencies for {layer_name.value} in {self.env.value}: {deps_string} [Hash: {combined_hash[:8]}]"
+            return f"Dependencies for {layer_name.value} in {self.envtextTitle}: {deps_string} [Hash: {combined_hash[:8]}]"
 
     def get_layer_name(self, layer_name: LAYER_NAME) -> str:
         """Generate standardized layer name"""
@@ -686,7 +687,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
     RUN pip install -r /tmp/requirements.txt -t /tmp/layer/python/lib/python3.12/site-packages/
     RUN cp -r /tmp/src/{source_folder} /tmp/layer/python/lib/python3.12/site-packages/
     WORKDIR /tmp/layer
-    RUN zip -r {source_folder}-{self.env.value.lower()}.zip python/
+    RUN zip -r {source_folder}-{self.envtextTitle.lower()}.zip python/
     RUN ls -la /tmp/layer/
     '''
         
@@ -701,7 +702,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             subprocess.run(['docker', 'build', '-f', dockerfile_path, '-t', 'lambda-layer-builder', actual_project_root], check=True)
             
             # Copy the zip file out of the container
-            layer_zip_name = f'{layer_name}-{self.env.value.lower()}.zip'
+            layer_zip_name = f'{layer_name}-{self.envtextTitle.lower()}.zip'
             container_id = subprocess.run([
                 'docker', 'create', 'lambda-layer-builder'
             ], capture_output=True, text=True, check=True).stdout.strip()
@@ -1014,7 +1015,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
                 else:
                     # Cache miss - need to deploy the zip file
                     custom_layer_arns[LAYER_NAME.DZGRO_SHARED] = self.deploy_custom_layer(
-                        dzgroshared_zip, f'dzgroshared-{self.env.value.lower()}', f"DzgroShared Layer for {self.env.value} environment"
+                        dzgroshared_zip, f'dzgroshared-{self.envtextTitle.lower()}', f"DzgroShared Layer for {self.envtextTitle} environment"
                     )
             
             # Build api layer  
@@ -1027,7 +1028,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
                 else:
                     # Cache miss - need to deploy the zip file
                     custom_layer_arns[LAYER_NAME.API] = self.deploy_custom_layer(
-                        api_zip, f'api-{self.env.value.lower()}', f"API Layer for {self.env.value} environment"
+                        api_zip, f'api-{self.envtextTitle.lower()}', f"API Layer for {self.envtextTitle} environment"
                     )
             
             custom_layer_time = time.time() - custom_layer_start

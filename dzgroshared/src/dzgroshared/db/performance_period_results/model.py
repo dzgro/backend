@@ -1,7 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.db.model import ItemId, PeriodDataRequest, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId
+from dzgroshared.db.model import PeriodDataRequest, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId
 from dzgroshared.db.products.model import Product, ProductCategory
 from dzgroshared.db.enums import CollateType, AnalyticGroupMetricLabel, QueryTag
 
@@ -96,16 +96,5 @@ class PerformanceTableRequest(BaseModel):
     paginator: Paginator = Paginator(skip=0, limit=10)
     sort: Sort = Sort(field='revenue', order=-1)
 
-
-
-class SingleAnalyticsMetricTableResponseItem(BaseModel):
-    tag: QueryTag
-    curr: str
-    pre: str
-    growth: str
-
-class SingleAnalyticsMetricTableResponse(BaseModel):
-    data: list[SingleAnalyticsMetricTableResponseItem]
-    
 class ComparisonPeriodDataRequest(PeriodDataRequest):
     queryId: PyObjectId

@@ -4,13 +4,12 @@ from dzgroshared.storage.model import S3Bucket
 from deploy.TemplateBuilder.StarterMapping import Region, LambdaName, Tag
 from dzgroshared.db.enums import ENVIRONMENT
 import os, boto3
-
-
     
 
 class TemplateBuilder:
     env: ENVIRONMENT
     envtextlower: str
+    envtextTitle: str
     resources: dict[str, dict] = {}
     is_default_region: bool
     lambdaRoleName: str = 'DzgroLambdaRole'
@@ -23,7 +22,8 @@ class TemplateBuilder:
         env = ENVIRONMENT(os.getenv("ENV", None))
         if not env: raise ValueError("ENV environment variable not set")
         self.env = env
-        self.envtextlower = env.value.lower()
+        self.envtextlower = env.value
+        self.envtextTitle = env.value.title()
 
     
     def askForRegions(self):
@@ -56,80 +56,171 @@ class TemplateBuilder:
                     s3 = boto3.client('s3', region_name=region.value)
                     for bucket in buckets:
                         try: 
-                            s3.create_bucket(Bucket=bucket)
+                            s3.create_bucket(Bucket=bucket, CreateBucketConfiguration={'LocationConstraint': region.value})
                             print(f"Bucket {bucket} created")
                         except Exception as e: print(f"Error creating bucket {bucket}: {e}")
                 else:
                     if region==Region.DEFAULT:
+                        cognitoCertificateArn = self.getWildCardCertificateArn('Auth')
+                        apiCertificateArn = self.getWildCardCertificateArn('Api')
                         from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
                         optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
                         layerArns = optimized_builder.execute_optimized()
                         optimized_builder.print_performance_summary()
-                        certificateArn = self.getAuthCertificateArn()
-                        from deploy.TemplateBuilder.BuildCertificates import CertificateBuilder
-                        CertificateBuilder(self).execute(certificateArn)
                         from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
-                        ApiGatewayBuilder(self).execute()
+                        ApiGatewayBuilder(self).execute(apiCertificateArn)
                         from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
                         CognitoBuilder(self).execute()
                     from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
                     LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
                     from deploy.TemplateBuilder.SamExecutor import SAMExecutor
                     SAMExecutor(self).execute(region)
+                    if region==Region.DEFAULT: self.createUserPoolDomain(region, cognitoCertificateArn)
             except Exception as e:
                 print(f"Error occurred while building SAM template for region {region.value}: {e}")
                 raise e
 
-    def getAuthCertificateArn(self) -> str:
-        acm = boto3.client("acm", region_name='us-east-1')
+    def getWildCardCertificateArn(self, type: Literal['Auth','Api']) -> str:
+        region = Region.DEFAULT.value if type=='Api' else 'us-east-1'
+        acm = boto3.client("acm", region_name=region)
         certificates = acm.list_certificates(CertificateStatuses=['PENDING_VALIDATION', 'ISSUED', 'INACTIVE', 'EXPIRED', 'VALIDATION_TIMED_OUT', 'REVOKED', 'FAILED'])
-        domain = self.getAuthDomainName()
+        domain = self.getDomainNameByType(type)
+        status, arn = None, None
         for cert in certificates['CertificateSummaryList']:
             if cert['DomainName'] == domain:
-                return cert['CertificateArn']
-        certificate = acm.request_certificate(
-            DomainName=self.getAuthDomainName(),
-            ValidationMethod="DNS",
-            Tags=self.getListTag()
-        )
-        return certificate['CertificateArn']
-            
-    def getApiDomainName(self):
-        domain = self._getDomain()
-        return f'api.{domain}'
+                status, arn = cert['Status'], cert['CertificateArn']
+        if not arn:
+            certificate = acm.request_certificate(
+                DomainName=domain,
+                ValidationMethod="DNS",
+                Tags=self.getListTag()
+            )
+            status, arn = 'PENDING_VALIDATION', certificate['CertificateArn']
+        while status!='ISSUED':
+            print(f"Current status of {type} Certificate for {domain} is {status}")
+            import time
+            time.sleep(15)
+            detail = acm.describe_certificate(CertificateArn=arn)
+            status = detail['Certificate']['Status']
+            if status!='PENDING_VALIDATION' and status!='ISSUED':
+                raise Exception(f"Certificate {arn} for {type} in {region} failed with status {status}")
+        return arn
+        
+    def createUserPoolDomain(self, region: Region, authCertificateArn: str):
+        idp = boto3.client("cognito-idp", region_name=region.value)
+        from botocore.exceptions import ClientError
+        domain = self.getAuthDomainName()
+        userPools = idp.list_user_pools(MaxResults=60)
+        userPoolId = None
+        for pool in userPools['UserPools']:
+            if pool['Name'] == self.getUserPoolName():
+                userPoolId = pool['Id']
+        if userPoolId:
+            try:
+                desc = idp.describe_user_pool_domain(Domain=domain)
+                if desc['DomainDescription']:
+                    state = desc['DomainDescription']['Status']
+                    print('*' * 30)
+                    print(desc['DomainDescription']['CloudFrontDistribution'])
+                    print(state)
+                    print(f"Create CNAME entry in your DNS for the following domain: {domain.replace(f'.{self.envDomain()}','')}")
+                    print('*' * 30)
+                else:
+                    response = idp.create_user_pool_domain(
+                        Domain=domain,
+                        UserPoolId=userPoolId,
+                        ManagedLoginVersion=2,
+                        CustomDomainConfig={
+                            "CertificateArn": authCertificateArn
+                        }
+                    )
+                    state = 'CREATING'
+                    print('*' * 30)
+                    print(f"Created User Pool Domain {domain} with CloudFrontDistribution {response['CloudFrontDomain']}")
+                    print('*' * 30)
+                while state=='CREATING' or state!='ACTIVE':
+                    import time
+                    time.sleep(15)
+                    desc = idp.describe_user_pool_domain(Domain=domain)
+                    state = desc['DomainDescription']['Status']
+                    print(f"Current status of User Pool Domain {domain} is {state}")
+                    # print(f'Current State: {state}')
+                if state=='ACTIVE':
+                    response = idp.list_user_pool_clients(
+                        UserPoolId=userPoolId,
+                        MaxResults=10,
+                    )
+                    clientId = next((client['ClientId'] for client in response['UserPoolClients'] if client['ClientName']==self.getUserPoolClientName()), None)
+                    if not clientId: raise Exception(f"User Pool Client {self.getUserPoolClientName()} not found in User Pool {self.getUserPoolName()}")
+                    try:
+                        response = idp.describe_managed_login_branding_by_client(
+                            UserPoolId=userPoolId,
+                            ClientId=clientId,
+                            ReturnMergedResources=False
+                        )
+                        print(f"Managed Login Branding already exists as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
+                    except idp.exceptions.ResourceNotFoundException:
+                        response = idp.create_managed_login_branding(
+                            UserPoolId=userPoolId,
+                            ClientId=clientId,
+                            UseCognitoProvidedValues=True
+                        )
+                    print(f"Created Managed Login Branding as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
+
+
+                    
+            except ClientError as e:
+                print(f"Error creating User Pool Domain {domain}: {e}")
+                raise e
+            except Exception as e:
+                print(f"Unexpected error creating User Pool Domain {domain}: {e}")
+                raise e
+        else:
+            raise Exception(f"User Pool {self.getUserPoolName()} not found in {region.value}")
+
+    def getUserPoolClientName(self):
+        return f"Dzgro{self.envtextTitle}Client"
+    
+    def rootDomain(self):
+        return "dzgro.com"
+
+    def envDomain(self):
+        if self.env==ENVIRONMENT.PROD: return self.rootDomain()
+        return f'{self.envtextlower}.{self.rootDomain()}'
+    
+    def getDomainNameByType(self, type: Literal['Auth','Api']):
+        if self.env==ENVIRONMENT.PROD: return f'{type.lower()}.{self.envDomain()}'
+        return f'{type.lower()}.{self.envDomain()}'
 
     def getAuthDomainName(self):
-        domain = self._getDomain()
-        return f'auth.{domain}'
+        return self.getDomainNameByType('Auth')
 
-    def _getDomain(self):
-        if self.env == ENVIRONMENT.PROD:return "dzgro.com"
-        elif self.env == ENVIRONMENT.TEST:return "test.dzgro.com"
-        else:return "dev.dzgro.com"
+    def getApiDomainName(self):
+        return self.getDomainNameByType('Api')
 
     def getLambdaRoleName(self, name: LambdaName):
-        return f'{name.value}LambdaRole{self.env.value}'
+        return f'{name.value}LambdaRole{self.envtextTitle}'
 
     def getUserPoolName(self):
-        return f'DzgroUserPool{self.env.value}'
+        return f'DzgroUserPool{self.envtextTitle}'
 
     def getApiGatewayRoleName(self):
-        return f'ApiGatewayRole{self.env.value}'
+        return f'ApiGatewayRole{self.envtextTitle}'
 
     def getApiGatewayName(self):
-        return f'ApiGateway{self.env.value}'
+        return f'ApiGateway{self.envtextTitle}'
 
     def getBucketName(self, name: S3Bucket):
         return f'{name.value}-{self.envtextlower}'
 
     def getBucketResourceName(self, name: S3Bucket):
-        return f'{name.value.replace("-", " ").title().replace(" ", "")}{self.env.value}Bucket'
+        return f'{name.value.replace("-", " ").title().replace(" ", "")}{self.envtextTitle}Bucket'
 
     def getFunctionName(self, name: LambdaName):
-        return f'{name.value}{self.env.value}Function'
+        return f'{name.value}{self.envtextTitle}Function'
 
     def getQueueName(self, name: QueueName, type: Literal['Q','DLQ','EventSourceMapping']):
-        return f'{name.value}{self.env.value}{type}'
+        return f'{name.value}{self.envtextTitle}{type}'
 
     def getDictTag(self):
         return {k:v for k,v in Tag(Environment=self.env).model_dump(mode="json").items() }

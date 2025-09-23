@@ -1,10 +1,14 @@
 from dzgroshared.amazonapi.model import AmazonApiObject
+from dzgroshared.db.date_analytics.model import MonthDataResponse
 from dzgroshared.db.health.model import AHR
+from dzgroshared.db.performance_period_results.model import PerformancePeriodGroup
+from dzgroshared.db.performance_periods.model import PerformancePeriod
 from dzgroshared.db.pricing.model import OfferType, PricingOffer
+from dzgroshared.db.state_analytics.model import StateMonthDataResponse, StateMonthDataResponseItem
 from pydantic import BaseModel, Field,model_validator
-from dzgroshared.db.model import Count, CountryDetails, ItemId, ItemId, PyObjectId, StartEndDate
+from dzgroshared.db.model import Count, CountryDetails, DashboardKeyMetricGroup, ItemId, ItemId, Month, PeriodDataResponse, PyObjectId, StartEndDate
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.db.enums import AmazonAccountType, MarketplaceId, CountryCode, MarketplaceStatus, PlanType
+from dzgroshared.db.enums import AmazonAccountType, CollateType, MarketplaceId, CountryCode, MarketplaceStatus, PlanType
 from datetime import datetime
 from typing import Literal
 
@@ -63,7 +67,7 @@ class UserMarketplaceBasic(SellerMarketplace, ItemId):
 
 class UserMarketplace(UserMarketplaceBasic):
     createdat: datetime
-    seller: str
+    seller: str|SkipJsonSchema[None]=None
     dates: StartEndDate|SkipJsonSchema[None]=None
     plantype: PlanType|SkipJsonSchema[None]=None
     health: UserMarketplaceHealth|SkipJsonSchema[None]=None
@@ -107,6 +111,8 @@ class MarketplaceCache(ItemId):
     uid: str
     profileid: int
     sellerid: str
+    dates: StartEndDate|SkipJsonSchema[None]=None
+    plantype: PlanType|SkipJsonSchema[None]=None
 
 class Marketplace(ItemId):
     countrycode: CountryCode
@@ -126,4 +132,24 @@ class MarketplaceOnboardPaymentRequest(ItemId):
     pricing: PyObjectId
     offer: MarketplaceOnboardOffer|SkipJsonSchema[None]=None
     
+
+class DetailedMarketplaceWithData(ItemId):
+    storename: str
+    marketplaceid: MarketplaceId
+    dates: StartEndDate
+    lastrefresh: datetime|SkipJsonSchema[None]=None
+    details: CountryDetails
+    plantype: PlanType
+    periods: list[PerformancePeriod]
+    months: list[Month]
+
+class DashboardData(BaseModel):
+    collatetype: CollateType
+    value: str|SkipJsonSchema[None]=None
+    # periods: PeriodDataResponse
+    # states: list[StateMonthDataResponseItem]
+    # performance: list[PerformancePeriodGroup]
+    months: list[MonthDataResponse]
+    keys: list[DashboardKeyMetricGroup]
+
 

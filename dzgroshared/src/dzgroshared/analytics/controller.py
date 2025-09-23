@@ -1,13 +1,15 @@
 from typing import Literal
+from unittest import result
 from bson import ObjectId
 from ..db.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsMetricOperation, CollateType, CollectionType, CountryCode
-from ..db.model import AnalyticKeyGroup, AnalyticKeylabelValue, MetricGroup, MetricItem, NestedColumn, StartEndDate, MultiLevelColumns
-from .model import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS, MONTH_DATE_METRICS
+from ..db.model import AnalyticKeyGroup, AnalyticKeylabelValue, DashboardKeyMetricGroup, DashboardKeyMetricItem, DashboardKeyMetricItemChartData, LabelValue, MetricGroup, MetricItem, NestedColumn, StartEndDate, MultiLevelColumns, SingleAnalyticsMetricTableResponseItem
+from .model import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS, MONTH_DATE_METRICS,KEY_METRICS
 
-SchemaType = Literal['Period','Comparison','Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date']
+SchemaType = Literal['Period','Comparison','Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date', 'Key Metrics']
 
 GroupBySchema: dict[SchemaType, list[MetricGroup]] = {
     'Period': PERIOD_METRICS,
+    'Key Metrics': KEY_METRICS,
     'Comparison': COMPARISON_METRICS,
     'Month Meters': MONTH_METER_GROUPS,
     'Month Bars': [MONTH_BARS],
@@ -27,14 +29,16 @@ def getSchema(schemaType: SchemaType, collatetype: CollateType) -> list[dict]:
 def transformData(schemaType: SchemaType, data: list[dict], collatetype: CollateType, countryCode: CountryCode):
     schema = getSchema(schemaType, collatetype)
     if schemaType=='Comparison':
-        return [{**d, "data": [transformComparisonData(s, d['data'], countryCode, 1) for s in schema]} for d in data]
+        return [{**d, "data": [transformComparisonData(s, d['data'], countryCode, 1) if 'data' in d else None for s in schema]} for d in data]
+    if schemaType=='Key Metrics':
+        return transformKeyMetrics(GroupBySchema[schemaType], data, countryCode)
     elif schemaType == 'State All':
         return transformStateAllData(GroupBySchema[schemaType], data, countryCode)
     elif schemaType == 'Month Date':
         return transformMonthDateData(GroupBySchema[schemaType], data, countryCode)
     elif schemaType == 'Month' or schemaType == 'State Detail':
         return transformSchemaData(GroupBySchema[schemaType], data, countryCode)
-    else: return [{**d, "data": [transformPeriodData(s, d['data'], countryCode, 1) for s in schema]} for d in data]
+    else: return [{**d, "data": [transformPeriodData(s, d['data'], countryCode, 1)  if 'data' in d else None for s in schema]} for d in data]
 
 
 def getMetricGroupsBySchemaType(schemaType: SchemaType, collatetype: CollateType) -> list[MetricGroup]:
@@ -49,27 +53,24 @@ def addMissingFields(data_key: str = "data"):
     return { "$addFields": {f"{data_key}.{key.value}": {"$round": [{ "$ifNull": [f"${data_key}.{key.value}", 0] },2]} for key in AnalyticsMetric.values()} }
 
 def format_number(value: float|None, metric: AnalyticsMetric, countrycode: CountryCode, isGrowth: bool=False) -> str|None:
-    try:
-        if value is None: return None
-        if isGrowth:
-            if metric.value in percent_fields: return f"{value:.1f}" if value>1 else f"{value:.2f}"
-            return f"{value:.1f}%" if value>1 else f"{value:.2f}%"
-        else:
-            if metric.value in percent_fields: return f"{value:.2f}%"
-            if metric.value in non_percent_fields:
-                abs_val = abs(value)
-                if abs_val >= 1e3 and abs_val < 1e5: return f"{abs_val/1e3:.2f} K"
-                if countrycode==CountryCode.INDIA:
-                    if abs_val >= 1e7: return f"{abs_val/1e7:.2f} Cr"
-                    elif abs_val >= 1e5: return f"{abs_val/1e5:.2f} Lacs"
-                else:
-                    # International system: M / B
-                    if abs_val >= 1e9: return f"{abs_val/1e9:.2f} B"
-                    elif abs_val >= 1e6: return f"{abs_val/1e6:.2f} M"
-                return f"{abs_val:.1f}" if isinstance(value, float) else f"{abs_val:.0f}"
-            return f"{value:.2f}"
-    except Exception as e:
-        print(e)
+    if value is None: return None
+    if isGrowth:
+        if metric.value in percent_fields: return f"{value:.1f}" if value>1 else f"{value:.2f}"
+        return f"{value:.1f}%" if value>1 else f"{value:.2f}%"
+    else:
+        if metric.value in percent_fields: return f"{value:.2f}%"
+        if metric.value in non_percent_fields:
+            abs_val = abs(value)
+            if abs_val >= 1e3 and abs_val < 1e5: return f"{abs_val/1e3:.2f} K"
+            if countrycode==CountryCode.INDIA:
+                if abs_val >= 1e7: return f"{abs_val/1e7:.2f} Cr"
+                elif abs_val >= 1e5: return f"{abs_val/1e5:.2f} Lacs"
+            else:
+                # International system: M / B
+                if abs_val >= 1e9: return f"{abs_val/1e9:.2f} B"
+                elif abs_val >= 1e6: return f"{abs_val/1e6:.2f} M"
+            return f"{abs_val:.1f}" if isinstance(value, float) else f"{abs_val:.0f}"
+        return f"{value:.2f}"
 
 
 def transformPeriodData(schema: dict, data: dict, countrycode: CountryCode, level=1):
@@ -206,6 +207,42 @@ def transformSchemaData(schema: list[MetricGroup], data: list[dict], countrycode
         result.append(resultItem)
     return result
 
+def transformKeyMetrics(schema: list[MetricGroup], data: list[dict], countrycode: CountryCode)->list[DashboardKeyMetricGroup]:
+    result: list[DashboardKeyMetricGroup] = []
+    for s in schema:
+        items: list[DashboardKeyMetricItem]=[]
+        for sItem in s.items:
+            for item in data:
+                key = AnalyticsMetric(item['key'])
+                detail = next((d for d in METRIC_DETAILS if d.metric == key), None)
+                if not detail or sItem.metric!=detail:
+                    continue
+                last30Days = DashboardKeyMetricItemChartData(
+                    values=[(round(value,2) if isinstance(value, float) else value) for value in item['last30Days']],
+                    labels = [format_number(value, detail.metric, countrycode) or "-" for value in item['last30Days']]
+                )
+                performance = [{"label": x['label'], "value": {k1: format_number(v1, detail.metric, countrycode, k1=='growth') for k1,v1 in x['value'].items()}} for x in item['performance']]
+                periods = [{"label": x['label'], "value": format_number(x, detail.metric, countrycode)} for x in item['periods']]
+                months = [{"label": x['label'], "value": format_number(x, detail.metric, countrycode)} for x in item['periods']]
+                keyItem = DashboardKeyMetricItem(
+                    metric=key,
+                    label=detail.label,
+                    last30Days=last30Days,
+                    months=[LabelValue.model_validate(m) for m in months],
+                    performance=[SingleAnalyticsMetricTableResponseItem.model_validate(m) for m in performance],
+                    periods=[LabelValue.model_validate(m) for m in periods]
+                )
+                items.append(keyItem)
+        result.append(
+            DashboardKeyMetricGroup(
+                metric=s.metric,
+                items=items
+            )
+        )
+    return result
+        
+    
+
 
 
 def addDerivedMetrics(data_key: str = "data"):
@@ -240,6 +277,217 @@ def addDerivedMetrics(data_key: str = "data"):
         elif item.level == 5:
             level5.update( {f"{data_key}.{item.metric.value}": result} )
     return [ { "$addFields": level0 },{ "$addFields": level1 }, { "$addFields": level2 }, { "$addFields": level3 }, { "$addFields": level4 }, { "$addFields": level5 }]
+
+def getDerivedMetricsCalculations(data_key: str = "data"):
+    """
+    Returns the raw field calculations for derived metrics without MongoDB aggregation stage wrappers.
+    Useful for embedding in custom aggregation expressions or programmatic use.
+    
+    Args:
+        data_key: The key name that contains the data object (default: "data")
+    
+    Returns:
+        List of dictionaries, each containing field calculations for a level
+    """
+    level0: dict = {}
+    level1: dict = {}
+    level2: dict = {}
+    level3: dict = {}
+    level4: dict = {}
+    level5: dict = {}
+    dk = f"${data_key}."
+    
+    for item in METRIC_CALCULATIONS:
+        result: dict = {}
+        if item.operation == AnalyticsMetricOperation.SUM:
+            result = { "$sum": [f"{dk}{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.SUBTRACT:
+            result = { "$subtract": [f"{dk}{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.DIVIDE:
+            multiplier = 100 if not item.avoidMultiplier else 1
+            result = { "$cond": [ {"$gt": [f"{dk}{item.metrics[1].value}", 0]}, {"$round": [ {"$multiply": [ {"$divide": [f"{dk}{item.metrics[0].value}", f"{dk}{item.metrics[1].value}"]}, multiplier ]}, 2 ]}, 0 ] }
+        elif item.operation == AnalyticsMetricOperation.MULTIPLY:
+            result = { "$multiply": [f"{dk}{m.value}" for m in item.metrics] }
+        
+        field_key = f"{data_key}.{item.metric.value}"
+        
+        if item.level == 0:
+            level0.update( {field_key: result} )
+        elif item.level == 1:
+            level1.update( {field_key: result} )
+        elif item.level == 2:
+            level2.update( {field_key: result} )
+        elif item.level == 3:
+            level3.update( {field_key: result} )
+        elif item.level == 4:
+            level4.update( {field_key: result} )
+        elif item.level == 5:
+            level5.update( {field_key: result} )
+    
+    # Return only non-empty levels
+    levels = [level0, level1, level2, level3, level4, level5]
+    return [level for level in levels if level]
+
+def getDerivedMetricsMapExpression(item_var: str = "item", data_key: str | None = None):
+    """
+    Creates a single MongoDB expression that applies all derived metric calculations sequentially.
+    Designed for use within $map operations where you need to apply all calculation levels to each array item.
+    
+    Args:
+        data_key: The key name within each array item that contains the data object. 
+                 If None, the array item itself is treated as the data object.
+        item_var: The variable reference to use for the current item (default: "item")
+    
+    Returns:
+        MongoDB expression that can be used in the "in" field of a $map operation
+    """
+    # Ensure item_var has $$ prefix
+    item_var = f'$${item_var}' if not item_var.startswith('$$') else item_var
+    
+    # Collect all calculations by level
+    level_calculations = [{}] * 6
+    
+    def get_field_key(metric_name: str) -> str:
+        """Get the field key for storing the calculated metric"""
+        if data_key:
+            return f"{data_key}.{metric_name}"
+        else:
+            return metric_name
+    
+    # Group calculations by level, but reference the correct level variable
+    for item in METRIC_CALCULATIONS:
+        # For each calculation, we need to reference the appropriate level variable
+        # Level 0 calculations reference the original item
+        # Level 1+ calculations reference the previous level result
+        
+        level_var = item_var if item.level == 0 else f"$$level{item.level - 1}"
+        
+        result: dict = {}
+        if item.operation == AnalyticsMetricOperation.SUM:
+            result = { "$sum": [f"{level_var}.{data_key}.{m.value}" if data_key else f"{level_var}.{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.SUBTRACT:
+            result = { "$subtract": [f"{level_var}.{data_key}.{m.value}" if data_key else f"{level_var}.{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.DIVIDE:
+            multiplier = 100 if not item.avoidMultiplier else 1
+            metric0_path = f"{level_var}.{data_key}.{item.metrics[0].value}" if data_key else f"{level_var}.{item.metrics[0].value}"
+            metric1_path = f"{level_var}.{data_key}.{item.metrics[1].value}" if data_key else f"{level_var}.{item.metrics[1].value}"
+            result = { "$cond": [ 
+                {"$gt": [metric1_path, 0]}, 
+                {"$round": [ 
+                    {"$multiply": [ 
+                        {"$divide": [metric0_path, metric1_path]}, 
+                        multiplier 
+                    ]}, 
+                    2 
+                ]}, 
+                0 
+            ]}
+        elif item.operation == AnalyticsMetricOperation.MULTIPLY:
+            result = { "$multiply": [f"{level_var}.{data_key}.{m.value}" if data_key else f"{level_var}.{m.value}" for m in item.metrics] }
+        
+        field_key = get_field_key(item.metric.value)
+        level_calculations[item.level][field_key] = result
+    
+    # Build nested $let expression
+    expression = item_var
+    
+    for level_idx, level_calcs in enumerate(level_calculations):
+        if level_calcs:  # Only add if level has calculations
+            expression = {
+                "$let": {
+                    "vars": {
+                        f"level{level_idx}": expression
+                    },
+                    "in": {
+                        "$mergeObjects": [
+                            f"$$level{level_idx}",
+                            level_calcs
+                        ]
+                    }
+                }
+            }
+    
+    return expression
+
+def addDerivedMetricsToArray(array_key: str, data_key: str | None = None):
+    """
+    Creates MongoDB aggregation stages to add derived metrics to each item in an array.
+    
+    Args:
+        array_key: The key name of the array field in the document
+        data_key: The key name within each array item that contains the data object. 
+                 If None, the array item itself is treated as the data object.
+    
+    Returns:
+        List of MongoDB aggregation stages
+    """
+    level0: dict = {}
+    level1: dict = {}
+    level2: dict = {}
+    level3: dict = {}
+    level4: dict = {}
+    level5: dict = {}
+    
+    # Determine the path prefix for accessing metrics within array items
+    metric_path_prefix = f"$$item.{data_key}." if data_key else "$$item."
+    field_path_prefix = f"{data_key}." if data_key else ""
+    
+    for item in METRIC_CALCULATIONS:
+        result: dict = {}
+        if item.operation == AnalyticsMetricOperation.SUM:
+            result = { "$sum": [f"{metric_path_prefix}{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.SUBTRACT:
+            result = { "$subtract": [f"{metric_path_prefix}{m.value}" for m in item.metrics] }
+        elif item.operation == AnalyticsMetricOperation.DIVIDE:
+            multiplier = 100 if not item.avoidMultiplier else 1
+            result = { "$cond": [ 
+                {"$gt": [f"{metric_path_prefix}{item.metrics[1].value}", 0]}, 
+                {"$round": [ 
+                    {"$multiply": [ 
+                        {"$divide": [f"{metric_path_prefix}{item.metrics[0].value}", f"{metric_path_prefix}{item.metrics[1].value}"]}, 
+                        multiplier 
+                    ]}, 
+                    2 
+                ]}, 
+                0 
+            ]}
+        elif item.operation == AnalyticsMetricOperation.MULTIPLY:
+            result = { "$multiply": [f"{metric_path_prefix}{m.value}" for m in item.metrics] }
+        
+        field_key = f"{field_path_prefix}{item.metric.value}"
+        
+        if item.level == 0:
+            level0.update( {field_key: result} )
+        elif item.level == 1:
+            level1.update( {field_key: result} )
+        elif item.level == 2:
+            level2.update( {field_key: result} )
+        elif item.level == 3:
+            level3.update( {field_key: result} )
+        elif item.level == 4:
+            level4.update( {field_key: result} )
+        elif item.level == 5:
+            level5.update( {field_key: result} )
+    
+    # Create map expressions for each level (without $addFields wrapper)
+    stages = []
+    for level_dict in [level0, level1, level2, level3, level4, level5]:
+        if level_dict:  # Only add stage if there are fields to add at this level
+            map_expression = {
+                "$map": {
+                    "input": f"${array_key}",
+                    "as": "item",
+                    "in": {
+                        "$mergeObjects": [
+                            "$$item",
+                            level_dict
+                        ]
+                    }
+                }
+            }
+            stages.append({array_key: map_expression})
+    
+    return stages
 
 def addGrowth():
     return { "$addFields": { "growth": { "$arrayToObject": { "$map": { "input": { "$objectToArray": "$curr" }, "as": "kv", "in": { "k": "$$kv.k", "v": { "$let": { "vars": { "currVal": "$$kv.v", "preVal": { "$getField": { "field": "$$kv.k", "input": "$pre" } }, "percentFields": percent_fields }, "in": { "$cond": [ { "$in": ["$$kv.k", "$$percentFields"] }, { "$cond": [ { "$lt": [{ "$abs": { "$subtract": ["$$currVal", "$$preVal"] } }, 10] }, { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 2] }, { "$round": [{ "$subtract": ["$$currVal", "$$preVal"] }, 1] } ] }, { "$cond": [ { "$or": [{ "$eq": ["$$preVal", 0] }, { "$eq": ["$$preVal", None] }] }, 0, { "$cond": [ { "$lt": [ { "$abs": { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] } }, 10 ] }, { "$round": [ { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] }, 2 ] }, { "$round": [ { "$multiply": [ { "$divide": [{ "$subtract": ["$$currVal", "$$preVal"] }, "$$preVal"] }, 100 ] }, 1 ] } ] } ] } ] } } } } } } } } }
@@ -308,7 +556,6 @@ def getAnalyticsGroups():
     return data
 
 def convertSchemaToMetricItemList(schemaType: SchemaType):
-
     def convertToLabel(metric: MetricItem):
         try:
             detail = next((d for d in METRIC_DETAILS if d.metric == metric.metric), None)

@@ -137,7 +137,7 @@ class LambdaProperty(BaseModel):
     memorySize: int = 128
     timeout: int = 900
     regions: List[LambdaRegion]
-    env: List[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD, ENVIRONMENT.LOCAL]
+    env: List[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD, ENVIRONMENT.LOCAL]
     layers: List[LAYER_NAME] = []
 
 def createPolicy(region:Region, name:LambdaName, arns: list[str]):
@@ -198,7 +198,7 @@ LAMBDAS = [
                 region=Region.DEFAULT
             ),
         ],
-        env = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD]
+        env = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]
     ),
     LambdaProperty(
         name=LambdaName.CognitoTrigger,
@@ -210,7 +210,7 @@ LAMBDAS = [
                 region=Region.DEFAULT
             ),
         ],
-        env = [ENVIRONMENT.DEV, ENVIRONMENT.TEST, ENVIRONMENT.PROD]
+        env = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]
     ),
     LambdaProperty(
         name=LambdaName.Api,
@@ -228,7 +228,7 @@ LAMBDAS = [
                 s3 = [S3Property(name=name, roles=S3Role.all()) for name in S3Bucket.all()]
             )
         ],
-        env = [ENVIRONMENT.TEST, ENVIRONMENT.DEV]
+        env = [ENVIRONMENT.STAGING, ENVIRONMENT.DEV]
     ),
     LambdaProperty(
         name=LambdaName.QueueModelMessageProcessor,

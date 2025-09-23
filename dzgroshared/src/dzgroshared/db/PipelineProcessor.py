@@ -33,8 +33,11 @@ class PipelineProcessor:
         obj.update(**others)
         return obj
     
+    def getCollateDataReduceDef(self, datakey: str="data"):
+        return { "$reduce": { "input": f"${datakey}", "initialValue": {}, "in": { "$arrayToObject": { "$filter": { "input": { "$map": { "input": { "$setUnion": [ { "$map": { "input": { "$objectToArray": "$$value" }, "as": "v", "in": "$$v.k" } }, { "$map": { "input": { "$objectToArray": "$$this" }, "as": "t", "in": "$$t.k" } } ] }, "as": "key", "in": { "k": "$$key", "v": { "$round": [ { "$add": [ { "$ifNull": [ { "$getField": { "field": "$$key", "input": "$$value" } }, 0 ] }, { "$ifNull": [ { "$getField": { "field": "$$key", "input": "$$this" } }, 0 ] } ] }, 2 ] } } } }, "as": "item", "cond": { "$ne": ["$$item.v", 0] } } } } } }
+    
     def collateData(self, datakey: str="data"):
-        return {"$set": { f'{datakey}': { "$reduce": { "input": f"${datakey}", "initialValue": {}, "in": { "$arrayToObject": { "$filter": { "input": { "$map": { "input": { "$setUnion": [ { "$map": { "input": { "$objectToArray": "$$value" }, "as": "v", "in": "$$v.k" } }, { "$map": { "input": { "$objectToArray": "$$this" }, "as": "t", "in": "$$t.k" } } ] }, "as": "key", "in": { "k": "$$key", "v": { "$round": [ { "$add": [ { "$ifNull": [ { "$getField": { "field": "$$key", "input": "$$value" } }, 0 ] }, { "$ifNull": [ { "$getField": { "field": "$$key", "input": "$$this" } }, 0 ] } ] }, 2 ] } } } }, "as": "item", "cond": { "$ne": ["$$item.v", 0] } } } } } } }}
+        return {"$set": { f'{datakey}':  self.getCollateDataReduceDef(datakey)}}
 
     def matchMarketplace(self, others: dict = {}):
         return { '$match': self.getLetDict(others)}

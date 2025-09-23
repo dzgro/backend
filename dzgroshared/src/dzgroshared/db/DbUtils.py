@@ -28,10 +28,11 @@ class DbManager:
     async def aggregate(self, pipeline: list[dict])->list[dict]:
         start_time = time.perf_counter()
         try:
-            result = await self.collection.aggregate(pipeline).to_list()
+            result = self.collection.aggregate(pipeline)
+            data = await result.to_list()
             process_time_seconds = (time.perf_counter() - start_time)  # ms
             print(f"Aggregation took {process_time_seconds:.4f} seconds")
-            return result
+            return data
         except Exception as e:
             print(e)
             from dzgroshared.utils import mongo_pipeline_print

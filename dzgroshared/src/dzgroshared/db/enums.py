@@ -2,11 +2,10 @@ from enum import Enum
 
 
 class ENVIRONMENT(str, Enum):
-    PROD = "Prod"
-    TEST = "Test"
-    DEV = "Dev"
-    LOCAL = "Local"
-
+    PROD = "prod"
+    STAGING = "staging"
+    DEV = "dev"
+    LOCAL = "local"
     
     @staticmethod
     def all():
@@ -522,6 +521,7 @@ class AnalyticGroupMetricLabel(str, Enum):
     MONTH_CHANNEL_PROCEEDS_METER_GROUPS = "Gross Proceeds by Channel"
     MONTH_BARS = "Month Bars"
     MONTH_DATA = "Month Data"
+    KEY_METRICS = "Key Metrics"
     STATE_LITE = "State Lite"
     STATE_DETAILED = "State Detailed"
     MONTH_DETAILED = "Month Detailed"    
@@ -640,7 +640,7 @@ class AnalyticsMetric(str, Enum):
 
 from enum import Enum
 
-class GSTStateCode(Enum):
+class GstStateCode(Enum):
     JAMMU_AND_KASHMIR = "01"
     HIMACHAL_PRADESH = "02"
     PUNJAB = "03"
@@ -681,11 +681,11 @@ class GSTStateCode(Enum):
 
     @staticmethod
     def list():
-        return [x.value for x in GSTStateCode]
+        return [x.value for x in GstStateCode]
     
     @staticmethod
     def values():
-        return list(GSTStateCode)
+        return list(GstStateCode)
 
     @classmethod
     def get_state_name(cls, code: str) -> str:

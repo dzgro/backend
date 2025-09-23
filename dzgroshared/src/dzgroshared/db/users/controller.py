@@ -17,8 +17,8 @@ class UserHelper:
 
     async def addUserToDb(self, details: dict):
         setDict = {"name": details['name'], "email": details['email']}
-        phoneNumber = details.get('phoneNumber', None)
-        if phoneNumber: setDict["phone"] = phoneNumber
+        phone_number = details.get('phone_number', None)
+        if phone_number: setDict["phone"] = phone_number
         await self.db.updateOne({"_id": self.uid}, setDict=setDict, upsert=True)
 
     async def setUserAsPaid(self):
@@ -34,7 +34,7 @@ class UserHelper:
             { '$lookup': { 'from': 'spapi_accounts', 'localField': '_id', 'foreignField': 'uid', 'pipeline': [ { '$project': { 'name': 1, 'countrycode': 1, 'sellerid': 1 } } ], 'as': 'spapi' } }, 
             { '$lookup': { 'from': 'advertising_accounts', 'localField': '_id', 'foreignField': 'uid', 'pipeline': [ { '$project': { 'name': 1, 'countrycode': 1, 'createdat': 1 } } ], 'as': 'ad' } }, 
             { '$lookup': { 'from': 'marketplaces', 'localField': '_id', 'foreignField': 'uid', 'pipeline': [ { '$project': { 'name': 1, 'countrycode': 1, 'storename': 1, 'marketplaceid': 1, 'status': 1} } ], 'as': 'marketplaces' } }, 
-            { '$project': { 'email': 0, 'phoneNumber': 0, 'name': 0, '_id': 0 } },
+            { '$project': { 'email': 0, 'phone_number': 0, 'name': 0, '_id': 0 } },
             { '$set': { 'step': { '$switch': { 'branches': [ { 'case': { '$eq': [ { '$size': '$spapi' }, 0 ] }, 'then': 'Add Seller Central Account' }, { 'case': { '$eq': [ { '$size': '$ad' }, 0 ] }, 'then': 'Add Advertising Account' }, { 'case': { '$eq': [ { '$size': '$marketplaces' }, 0 ] }, 'then': 'Add Marketplace' } ], 'default': None } } } }
         ]
         data = await self.db.aggregate(pipeline)        

@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 from bson import ObjectId
 from dzgroshared.analytics import controller
+from dzgroshared.analytics.model import KEY_METRICS
 from dzgroshared.db.marketplaces.pipelines import GetMarketplaceObjectForReport, GetPeriodData, GetUserMarketplaces
 from dzgroshared.amazonapi.model import AmazonApiObject
 from dzgroshared.db.pricing.model import OfferType, Pricing
-from dzgroshared.db.enums import CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus, PlanType
+from dzgroshared.db.enums import CollateType, CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus, PlanType
 from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, StartEndDate, SuccessResponse
-from dzgroshared.db.marketplaces.model import Marketplace, MarketplaceCache, MarketplaceObjectForReport, MarketplaceOnboardPaymentRequest, UserAccountsCount, MarketplaceNameId, UserMarketplaceList
+from dzgroshared.db.marketplaces.model import DashboardData, Marketplace, MarketplaceCache, MarketplaceObjectForReport, MarketplaceOnboardPaymentRequest, UserAccountsCount, MarketplaceNameId, UserMarketplace, UserMarketplaceList
 from dzgroshared.db.country_details.model import CountryDetailsWithBids
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
@@ -56,11 +57,9 @@ class MarketplaceHelper:
     
     
     async def getPeriodData(self, req: PeriodDataRequest):
-        pipeline = GetPeriodData.pipeline(self.db.pp, req)
+        pipeline = GetPeriodData.pipeline(self.client.uid, self.client.marketplaceId, req)
         data = await self.db.aggregate(pipeline)
         return PeriodDataResponse.model_validate({"data": controller.transformData('Period',data, req.collatetype, self.client.marketplace.countrycode)})
-
-        
     
     async def completeReportProcessing(self, id:str|ObjectId, dates: StartEndDate, lastrefresh: datetime, lastreport: ObjectId):
         await self.db.updateOne({"_id": self.db.convertToObjectId(id)}, setDict={"dates":dates.model_dump(), "lastrefresh": lastrefresh, "lastreport": lastreport, "status": MarketplaceStatus.ACTIVE.value})
@@ -134,7 +133,13 @@ class MarketplaceHelper:
             if count==0: raise ValueError("No Marketplaces found for the user")
         count = None if paginator.skip!=0 else await self.db.count({"uid": self.client.uid})
         return UserMarketplaceList.model_validate({"data": data, "count": count})
-    
+
+    async def getUserMarketplace(self):
+        pipeline = GetUserMarketplaces.pipeline(self.client.uid, Paginator(skip=0, limit=1), self.client.marketplaceId)
+        data = await self.db.aggregate(pipeline)
+        if len(data)==0: raise ValueError("No Marketplace found for the user")
+        return UserMarketplace.model_validate(data[0])
+
     async def getPlans(self, id: PyObjectId):
         pipeline = [ {"$match": {"_id": id}}, { '$lookup': { 'from': 'pricing', 'localField': 'pricing', 'foreignField': '_id', 'as': 'pricing' } }, { '$replaceRoot': { 'newRoot': { '$first': '$pricing' } } } ]
         data = await self.db.aggregate(pipeline)
@@ -212,7 +217,7 @@ class MarketplaceHelper:
             notes={ "uid": self.client.uid, "marketplace": str(req.id), "plantype": req.plantype.value, "pricing": str(req.pricing) } )
         order = await self.client.razorpay.order.create_order(orderReq)
         await self.client.db.razorpay_orders.addOrder(order, category=RazorPayDbOrderCategory.MARKETPLACE_ONBOARDING)
-        return self.createRazorpayOrderObject(order.id, self.client.user.name, self.client.user.email, self.client.user.phoneNumber)
+        return self.createRazorpayOrderObject(order.id, self.client.user.name, self.client.user.email, self.client.user.phone_number)
     
     async def getMonths(self):
         def last_day_of_month(year: int, month: int) -> int:
@@ -239,8 +244,28 @@ class MarketplaceHelper:
                 month = 1
                 year += 1
         return results
-
-
-
+    
+    async def getDashboardData(self, collatetype: CollateType, value: str|None=None):
+        from dzgroshared.db.marketplaces.pipelines import DataDashboard
+        keys = [y.metric.value for x in KEY_METRICS for y in x.items]
+        pipeline = DataDashboard.pipeline(self.db.pp, self.client.marketplaceId, collatetype, value, keys)
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
+        marketplaces = await self.db.aggregate(pipeline)
+        data = marketplaces[0]
+        data['periods'] = controller.transformData('Period',data['periods'], collatetype, self.client.marketplace.countrycode)
+        data['states'] = controller.transformData('State Lite',data['states'], collatetype, self.client.marketplace.countrycode)
+        data['performance'] = controller.transformData('Comparison',data['performance'], collatetype, self.client.marketplace.countrycode)
+        monthMeterGroups = controller.transformData('Month Meters',data['months'], collatetype, self.client.marketplace.countrycode)
+        monthBars = controller.transformData('Month Bars',data['months'], collatetype, self.client.marketplace.countrycode)
+        monthdata = controller.transformData('Month Data',data['months'], collatetype, self.client.marketplace.countrycode)
+        data['months'] = [{**month, "meterGroups": monthMeterGroups[i]['data'] if len(monthMeterGroups)>i and 'data' in monthMeterGroups[i] else [], "bars": monthBars[i]['data'][0] if len(monthBars)>i and 'data' in monthBars[i] and len(monthBars[i]['data'])>0 else [], "data": monthdata[i]['data'][0] if len(monthdata)>i and 'data' in monthdata[i] and len(monthdata[i]['data'])>0 else []} for i, month in enumerate(data['months'])]
+        data['keys'] = controller.transformData('Key Metrics', data['keys'],collatetype, self.client.marketplace.countrycode)
+        data =  {"collatetype": collatetype.value, "value": value, **data}
+        try:
+            return DashboardData.model_validate(data)
+        except Exception as e:
+            print(e)
+            print(data)
 
     

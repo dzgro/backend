@@ -1,5 +1,5 @@
-from dzgroshared.db.performance_period_results.model import ComparisonPeriodDataRequest, PerformancePeriodDataResponse, PerformanceTableRequest, PerformanceTableResponse, SingleAnalyticsMetricTableResponse
-from dzgroshared.db.model import Count, SingleMetricPeriodDataRequest
+from dzgroshared.db.performance_period_results.model import ComparisonPeriodDataRequest, PerformancePeriodDataResponse, PerformanceTableRequest, PerformanceTableResponse
+from dzgroshared.db.model import Count, SingleAnalyticsMetricTableResponse, SingleMetricPeriodDataRequest
 from fastapi import APIRouter, Request
 router = APIRouter(prefix="/performance/results", tags=["Performance Results"])
 from api.Util import RequestHelper

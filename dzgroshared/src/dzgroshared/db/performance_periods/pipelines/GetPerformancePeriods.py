@@ -1,4 +1,5 @@
 from bson import ObjectId
+from dzgroshared.db.enums import CollectionType
 from dzgroshared.db.model import StartEndDate
 
 
@@ -24,9 +25,8 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
     },
     {
         '$lookup': {
-            'from': 'queries', 
+            'from': CollectionType.PERFORMANCE_PERIODS.value, 
             'let': {
-                'uid': '$uid', 
                 'marketplace': '$marketplace'
             }, 
             'pipeline': [
@@ -39,18 +39,10 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                                         '$tag', 'Custom'
                                     ]
                                 }, {
-                                    '$and': [
-                                        {
-                                            '$eq': [
-                                                '$uid', '$$uid'
-                                            ]
-                                        }, {
                                             '$eq': [
                                                 '$marketplace', '$$marketplace'
                                             ]
                                         }
-                                    ]
-                                }
                             ]
                         }
                     }

@@ -28,7 +28,6 @@ class LambdasBucketsQueuesBuilder:
     
     def createFunction(self, property: LambdaProperty, _lambda: LambdaRegion, layer_arn: dict[LAYER_NAME, str], secrets: dict):
         fnName = self.builder.getFunctionName(property.name)
-        
         # Start with base environment variables
         env_variables = {"ENV": self.builder.env.value, **secrets}
         properties = {
@@ -89,7 +88,7 @@ class LambdasBucketsQueuesBuilder:
             if sqs.apiTrigger:
                 paths = self.addSQSPathToApiGateway(sqs)
                 self.builder.resources[self.builder.getApiGatewayName()]['Properties']['DefinitionBody']['paths'] = paths
-        if region==Region.DEFAULT and self.builder.env in [ENVIRONMENT.DEV, ENVIRONMENT.TEST]:
+        if region==Region.DEFAULT and self.builder.env in [ENVIRONMENT.DEV, ENVIRONMENT.STAGING]:
             lambda_logical_id = self.builder.getFunctionName(LambdaName.Api) 
             self.builder.resources[self.builder.getApiGatewayName()]['Properties']['DefinitionBody']['paths'].update(
                 {
@@ -164,7 +163,7 @@ class LambdasBucketsQueuesBuilder:
     
     def createLambdaRole(self, _lambda: LambdaProperty, region: Region):
         rolename: str = self.builder.getLambdaRoleName(_lambda.name)
-        parameter = (ENVIRONMENT.PROD if self.builder.env == ENVIRONMENT.PROD else ENVIRONMENT.TEST).value.lower()
+        parameter = (ENVIRONMENT.PROD if self.builder.env == ENVIRONMENT.PROD else ENVIRONMENT.STAGING).value.lower()
         parameter = "prod"
         secretsarn = f"arn:aws:secretsmanager:{region.value}:${{AWS::AccountId}}:secret:dzgro/{parameter}*"
         role = {
@@ -173,59 +172,46 @@ class LambdasBucketsQueuesBuilder:
                 "RoleName": rolename,
                 "AssumeRolePolicyDocument": {
                     "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Principal": {"Service": "lambda.amazonaws.com"},
-                            "Action": "sts:AssumeRole",
-                        }
-                    ]
+                    "Statement": [ { "Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole", } ]
                 },
-                "Policies": [
-                    {
-                        "PolicyName": "LambdaLogging",
-                        "PolicyDocument": {
-                            "Version": "2012-10-17",
-                            "Statement": [ { "Effect": "Allow", "Action": [ "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents" ], "Resource": "*" } ]
-                        }
-                    },
-                    {
-                        "PolicyName": "SSMParameterRead",
-                        "PolicyDocument": {
-                            "Version": "2012-10-17",
-                            "Statement": [ { "Effect": "Allow", "Action": [ "secretsmanager:GetSecretValue" ], "Resource": {"Fn::Sub": secretsarn} } ]
-                        }
-                    }
-                ]
+                "ManagedPolicyArns": [ "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole" ]
             }
         }
         queueNames: dict[str, list[QueueRole]] = {self.builder.getQueueName(q.name, 'Q'): q.roles for region in _lambda.regions for q in region.queue}
         bucketnames: dict[str, list[S3Role]] = {self.builder.getBucketName(s3.name): s3.roles for region in _lambda.regions for s3 in region.s3}
-
-        for k,v in queueNames.items() :
+        if queueNames or bucketnames: role["Properties"]["Policies"] = []
+        if queueNames:
             role["Properties"]["Policies"].append({
-                "PolicyName": f"LambdaSQSAccess{k}",
+                "PolicyName": f"LambdaSQSAccess",
                 "PolicyDocument": {
                     "Version": "2012-10-17",
-                    "Statement": [ { "Effect": "Allow", "Action": [x.value for x in v], "Resource": [ {"Fn::GetAtt": [k, "Arn"]}] }]
+                    "Statement": [ 
+                        { 
+                            "Effect": "Allow",
+                            "Action": [x.value for x in QueueRole.all()], 
+                            "Resource": [ {"Fn::GetAtt": [k, "Arn"]}] } for k,v in queueNames.items()]
                 }
             })
 
-        for k,v in bucketnames.items():
-            s3ListStatements = []
-            s3OtherStatements = []
-
-            asteriskActions = [x.value for x in v if x in [S3Role.GetObject, S3Role.PutObject, S3Role.DeleteObject]]
-            if asteriskActions: s3ListStatements = [{ "Effect": "Allow", "Action": asteriskActions, "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}"} ] }]
-            nonAsteriskActions = [x.value for x in v if x not in [S3Role.GetObject, S3Role.PutObject]]
-            if nonAsteriskActions: s3OtherStatements = [{ "Effect": "Allow", "Action": nonAsteriskActions, "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}/*"} ] }]
-            statements = s3ListStatements + s3OtherStatements
-            if statements:
-                role["Properties"]["Policies"].append({
-                    "PolicyName": f"LambdaS3Access{k}",
-                    "PolicyDocument": {
-                        "Version": "2012-10-17",
-                        "Statement": statements
-            }
-        })
+        if bucketnames:
+            role["Properties"]["Policies"].append({
+                "PolicyName": f"LambdaS3Access",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [ 
+                        { 
+                            "Effect": "Allow",
+                            "Action": [x.value for x in [S3Role.GetObject, S3Role.PutObject, S3Role.DeleteObject]], 
+                            "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}"} for k,v in bucketnames.items()] 
+                        },
+                        { 
+                            "Effect": "Allow",
+                            "Action": [x.value for x in [S3Role.GetObject, S3Role.PutObject]], 
+                            "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}/*"} for k,v in bucketnames.items()] 
+                        }
+                        
+                    ]
+                
+                }
+            })
         self.builder.resources[rolename] = role

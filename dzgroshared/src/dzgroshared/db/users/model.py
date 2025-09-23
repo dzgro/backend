@@ -33,9 +33,8 @@ class TempAccountRequest(BaseModel):
 
 class UserBasicDetails(BaseModel):
     name: str
-    phoneNumber: str
+    phone_number: str
     email: str
-    customerid: str
     groups: list[str] = Field(alias='cognito:groups', default_factory=list)
 
 class MarketplaceOnboarding(BaseModel):
@@ -47,7 +46,7 @@ class MarketplaceOnboarding(BaseModel):
     onboardsteps: List[OnboardStep] = OnboardStep.values()
 
 class User(ObjectIdStr, UserBasicDetails):
-    pass
+    customerid: str
 
 class UserList(BaseModel):
     users: list[User]

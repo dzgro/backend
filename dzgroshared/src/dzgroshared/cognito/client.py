@@ -40,10 +40,10 @@ class CognitoManager:
     
     def get_user_details_by_attributes(self, user_attributes: list):
         name = self.get_attribute_value_by_key('name',user_attributes)
-        phoneNumber = self.get_attribute_value_by_key('phone_number',user_attributes)
+        phone_number = self.get_attribute_value_by_key('phone_number',user_attributes)
         email = self.get_attribute_value_by_key('email',user_attributes)
         parent = self.get_attribute_value_by_key('preferred_username', user_attributes)
-        return {"name": name, "phoneNumber": phoneNumber, "email": email, "parent": parent}
+        return {"name": name, "phone_number": phone_number, "email": email, "parent": parent}
     
     def delete_user(self, uid: str, userUid: str)->str:
         response = self.get_cognito_user(userUid)
@@ -86,11 +86,11 @@ class CognitoManager:
         details: dict[str, str|None] = self.get_user_details_by_attributes(attributes)
         name = details.get("name", None)
         email = details.get("email", None)
-        phoneNumber = details.get("phoneNumber", None)
+        phone_number = details.get("phone_number", None)
         parent = details.get("parent", None) or username
-        if not name or not  email or not phoneNumber: raise ValueError("Invalid User")
+        if not name or not  email or not phone_number: raise ValueError("Invalid User")
         userDict = {
-            "name": name, "email": email, "phoneNumber": phoneNumber, "username": username, "status": status, "groups": self.get_user_groups(username), "parent": parent
+            "name": name, "email": email, "phone_number": phone_number, "username": username, "status": status, "groups": self.get_user_groups(username), "parent": parent
         }
         return username, userDict
 

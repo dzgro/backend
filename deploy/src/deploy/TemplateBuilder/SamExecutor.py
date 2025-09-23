@@ -20,31 +20,30 @@ class SAMExecutor:
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(exist_ok=True)
 
-    def get_template_path(self, region: Region) -> str:
+    def get_template_name(self) -> str:
+        """Get the name of the cached SAM template"""
+        return f'dzgro-sam-{self.builder.envtextlower}'
+
+    def get_template_path(self) -> str:
         """Get the path to the cached SAM template"""
-        name = f'dzgro-sam-{region.value}-{self.builder.envtextlower}'
-        return str(self.cache_dir / f'{name}.yaml')
+        name = self.get_template_name()
+        return os.path.join(template_builder_root, f'{name}.yaml')
 
     def execute(self, region: Region):
         self.saveTemplateAsYaml(region)
-        # Use template in TemplateBuilder directory since functions are co-located there
-        name = f'dzgro-sam-{region.value}-{self.builder.envtextlower}'
-        template = os.path.join(template_builder_root, f'{name}.yaml')
-        if not os.path.exists(template):
-            raise FileNotFoundError(f"No template found at {template}. Run build first.")
-        print(f"🚀 Deploying from template: {template}")
-        self.build_deploy_sam_template(region, template)
+        print(f"🚀 Deploying from template: {self.get_template_path()}")
+        self.build_deploy_sam_template(region)
 
     def saveTemplateAsYaml(self, region: Region):
         try:
-            name = f'dzgro-sam-{region.value}-{self.builder.envtextlower}'
             # Save template in TemplateBuilder directory alongside functions
-            template_filename = os.path.join(template_builder_root, f'{name}.yaml')
+            name = self.get_template_name()
+            template_filename = self.get_template_path()
             
             template = {
                 'AWSTemplateFormatVersion': '2010-09-09',
                 'Transform': 'AWS::Serverless-2016-10-31',
-                'Description': f'SAM {self.builder.env.value} template for region {region.value}',
+                'Description': f'SAM {self.builder.env.value} template',
                 'Resources': self.builder.resources
             }
             with open(template_filename, 'w') as f:
@@ -76,23 +75,17 @@ class SAMExecutor:
                 print("   Proceeding with template generation...")
             else:
                 print(f"❌ SAM template validation failed for region {region.value}: {e.stderr}")
+            raise e
         except Exception as e:
             print(f"⚠️  SAM validation encountered an issue: {str(e)}")
             print("   Template has been generated and may still be valid")
+            raise e
 
-    def build_deploy_sam_template(self, region: Region, template_file: Optional[str] = None):
-        """
-        Builds and deploys the SAM template for the given region using AWS SAM CLI with Docker containers.
-        Uses cached template if no template_file is provided.
-        """
+    def build_deploy_sam_template(self, region: Region):
         import subprocess
         import os
-        
-        # Use cached template if none provided
-        if template_file is None:
-            template_file = self.get_template_path(region)
-        
-        name = f'dzgro-sam-{region.value}-{self.builder.envtextlower}'
+        template_file = self.get_template_path()
+        name = self.get_template_name()
         built_template_file = os.path.join(template_builder_root, '.aws-sam', 'build', 'template.yaml')
 
         # Check if bucket exists in the region, create if not
@@ -143,4 +136,4 @@ class SAMExecutor:
                 
         except subprocess.CalledProcessError as e:
             print(f"❌ Error building or deploying SAM template for region {region.value} for {self.builder.env.value}: {e}")
-            pass
+            raise e

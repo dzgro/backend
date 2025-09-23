@@ -12,7 +12,7 @@
 
 # class AddNewUserRequest(BaseModel):
 #     name: str
-#     phoneNumber: str
+#     phone_number: str
 #     email: str
 #     groups: list[str]
 #     marketplaces: list[str]

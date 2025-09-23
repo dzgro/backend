@@ -9,9 +9,35 @@ class ApiGatewayBuilder:
     def __init__(self, builder: TemplateBuilder) -> None:
         self.builder = builder
 
-    def execute(self):
+    def execute(self, apiCertificateArn: str):
         self.createApiGatewayRole()
         self.createRawApiGateway()
+        self.addCertificateAndBaseMapping(apiCertificateArn)
+
+    def addCertificateAndBaseMapping(self, ApiCertificateArn: str):
+        apiDomain = self.builder.getApiDomainName()
+        self.builder.resources.update(
+            {
+            'ApiDomain': {
+                "Type": "AWS::ApiGateway::DomainName",
+                "Properties": {
+                    "DomainName": apiDomain,
+                    "RegionalCertificateArn": ApiCertificateArn,
+                    "EndpointConfiguration": {
+                        "Types": ["REGIONAL"]
+                    }
+                }
+            },
+            "MyBasePathMapping": {
+                "Type": "AWS::ApiGateway::BasePathMapping",
+                "Properties": {
+                    "DomainName": { "Ref": "ApiDomain" },
+                    "RestApiId": { "Ref": self.builder.getApiGatewayName() },
+                    "Stage": {"Ref": f'{self.builder.getApiGatewayName()}.Stage' }
+                }
+            }
+            }
+      )
 
 
     def createApiGatewayRole(self):
@@ -58,8 +84,19 @@ class ApiGatewayBuilder:
                 },
                 "Principal": "apigateway.amazonaws.com",
                 "SourceArn": {
-                    "Fn::Sub": f"arn:aws:execute-api:${{AWS::Region}}:${{AWS::AccountId}}:{apiGatewayName}/*/*/*"
-                }
+                    "Fn::Join": [
+                    "",
+                    [
+                        "arn:aws:execute-api:",
+                        { "Ref": "AWS::Region" },
+                        ":",
+                        { "Ref": "AWS::AccountId" },
+                        ":",
+                        { "Ref": apiGatewayName },
+                        "/*/*/*"
+                    ]
+                    ]
+                },
             }
         }
 

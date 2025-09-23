@@ -1,10 +1,8 @@
 from bson import ObjectId
-from dzgroshared.models.collections.analytics import MarketplaceHealthResponse
-from dzgroshared.db.marketplaces.model import MarketplaceCache
+from dzgroshared.db.health.model import MarketplaceHealthResponse
 from dzgroshared.db.enums import CollectionType
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.db.model import PyObjectId
 
 class HealthHelper:
     client: DzgroSharedClient

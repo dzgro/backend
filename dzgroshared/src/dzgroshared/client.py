@@ -24,7 +24,7 @@ class DzgroSharedClient:
         self.env = env
         self.ACCOUNT_ID = "522814698847"
         self.REGION = "ap-south-1"
-        self.DB_NAME = f'dzgro-{self.env.value.lower()}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+        self.DB_NAME = f'dzgro-{self.env.value}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
 
         
     def __getattr__(self, item):
@@ -81,8 +81,8 @@ class DzgroSharedClient:
     @property
     def razorpay(self):
         if self.razorpayClient: return self.razorpayClient
-        key = self.secrets.RAZORPAY_CLIENT_ID_PROD if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_ID_TEST
-        secret = self.secrets.RAZORPAY_CLIENT_SECRET_PROD if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_SECRET_TEST
+        key = self.secrets.RAZORPAY_CLIENT_ID if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_ID
+        secret = self.secrets.RAZORPAY_CLIENT_SECRET if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_SECRET
         self.razorpayClient = RazorpayClient(key, secret)
         return self.razorpayClient
     

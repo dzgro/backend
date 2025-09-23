@@ -525,14 +525,45 @@ MONTH_BARS: MetricGroup = MetricGroup(
 MONTH_DATA = MetricGroup(
         metric=AnalyticGroupMetricLabel.MONTH_DATA, items = [
                     MetricItem(metric=AnalyticsMetric.NET_REVENUE),
+                    MetricItem(metric=AnalyticsMetric.QUANTITY),
+                    MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.SPEND),
+                    MetricItem(metric=AnalyticsMetric.AD_SALES),
+                    MetricItem(metric=AnalyticsMetric.ROAS),
+                    MetricItem(metric=AnalyticsMetric.TACOS),
+                    MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
+        ])
+
+KEY_METRICS: list[MetricGroup] = [
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.SALES, items = [
+                    MetricItem(metric=AnalyticsMetric.NET_REVENUE),
                     MetricItem(metric=AnalyticsMetric.ORDERS),
                     MetricItem(metric=AnalyticsMetric.QUANTITY),
-                    MetricItem(metric=AnalyticsMetric.NET_PROCEEDS),
+                    MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE)
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.ADVERTISEMENT, items = [
                     MetricItem(metric=AnalyticsMetric.SPEND),
                     MetricItem(metric=AnalyticsMetric.AD_SALES),
                     MetricItem(metric=AnalyticsMetric.AD_UNITS),
-                    MetricItem(metric=AnalyticsMetric.ROAS),
-        ])
+                    MetricItem(metric=AnalyticsMetric.ROAS)
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.FBA_SALES, items = [
+                    MetricItem(metric=AnalyticsMetric.FBA_NET_REVENUE),
+                    MetricItem(metric=AnalyticsMetric.FBA_NET_ORDERS),
+                    MetricItem(metric=AnalyticsMetric.FBA_NET_QUANTITY),
+                    MetricItem(metric=AnalyticsMetric.FBA_AVERAGE_SALE_PRICE)
+        ]),
+    MetricGroup(
+        metric=AnalyticGroupMetricLabel.TRAFFIC, items = [
+                    MetricItem(metric=AnalyticsMetric.PAGE_VIEWS),
+                    MetricItem(metric=AnalyticsMetric.SESSIONS),
+                    MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.BUY_BOX_PERCENTAGE)
+        ]),
+]
 
 PERIOD_METRICS: list[MetricGroup] = [
     MetricGroup(

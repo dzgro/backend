@@ -1,15 +1,18 @@
 from dzgroshared.client import DzgroSharedClient
+from dzgroshared.secrets.model import DzgroSecrets
 from fastapi import Depends, FastAPI, Request, Security
-from fastapi.responses import Response, RedirectResponse
+from fastapi.responses import Response, RedirectResponse, JSONResponse
 from api.exception_handlers import register_exception_handlers
 from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.security import APIKeyHeader
-import io, yaml, os, functools, time, asyncio
+import io, yaml, os, functools, time, asyncio, json
 from fastapi.openapi.utils import get_openapi
 from dzgroshared.db.pricing.model import Pricing
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import _StreamingResponse
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -20,10 +23,8 @@ if not env: raise ValueError("ENV environment variable not set")
 # Move imports to module level for better performance
 from dzgroshared.secrets.client import SecretManager
 from motor.motor_asyncio import AsyncIOMotorClient
-from dzgroshared.razorpay.client import RazorpayClient
+
 import jwt
-
-
 def is_running_on_lambda():
     """
     Detect if the application is running on AWS Lambda
@@ -95,8 +96,8 @@ async def lifespan(app: FastAPI):
                 maxPoolSize=1,  # Lambda processes one request at a time
                 minPoolSize=0,  # No need to maintain connections when idle
                 maxIdleTimeMS=900000,  # Keep connection for 15 minutes (Lambda warm period)
-                serverSelectionTimeoutMS=3000,  # Faster timeout for Lambda
-                connectTimeoutMS=3000,  # Faster connection timeout
+                serverSelectionTimeoutMS=10000,  # Faster timeout for Lambda
+                connectTimeoutMS=10000,  # Faster connection timeout
                 socketTimeoutMS=10000,  # Socket timeout for operations
                 heartbeatFrequencyMS=60000  # Heartbeat every minute
             )
@@ -180,25 +181,160 @@ def custom_openapi():
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
+class ResponseFormatMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Call the actual endpoint
+        response = await call_next(request)
+        
+        # CRITICAL: Skip middleware for OPTIONS (preflight) requests to preserve CORS
+        if request.method == "OPTIONS":
+            return response
+            
+        # For error responses or other special cases, preserve CORS headers but don't modify content
+        if (response.status_code >= 400 or 
+            response.status_code in [301, 302, 303, 307, 308] or
+            not response.headers.get("content-type", "").startswith("application/json") or
+            isinstance(response, _StreamingResponse)):
+            
+            # CORS headers will be handled by universal_cors_handler middleware
+            return response
+            
+        # For regular Response objects, we need to handle this differently
+        from starlette.responses import Response as StarletteResponse
+        
+        if not isinstance(response, StarletteResponse):
+            return response
+            
+        # Get the response body - for regular responses it's in .body attribute
+        if not (hasattr(response, 'body') and response.body):
+            return response
+            
+        try:
+            original_body = response.body.decode()
+            data = json.loads(original_body)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            # If we can't decode or parse, return original response
+            return response
+
+        # Wrap in your standard format
+        new_body = {
+            "status": "success",
+            "data": data
+        }
+
+        # Preserve CORS headers and remove problematic headers
+        new_headers = {}
+        for k, v in response.headers.items():
+            key_lower = k.lower()
+            # Keep CORS headers and other important headers, exclude problematic ones
+            if key_lower not in ["content-length", "transfer-encoding"]:
+                new_headers[k] = v
+
+        # CORS headers will be handled by universal_cors_handler middleware
+
+        # Return new JSONResponse with preserved headers
+        return JSONResponse(
+            content=new_body,
+            status_code=response.status_code,
+            headers=new_headers
+        )
+
+
 
 authorization_scheme = APIKeyHeader(name="Authorization", auto_error=True)
 marketplace_scheme = APIKeyHeader(name="marketplace", auto_error=True)
 
 app = FastAPI(title="FastAPI",separate_input_output_schemas=False, lifespan=lifespan, servers=[{"url": "http://localhost:8000/", "description": "Development environment"}, {"url": "https://api.dzgro.com", "description": "Production environment"}])
 app.openapi = custom_openapi
-origins: list[str] = ["http://localhost:4200", "https://dzgro.com"]
-headers: list[str] = ["Authorization","marketplaceId"]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+origins: list[str] = ["http://localhost:4200"] if env==ENVIRONMENT.LOCAL else ["https://dev.dzgro.com","http://localhost:4200"] if env==ENVIRONMENT.DEV else ["https://staging.dzgro.com"] if env==ENVIRONMENT.STAGING else ["https://dzgro.com", "https://www.dzgro.com"]
+headers: list[str] = ["Authorization","marketplaceId", "Content-Type", "Accept", "Origin", "X-Requested-With"]
+
+# Add ResponseFormatMiddleware first (innermost)
+app.add_middleware(ResponseFormatMiddleware)
+
+# Universal CORS handling middleware
+@app.middleware("http") 
+async def universal_cors_handler(request: Request, call_next):
+    # Handle preflight requests immediately
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin", "")
+        headers = {
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, X-Requested-With, marketplace, marketplaceId",
+            "Access-Control-Max-Age": "3600"
+        }
+        
+        # Set origin based on allowed origins list
+        if origin and origin in origins:
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
+        else:
+            # For unauthorized origins, use wildcard and no credentials
+            headers["Access-Control-Allow-Origin"] = "*"
+            
+        return Response(status_code=200, headers=headers)
+    
+    # Process the request with error handling
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        # If there's an unhandled exception, create an error response with CORS headers
+        error_response = JSONResponse(
+            status_code=500,
+            content={"error": [{"errortype": "Unhandled", "code": 500, "message": str(e), "description": "An unexpected error occurred", "source": "server"}]}
+        )
+        
+        # Add CORS headers to error response
+        origin = request.headers.get("origin", "")
+        if origin and origin in origins:
+            error_response.headers["Access-Control-Allow-Origin"] = origin
+            error_response.headers["Access-Control-Allow-Credentials"] = "true"
+        else:
+            # For unauthorized origins, use wildcard and no credentials
+            error_response.headers["Access-Control-Allow-Origin"] = "*"
+        
+        error_response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        error_response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, marketplace, marketplaceId"
+        
+        return error_response
+    
+    # Add CORS headers to all responses
+    origin = request.headers.get("origin", "")
+    if origin and origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    else:
+        # For unauthorized origins, use wildcard and no credentials
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, marketplace, marketplaceId"
+    
+    return response
+
+# Enhanced CORS configuration for production only (if needed as backup)
+if env != ENVIRONMENT.LOCAL:
+    app.add_middleware(
+        CORSMiddleware, 
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], 
+        allow_headers=["*"],
+        expose_headers=["*"]
+    )
 
 
 @app.middleware("http")
 async def log_request_time(request: Request, call_next):
     start_time = time.perf_counter()
     response = await call_next(request)
-    process_time_seconds = (time.perf_counter() - start_time)  # ms
-    if request.method!="OPTIONS":
-        if process_time_seconds>1:print(f"{request.method} {request.url.path} completed in {process_time_seconds:.2f} seconds")
-        else: print(f"{request.method} {request.url.path} completed in {process_time_seconds*1000:.2f} milliseconds")
+    
+    process_time_seconds = (time.perf_counter() - start_time)
+    if request.method != "OPTIONS":
+        if process_time_seconds > 1000:
+            print(f"{request.method} {request.url.path} completed in {process_time_seconds/1000:.1f} seconds")
+        else: 
+            print(f"{request.method} {request.url.path} completed in {process_time_seconds:.0f} milliseconds")
     return response
 
 # Move router imports to module level for better performance
@@ -233,6 +369,10 @@ use_route_names_as_operation_ids(app)
 async def docs_redirect():
     return RedirectResponse(url='/docs')
 
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint that doesn't require database access"""
+    return {"status": "healthy", "message": "API is running"}
 
 @app.get("/items")
 def read_items(

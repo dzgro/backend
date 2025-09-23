@@ -1,5 +1,5 @@
 from dzgroshared.db.gstin.model import BusinessDetails, GstDetail, LinkedGsts
-from dzgroshared.db.enums import GSTStateCode
+from dzgroshared.db.enums import GstStateCode
 from fastapi import APIRouter, Request, Depends
 from api.Util import RequestHelper
 from dzgroshared.db.model import PyObjectId, SuccessResponse
@@ -13,9 +13,9 @@ async def db(request: Request):
 async def listGST(request: Request):
     return await (await db(request)).listGSTs()
 
-@router.get("/states", response_model=list[GSTStateCode], response_model_exclude_none=True, response_model_by_alias=False)
+@router.get("/states", response_model=list[GstStateCode], response_model_exclude_none=True, response_model_by_alias=False)
 async def getStates(request: Request):
-    return GSTStateCode.values()
+    return GstStateCode.values()
 
 @router.get("/{id}", response_model=GstDetail, response_model_exclude_none=True, response_model_by_alias=False)
 async def getGST(request: Request, id: PyObjectId):

@@ -1,6 +1,6 @@
 
 from typing import List
-from dzgroshared.db.enums import GSTStateCode
+from dzgroshared.db.enums import GstStateCode
 from dzgroshared.db.model import ItemId
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class BusinessDetails(BaseModel):
     addressline3: str
     pincode: str
     city: str
-    state: GSTStateCode
+    state: GstStateCode
 
 
 class GstDetail(ItemId, BusinessDetails):

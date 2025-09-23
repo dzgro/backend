@@ -2,19 +2,10 @@ from bson import ObjectId
 from dzgroshared.db.model import Paginator
 
 
-def pipeline(uid:str, paginator: Paginator):
-    return [
-    {
-        '$match': {
-            'uid': uid
-        }
-    }, {
-        "$sort": { "_id": -1 }
-    },{
-        "$skip": paginator.skip
-    }, {
-        "$limit": paginator.limit
-    },{
+def pipeline(uid:str, paginator: Paginator, marketplace: ObjectId|None = None) -> list[dict]:
+    pipeline: list[dict] = [{'$match': {'_id': marketplace, 'uid': uid} if marketplace else {'uid': uid}}]
+    if not marketplace: pipeline.extend([{ "$sort": { "_id": -1 } },{ "$skip": paginator.skip }, { "$limit": paginator.limit }])
+    pipeline.extend([{
         '$lookup': {
             'from': 'spapi_accounts', 
             'localField': 'seller', 
@@ -133,5 +124,5 @@ def pipeline(uid:str, paginator: Paginator):
                 }
             }
         }
-    }
-]
+    }])
+    return pipeline
