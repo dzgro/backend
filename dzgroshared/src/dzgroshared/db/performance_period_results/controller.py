@@ -1,10 +1,10 @@
 from bson import ObjectId
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.db.performance_period_results.model import PerformanceTableRequest, ComparisonPeriodDataRequest, SingleAnalyticsMetricTableResponse, SingleAnalyticsMetricTableResponseItem
+from dzgroshared.db.performance_period_results.model import PerformanceDashboardResponse, PerformanceTableRequest, ComparisonPeriodDataRequest
 from dzgroshared.db.enums import CollectionType, CollateType
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.analytics import controller
-from dzgroshared.db.model import SingleMetricPeriodDataRequest
+from dzgroshared.db.model import PeriodDataRequest, SingleAnalyticsMetricTableResponse, SingleMetricPeriodDataRequest
 
 
 class PerformancePeriodResultsHelper:
@@ -77,15 +77,14 @@ class PerformancePeriodResultsHelper:
         columns.extend([item.metric.value for item in controller.getMetricGroupsBySchemaType('Comparison', body.collatetype)])
         return {"rows": data, "columns": columns}
 
-    async def getPerformanceforPeriod(self, req: ComparisonPeriodDataRequest):
-        filterDict = {"collatetype": req.collatetype.value, "queryid": ObjectId(req.queryId)}
-        if req.value: filterDict.update({"value": req.value})
-        pipeline = [self.db.pp.matchMarketplace(filterDict), controller.getProjectionStage('Comparison', req.collatetype), {"$project": {"data": 1, "_id": 0}}]
-        data = await self.db.aggregate(pipeline)
-        data = controller.transformData('Comparison',data, req.collatetype, self.client.marketplace.countrycode)
-        return data[0]
-        headers = [item.metric for item in AnalyticsModel.getMetricGroupsBySchemaType('Comparison', req.collatetype)]
-        return {"headers": headers, 'items': (data[0]['data'] if len(data)>0 else [])}
+    async def getDashboardPerformanceResults(self, req: PeriodDataRequest):
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_comparison_pipeline(req)
+        data = await self.client.db.marketplaces.db.aggregate(pipeline)
+        return {"data": data}
+    
+    
 
 
         

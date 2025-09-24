@@ -26,6 +26,8 @@ class DbManager:
         return ObjectId(id) if isinstance(id, str) else id
 
     async def aggregate(self, pipeline: list[dict])->list[dict]:
+        from dzgroshared.utils import mongo_pipeline_print
+        mongo_pipeline_print.copy_pipeline(pipeline)
         start_time = time.perf_counter()
         try:
             result = self.collection.aggregate(pipeline)
@@ -35,8 +37,6 @@ class DbManager:
             return data
         except Exception as e:
             print(e)
-            from dzgroshared.utils import mongo_pipeline_print
-            mongo_pipeline_print.copy_pipeline(pipeline)
             return []
 
     async def distinct(self, fieldname:str, filters: dict = {}):

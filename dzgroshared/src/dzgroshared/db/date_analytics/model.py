@@ -8,11 +8,14 @@ class ChartData(BaseModel):
     dates: list[str]
     values: list[float]
 
-class MonthDataResponse(BaseModel):
+class MonthLiteResponseItem(BaseModel):
     month: str
     data: AnalyticPeriodGroup
     bars: AnalyticPeriodGroup
     meterGroups: list[AnalyticPeriodGroup]
+
+class MonthLiteResponse(BaseModel):
+    data: list[MonthLiteResponseItem]
 
 class MonthTableResponse(BaseModel):
     columns: list[MonthLite]

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Literal, Any
 from bson import ObjectId
+from dzgroshared.db.date_analytics.pipelines.Get30DaysGraph import pipeline
 from dzgroshared.db.model import PyObjectId, SATKey
 from dzgroshared.db.enums import Operator, CollectionType
 from dzgroshared.Methods import AddCalculations, AddCurrPreGrowth, AddPercentKeys, CollateCurrPreGrowth, CollateSATs, ConvertDataArrayToDataObject, GetAsinQueries, GetCalculatedAnalyticsKeys, OpenSATs, BreakDataToCurrPreByDates, GroupAnalyticKeys, CollateListOfObjectsAsObject, TransformAnalyticsKeys
@@ -51,6 +52,11 @@ class PipelineProcessor:
     def getNDatesBeforeADate(self, endDate: datetime, days: int) -> dict:
         startDate = endDate - timedelta(days=days)
         return self.getDatesBetweenTwoDates(startDate, endDate)
+    
+    def openMarketplaceMonths(self):
+        pipeline: list[dict] = [{ '$match': { '_id': self.marketplace } }]
+        pipeline.extend([ { '$addFields': { 'months': { '$reduce': { 'input': { '$range': [ 0, { '$add': [ { '$multiply': [ { '$subtract': [ { '$year': '$dates.enddate' }, { '$year': '$dates.startdate' } ] }, 12 ] }, { '$subtract': [ { '$month': '$dates.enddate' }, { '$month': '$dates.startdate' } ] }, 1 ] } ] }, 'initialValue': [], 'in': { '$concatArrays': [ '$$value', [ { '$let': { 'vars': { 'currentMonth': { '$add': [ { '$month': '$dates.startdate' }, '$$this' ] }, 'currentYear': { '$add': [ { '$year': '$dates.startdate' }, { '$floor': { '$divide': [ { '$add': [ { '$month': '$dates.startdate' }, '$$this', -1 ] }, 12 ] } } ] } }, 'in': { '$let': { 'vars': { 'adjustedMonth': { '$cond': [ { '$gt': [ '$$currentMonth', 12 ] }, { '$subtract': [ '$$currentMonth', 12 ] }, '$$currentMonth' ] }, 'adjustedYear': { '$cond': [ { '$gt': [ '$$currentMonth', 12 ] }, { '$add': [ '$$currentYear', 1 ] }, '$$currentYear' ] } }, 'in': { '$let': { 'vars': { 'firstDayOfMonth': { '$dateFromParts': { 'year': '$$adjustedYear', 'month': '$$adjustedMonth', 'day': 1 } }, 'lastDayOfMonth': { '$dateSubtract': { 'startDate': { '$dateAdd': { 'startDate': { '$dateFromParts': { 'year': '$$adjustedYear', 'month': '$$adjustedMonth', 'day': 1 } }, 'unit': 'month', 'amount': 1 } }, 'unit': 'day', 'amount': 1 } } }, 'in': { '$let': { 'vars': { 'rangeStart': { '$max': [ '$$firstDayOfMonth', '$dates.startdate' ] }, 'rangeEnd': { '$min': [ '$$lastDayOfMonth', '$dates.enddate' ] } }, 'in': { 'month': { '$dateToString': { 'format': '%b %Y', 'date': '$$firstDayOfMonth' } }, 'period': { '$concat': [ { '$dateToString': { 'format': '%d %b', 'date': '$$rangeStart' } }, ' - ', { '$dateToString': { 'format': '%d %b', 'date': '$$rangeEnd' } } ] }, 'startdate': '$$rangeStart', 'enddate': '$$rangeEnd' } } } } } } } } } ] ] } } } } }, { '$unwind': "$months" }, { '$sort': { "months.startdate": -1 } }])
+        return pipeline
 
     def matchAllExpressions(self, expressions: list[LookUpPipelineMatchExpression]):
         expr: list[dict] = []

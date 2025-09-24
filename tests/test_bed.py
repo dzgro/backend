@@ -1,5 +1,7 @@
 from dzgroshared.db.enums import ENVIRONMENT
-from dzgroshared.db.model import DzgroSecrets, Paginator, PyObjectId
+from dzgroshared.db.model import Paginator, PyObjectId
+from dzgroshared.secrets.model import DzgroSecrets
+from dzgroshared.secrets.client import SecretManager
 from motor.motor_asyncio import AsyncIOMotorClient
 from httpx import AsyncClient
 import pytest, json
@@ -16,17 +18,7 @@ class ROUTER(str, Enum):
 
 @pytest.fixture(scope="session")
 def secrets()->DzgroSecrets:
-    from boto3.session import Session
-    client = Session().client(
-            service_name='secretsmanager',
-            region_name='ap-south-1'
-    )
-    key = f'dzgro/prod' if env == ENVIRONMENT.PROD else f'dzgro/test'
-    secrets = json.loads(client.get_secret_value(SecretId=key)['SecretString'])
-    secrets = DzgroSecrets(**secrets)
-    MONGO_DB_FED_CONNECT_URI = secrets.MONGO_DB_FED_CONNECT_URI.replace('fed', f'fed-{env.value.lower()}')
-    secrets.MONGO_DB_FED_CONNECT_URI = MONGO_DB_FED_CONNECT_URI
-    return secrets
+    return SecretManager(env).secrets
 
 @pytest.fixture(scope="session")
 def email()->str:
@@ -44,7 +36,7 @@ def token(email, secrets: DzgroSecrets)->str:
         AuthFlow='USER_PASSWORD_AUTH',
         AuthParameters={
             'USERNAME': email,
-            'PASSWORD': secrets.TEST_PASSWORD
+            'PASSWORD': secrets.USER_DUMMY_PASSWORD
         }
     )
     accesstoken = response['AuthenticationResult'].get('AccessToken', None)
@@ -110,5 +102,7 @@ async def test_list(client, endpoint: ROUTER, paginator: Paginator):
     newData = assert_list_response(resp, key='data', label=label, paginator=paginator)
     if not newData: return
     assert data[0]!=newData[0], "Pagination not working"
+
+
 
     

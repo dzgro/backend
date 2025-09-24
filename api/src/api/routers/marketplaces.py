@@ -1,6 +1,6 @@
 from calendar import Month
 from dzgroshared.db.enums import CollateType, PlanType
-from dzgroshared.db.marketplaces.model import DashboardData, MarketplaceOnboardPaymentRequest, UserMarketplace, UserMarketplaceList
+from dzgroshared.db.marketplaces.model import MarketplaceOnboardPaymentRequest, UserMarketplace, UserMarketplaceList
 from dzgroshared.db.pricing.model import Pricing, PricingDetail
 from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
 from dzgroshared.razorpay.common import RazorpayOrderObject
@@ -43,10 +43,3 @@ async def getPlans(request: Request, id: PyObjectId):
 async def getPaymentObject(request: Request, req: MarketplaceOnboardPaymentRequest):
     return await (await db(request)).generateOrderForOnboarding(req)
 
-@router.post("/period-data", response_model=PeriodDataResponse, response_model_exclude_none=True, response_model_by_alias=False)
-async def getPeriodData(request: Request, req: PeriodDataRequest):
-    return await (await db(request)).getPeriodData(req)
-
-@router.post("/data/{collatype}", response_model=DashboardData, response_model_exclude_none=True, response_model_by_alias=False)
-async def getData(request: Request, collatype: CollateType, value: str|None=None):
-    return await (await db(request)).getDashboardData(collatype, value)

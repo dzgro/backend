@@ -1,0 +1,82 @@
+[tool.poetry]
+name = "sam-app-tests"
+version = "0.1.0"
+description = "Test suite for sam-app project"
+authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "test_helpers", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.1.0"
+pytest-cov = "^4.0.0"
+pytest-xdist = "^3.0.0"
+pytest-mock = "^3.12.0"
+httpx = "0.28.1"
+faker = "^19.0.0"
+
+[tool.poetry.group.dev.dependencies]
+# Local project dependencies
+api = { path = "../api", develop = true }
+dzgroshared = { path = "../dzgroshared", develop = true }
+
+[tool.poetry.group.performance]
+optional = true
+
+[tool.poetry.group.performance.dependencies]
+locust = "^2.16.0"
+pytest-benchmark = "^4.0.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["integration", "unit"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow running tests",
+    "user: User functionality tests",
+    "marketplaces: Marketplace functionality tests", 
+    "spapi_accounts: Seller functionality tests",
+    "advertising_accounts: Advertising account functionality tests",
+    "api: API related tests",
+    "performance: Performance tests"
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/conftest.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError"
+]

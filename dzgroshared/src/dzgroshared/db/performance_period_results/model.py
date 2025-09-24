@@ -33,8 +33,12 @@ class PerformancePeriodData(BaseModel):
     headers: list[AnalyticGroupMetricLabel]
     items: list[PerformancePeriodGroup]
 
-class PerformancePeriodDataResponse(BaseModel):
+class PerformanceDashboardResponseItem(BaseModel):
+    tag: QueryTag
     data: list[PerformancePeriodGroup]
+
+class PerformanceDashboardResponse(BaseModel):
+    data: list[PerformanceDashboardResponseItem]
 
 
 class ListingResponse(BaseModel):

@@ -43,13 +43,19 @@ class StateAnalyticsHelper:
         
     
     async def getStateDataDetailedForMonth(self, req: MonthDataRequest):
-        rows = await self.getStateWiseData(req, 'State All')
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_state_all_pipeline(req)
+        rows = await self.client.db.marketplaces.db.aggregate(pipeline)
         columns = controller.convertSchematoMultiLevelColumns('State All')
         return {"columns": columns, "rows": rows}
 
     async def getStateDataLiteByMonth(self, req: MonthDataRequest):
-        data = await self.getStateWiseData(req, 'State Lite')
-        return {"data": [{"state": item['state'], 'data': item['data'][0]['items'] if len(item['data']) > 0 and 'items' in item['data'][0] else []} for item in data]}
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_state_lite_pipeline(req)
+        data = await self.client.db.marketplaces.db.aggregate(pipeline)
+        return {"data": data}
     
     async def getStateDataDetailed(self, req: StateDetailedDataByStateRequest):
         letdict = { 'marketplace': '$marketplace', 'startdate': '$startdate', 'enddate': '$enddate', 'collatetype': 'marketplace', 'state': req.state }

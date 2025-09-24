@@ -257,6 +257,7 @@ class MetricDetail(BaseModel):
     metric: AnalyticsMetric
     ispercentage: bool
     isReverseGrowth: bool = False
+    isCurrency: bool = False
     label: str
     description: str|SkipJsonSchema[None] = None
 

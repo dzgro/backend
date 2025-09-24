@@ -7,7 +7,7 @@ from dzgroshared.amazonapi.model import AmazonApiObject
 from dzgroshared.db.pricing.model import OfferType, Pricing
 from dzgroshared.db.enums import CollateType, CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus, PlanType
 from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, StartEndDate, SuccessResponse
-from dzgroshared.db.marketplaces.model import DashboardData, Marketplace, MarketplaceCache, MarketplaceObjectForReport, MarketplaceOnboardPaymentRequest, UserAccountsCount, MarketplaceNameId, UserMarketplace, UserMarketplaceList
+from dzgroshared.db.marketplaces.model import Marketplace, MarketplaceCache, MarketplaceObjectForReport, MarketplaceOnboardPaymentRequest, UserAccountsCount, MarketplaceNameId, UserMarketplace, UserMarketplaceList
 from dzgroshared.db.country_details.model import CountryDetailsWithBids
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
@@ -55,11 +55,6 @@ class MarketplaceHelper:
         if len(data)==0: raise ValueError("Invalid Marketplace")
         return MarketplaceObjectForReport.model_validate(data[0])
     
-    
-    async def getPeriodData(self, req: PeriodDataRequest):
-        pipeline = GetPeriodData.pipeline(self.client.uid, self.client.marketplaceId, req)
-        data = await self.db.aggregate(pipeline)
-        return PeriodDataResponse.model_validate({"data": controller.transformData('Period',data, req.collatetype, self.client.marketplace.countrycode)})
     
     async def completeReportProcessing(self, id:str|ObjectId, dates: StartEndDate, lastrefresh: datetime, lastreport: ObjectId):
         await self.db.updateOne({"_id": self.db.convertToObjectId(id)}, setDict={"dates":dates.model_dump(), "lastrefresh": lastrefresh, "lastreport": lastreport, "status": MarketplaceStatus.ACTIVE.value})
@@ -244,28 +239,4 @@ class MarketplaceHelper:
                 month = 1
                 year += 1
         return results
-    
-    async def getDashboardData(self, collatetype: CollateType, value: str|None=None):
-        from dzgroshared.db.marketplaces.pipelines import DataDashboard
-        keys = [y.metric.value for x in KEY_METRICS for y in x.items]
-        pipeline = DataDashboard.pipeline(self.db.pp, self.client.marketplaceId, collatetype, value, keys)
-        from dzgroshared.utils import mongo_pipeline_print
-        mongo_pipeline_print.copy_pipeline(pipeline)
-        marketplaces = await self.db.aggregate(pipeline)
-        data = marketplaces[0]
-        data['periods'] = controller.transformData('Period',data['periods'], collatetype, self.client.marketplace.countrycode)
-        data['states'] = controller.transformData('State Lite',data['states'], collatetype, self.client.marketplace.countrycode)
-        data['performance'] = controller.transformData('Comparison',data['performance'], collatetype, self.client.marketplace.countrycode)
-        monthMeterGroups = controller.transformData('Month Meters',data['months'], collatetype, self.client.marketplace.countrycode)
-        monthBars = controller.transformData('Month Bars',data['months'], collatetype, self.client.marketplace.countrycode)
-        monthdata = controller.transformData('Month Data',data['months'], collatetype, self.client.marketplace.countrycode)
-        data['months'] = [{**month, "meterGroups": monthMeterGroups[i]['data'] if len(monthMeterGroups)>i and 'data' in monthMeterGroups[i] else [], "bars": monthBars[i]['data'][0] if len(monthBars)>i and 'data' in monthBars[i] and len(monthBars[i]['data'])>0 else [], "data": monthdata[i]['data'][0] if len(monthdata)>i and 'data' in monthdata[i] and len(monthdata[i]['data'])>0 else []} for i, month in enumerate(data['months'])]
-        data['keys'] = controller.transformData('Key Metrics', data['keys'],collatetype, self.client.marketplace.countrycode)
-        data =  {"collatetype": collatetype.value, "value": value, **data}
-        try:
-            return DashboardData.model_validate(data)
-        except Exception as e:
-            print(e)
-            print(data)
-
     

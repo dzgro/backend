@@ -83,27 +83,16 @@ class DateAnalyticsHelper:
         return pipeline
     
     
-    async def getMonthLiteData(self, req: MonthDataRequest):
-        month = next((Month.model_validate(x) for x in (await self.client.db.marketplaces.getMonths()) if x['month']==req.month), None)
-        if not month: return ValueError("Invalid Month")
-        pipeline = self.getPipelineForDataBetweenTwoDates(req, month.startdate, month.enddate)
-        from dzgroshared.utils import mongo_pipeline_print
-        mongo_pipeline_print.copy_pipeline(pipeline)
-        data = await self.db.aggregate(pipeline)
-        monthMeterGroups = controller.transformData('Month Meters',data, req.collatetype, self.client.marketplace.countrycode)
-        monthBars = controller.transformData('Month Bars',data, req.collatetype, self.client.marketplace.countrycode)
-        monthdata = controller.transformData('Month Data',data, req.collatetype, self.client.marketplace.countrycode)
-        return {
-            "month": req.month,
-            "meterGroups": monthMeterGroups[0]['data'] if len(monthMeterGroups)>0 and 'data' in monthMeterGroups[0] else [],
-            "bars": monthBars[0]['data'][0] if len(monthBars)>0 and 'data' in monthBars[0] and len(monthBars[0]['data'])>0 else [],
-            "data": monthdata[0]['data'][0] if len(monthdata)>0 and 'data' in monthdata[0] and len(monthdata[0]['data'])>0 else [],
-        }
+    async def getMonthLiteData(self, req: PeriodDataRequest):
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_complete_month_lite_data_pipeline(req)
+        result = await self.client.db.marketplaces.db.aggregate(pipeline)
+        return {"data": result}
     
-    
-    async def getChartData(self, req: SingleMetricPeriodDataRequest):
-        pipeline = Get30DaysGraph.pipeline(self.client.marketplaceId, req)
-        return await self.db.aggregate(pipeline)
-    
-    
-        
+    async def getPeriodData(self, req: PeriodDataRequest):
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_period_pipeline(req)
+        result = await self.client.db.marketplaces.db.aggregate(pipeline)
+        return {"data": result}

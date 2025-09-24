@@ -1,5 +1,4 @@
 from dzgroshared.amazonapi.model import AmazonApiObject
-from dzgroshared.db.date_analytics.model import MonthDataResponse
 from dzgroshared.db.health.model import AHR
 from dzgroshared.db.performance_period_results.model import PerformancePeriodGroup
 from dzgroshared.db.performance_periods.model import PerformancePeriod
@@ -142,14 +141,5 @@ class DetailedMarketplaceWithData(ItemId):
     plantype: PlanType
     periods: list[PerformancePeriod]
     months: list[Month]
-
-class DashboardData(BaseModel):
-    collatetype: CollateType
-    value: str|SkipJsonSchema[None]=None
-    # periods: PeriodDataResponse
-    # states: list[StateMonthDataResponseItem]
-    # performance: list[PerformancePeriodGroup]
-    months: list[MonthDataResponse]
-    keys: list[DashboardKeyMetricGroup]
 
 
