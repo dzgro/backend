@@ -59,6 +59,7 @@ class DateAnalyticsHelper:
         from dzgroshared.utils import mongo_pipeline_print
         mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.client.db.date_analytics.db.aggregate(pipeline)
+        if not data: raise ValueError("No Data Found")
         dates = [x['date'] for x in data]
         data = controller.transformData('Month Date',data, req.collatetype, self.client.marketplace.countrycode)
         columns = controller.convertSchematoMultiLevelColumns('Month Date')

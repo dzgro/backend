@@ -22,9 +22,8 @@ class SPAPIAccount(ItemId):
     sellerid: str
     accounttype: AmazonAccountType = AmazonAccountType.SPAPI
     
-class SPAPIAccountList(Count):
+class SPAPIAccountList(BaseModel):
     data: List[SPAPIAccount]
-    count: int|SkipJsonSchema[None]
 
 class MarketplaceParticipations(BaseModel):
     data: list[SellerMarketplace]

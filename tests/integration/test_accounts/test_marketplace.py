@@ -10,13 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.test_helpers.assertions import assert_ok_response, assert_list_response
 
 class ROUTER:
-    MARKETPLACES = "/marketplace"
+    MARKETPLACES = "/marketplaces"
 
 @pytest.mark.asyncio
 async def test_marketplace_list(client: AsyncClient, paginator: Paginator):
     """Test marketplace list endpoint"""
     endpoint = ROUTER.MARKETPLACES
-    resp = await client.post(f"{endpoint}/list", json=paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=paginator.model_dump(mode="json"))
     label = endpoint.replace('/', '').replace("_", " ").title()
     data = assert_list_response(resp, key='data', label=label, paginator=paginator)
     
@@ -24,9 +24,10 @@ async def test_marketplace_list(client: AsyncClient, paginator: Paginator):
         return
     
     # Test pagination
-    paginator.skip = 1
-    resp = await client.post(f"{endpoint}/list", json=paginator.model_dump(mode="json"))
-    newData = assert_list_response(resp, key='data', label=label, paginator=paginator)
+    pagination_paginator = Paginator(skip=1, limit=paginator.limit)
+    resp = await client.post(f"{endpoint}/", json=pagination_paginator.model_dump(mode="json"))
+    label = endpoint.replace('/', '').replace("_", " ").title()
+    newData = assert_list_response(resp, key='data', label=label, paginator=pagination_paginator)
     
     if not newData: 
         return
@@ -40,7 +41,7 @@ async def test_marketplace_list_with_different_limits(client: AsyncClient):
     
     # Test with small limit
     small_paginator = Paginator(skip=0, limit=5)
-    resp = await client.post(f"{endpoint}/list", json=small_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=small_paginator.model_dump(mode="json"))
     label = endpoint.replace('/', '').replace("_", " ").title()
     data = assert_list_response(resp, key='data', label=label, paginator=small_paginator)
     
@@ -54,7 +55,7 @@ async def test_marketplace_list_empty_pagination(client: AsyncClient):
     
     # Test with very high skip to get empty results
     high_skip_paginator = Paginator(skip=1000, limit=10)
-    resp = await client.post(f"{endpoint}/list", json=high_skip_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=high_skip_paginator.model_dump(mode="json"))
     
     assert_ok_response(resp)
     res = resp.json()
@@ -69,21 +70,51 @@ async def test_marketplace_list_invalid_pagination(client: AsyncClient):
     
     # Test with negative skip
     invalid_paginator = Paginator(skip=-1, limit=10)
-    resp = await client.post(f"{endpoint}/list", json=invalid_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=invalid_paginator.model_dump(mode="json"))
     
     # Should handle invalid pagination gracefully
     assert resp.status_code in [200, 400, 422], "Should handle invalid pagination"
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  
 async def test_marketplace_list_malformed_json(client: AsyncClient):
     """Test marketplace list with malformed JSON"""
     endpoint = ROUTER.MARKETPLACES
     
     resp = await client.post(
-        f"{endpoint}/list", 
+        f"{endpoint}/", 
         content="{'invalid': json}",  # Malformed JSON
         headers={"Content-Type": "application/json"}
     )
     
     # Should return JSON parsing error
     assert resp.status_code in [400, 422], "Should handle malformed JSON"
+
+@pytest.mark.asyncio
+async def test_marketplace_list_response_structure(client: AsyncClient, paginator: Paginator):
+    """Test marketplace list response structure"""
+    endpoint = ROUTER.MARKETPLACES
+    
+    resp = await client.post(f"{endpoint}/", json=paginator.model_dump(mode="json"))
+    assert_ok_response(resp)
+    
+    data = resp.json()
+    
+    # Verify expected response structure - no count field in POST /
+    assert 'data' in data, "Response should contain 'data' field"
+    assert 'count' not in data, "Response should not contain 'count' field in POST /"
+    assert isinstance(data['data'], list), "'data' should be a list"
+
+@pytest.mark.asyncio
+async def test_marketplace_count(client: AsyncClient):
+    """Test marketplace count endpoint"""
+    endpoint = ROUTER.MARKETPLACES
+    
+    resp = await client.get(f"{endpoint}/count")
+    assert_ok_response(resp)
+    
+    data = resp.json()
+    
+    # Verify count response structure
+    assert 'count' in data, "Count endpoint should return 'count' field"
+    assert isinstance(data['count'], int), "'count' should be an integer"
+    assert data['count'] >= 0, "'count' should be non-negative"

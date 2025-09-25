@@ -47,8 +47,10 @@ class AdvertisingAccountsHelper:
     
     async def getAdvertisingAccounts(self, paginator: Paginator):
         accounts = await self.db.find({"uid": self.client.uid}, skip=paginator.skip, limit=paginator.limit, projectionExc=['refreshtoken'])
-        count = None if paginator.skip!=0 else await self.db.count({"uid": self.client.uid})
-        return AdvertisingAccountList.model_validate({"data": accounts, "count": count})
+        return {"data": accounts}
+    
+    async def getAdvertisingAccountsCount(self):
+        return {"count": await self.db.count({"uid": self.client.uid})}
         
     async def getUrl(self, req: TempAccountRequest):
         redirect_uri = self.client.secrets.AUTH_REDIRECT_URL

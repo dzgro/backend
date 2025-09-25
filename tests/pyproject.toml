@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Test suite for sam-app project"
 authors = ["Kshitiz <dzgrotechnologies@gmail.com>"]
 readme = "README.md"
-packages = [{ include = "test_helpers", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4.0"
@@ -34,7 +33,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["integration", "unit"]
+testpaths = ["integration"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -52,7 +51,6 @@ filterwarnings = [
     "ignore::UserWarning"
 ]
 markers = [
-    "unit: Unit tests",
     "integration: Integration tests",
     "e2e: End-to-end tests",
     "slow: Slow running tests",

@@ -1,6 +1,6 @@
 from dzgroshared.db.enums import CollateType
 from dzgroshared.db.model import MonthDataRequest, PyObjectId
-from dzgroshared.db.state_analytics.model import StateDetailedDataByStateRequest
+from dzgroshared.db.state_analytics.model import StateRequest
 from httpx import AsyncClient
 import pytest
 import json
@@ -38,7 +38,7 @@ async def test_get_state_data_detailed_for_month(
 @pytest.mark.asyncio
 async def test_get_state_data_detailed(
     client: AsyncClient, 
-    sample_state_detailed_request: StateDetailedDataByStateRequest
+    sample_state_detailed_request: StateRequest
 ):
     """Test GET /states/detailed endpoint"""
     resp = await client.post(
@@ -87,22 +87,28 @@ async def test_state_analytics_with_sku_collate_type(
 
 @pytest.mark.asyncio
 async def test_state_analytics_invalid_month_format(
-    client: AsyncClient, 
-    invalid_month_request: MonthDataRequest
+    client: AsyncClient
 ):
     """Test state analytics with invalid month format"""
+    # Send raw JSON with invalid month format to test API validation
+    invalid_data = {
+        "collatetype": "marketplace",
+        "month": "Invalid Month",
+        "state": "Karnataka"
+    }
+    
     resp = await client.post(
         f"{ROUTER.STATE_ANALYTICS}/detailed/month", 
-        json=invalid_month_request.model_dump(mode="json")
+        json=invalid_data
     )
     
-    # Should handle invalid month gracefully
-    assert resp.status_code in [200, 400, 422]
+    # Should handle invalid month gracefully with proper error response
+    assert resp.status_code in [400, 422], f"Expected 400/422 for invalid month, got {resp.status_code}"
 
 @pytest.mark.asyncio
 async def test_state_analytics_invalid_state(
     client: AsyncClient, 
-    invalid_state_request: StateDetailedDataByStateRequest
+    invalid_state_request: StateRequest
 ):
     """Test state analytics with invalid state name"""
     resp = await client.post(
@@ -165,7 +171,7 @@ async def test_state_analytics_endpoints_with_month_request(
         json=sample_month_request.model_dump(mode="json")
     )
     
-    data = assert_analytics_response(resp, f"State Analytics {endpoint}")
+    data = assert_analytics_response(resp)
     
     # All endpoints should return consistent response structure
     if data:

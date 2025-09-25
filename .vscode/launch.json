@@ -2,9 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "FastAPI Local",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/api/start_local.py",
+      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/api-v2GU_GZ9-py3.12/Scripts/python.exe",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/api",
+      "env": {
+        "ENV": "local"
+      },
+      "jinja": true,
+      "justMyCode": false
+    },
+    {
       "name": "FastAPI",
       "type": "debugpy",
       "request": "launch",
+      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/api-v2GU_GZ9-py3.12/Scripts/python.exe",
       "module": "uvicorn",
       "args": ["src.api.main:app", "--reload"],
       "cwd": "${workspaceFolder}/api",
@@ -14,6 +29,7 @@
       "name": "Deploy",
       "type": "debugpy",
       "request": "launch",
+      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/deploy-AQqm9Uwi-py3.12/Scripts/python.exe",
       "program": "${workspaceFolder}/deploy/src/deploy/TemplateBuilder/Builder.py",
       "cwd": "${workspaceFolder}/deploy",
       "console": "integratedTerminal",
@@ -28,10 +44,24 @@
       "justMyCode": true
     },
     {
-      "name": "Run Test",
+      "name": "Run Test Bed",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/test.py",
+      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/sam-app-tests-WdN2Mmyc-py3.12/Scripts/python.exe",
+      "module": "pytest",
+      "args": ["tests/", "-v", "--tb=short"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Run Current Test",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/sam-app-tests-WdN2Mmyc-py3.12/Scripts/python.exe",
+      "module": "pytest",
+      "args": ["${file}", "-v", "--tb=short"],
+      "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true
     },

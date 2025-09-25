@@ -75,7 +75,6 @@ class UserMarketplace(UserMarketplaceBasic):
 
 class UserMarketplaceList(BaseModel):
     data: list[UserMarketplace]
-    count: int|SkipJsonSchema[None]=None
 
 class MarketplaceNameId(ItemId):
     name: str

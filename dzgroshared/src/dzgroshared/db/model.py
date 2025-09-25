@@ -3,11 +3,28 @@ from pydantic_core import core_schema
 from pydantic import BaseModel,Field, ConfigDict, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.db.enums import AnalyticsPeriod, CollateType, CountryCode, AnalyticGroupMetricLabel, MarketplaceId, AmazonAccountType, QueryTag, CollectionType, AnalyticsMetricOperation, AnalyticsMetric
-from typing import Any, List, Optional, Literal
+from typing import Any, List, Optional, Literal, Annotated
 from bson import ObjectId
 from datetime import datetime
+from pydantic import BeforeValidator, field_validator
 
 SortOrder = Literal[1,-1]
+
+def validate_month_format(v: str) -> str:
+    """Validate and normalize month format: 'Jan 2024', 'Feb 2025', etc."""
+    if not isinstance(v, str):
+        raise ValueError("Month must be a string")
+    
+    try:
+        # Parse and validate the format
+        parsed_date = datetime.strptime(v.strip(), "%b %Y")
+        # Return normalized format to ensure consistency
+        return parsed_date.strftime("%b %Y")
+    except ValueError:
+        raise ValueError("Month must be in format '%b %Y' (e.g. 'Jan 2024')")
+
+# Create a reusable month format type
+MonthFormat = Annotated[str, BeforeValidator(validate_month_format)]
 
 class PyObjectId(str):
     @classmethod
@@ -98,6 +115,7 @@ class ObjectIdModel(BaseModel):
         return data
 
 from typing import Optional, Any
+from datetime import datetime
 
 class MockLambdaContext(LambdaContext):
     def __init__(
@@ -292,11 +310,12 @@ class RenameAccountRequest(ItemId):
 
 
 class ValueWithValueString(BaseModel):
-    value: float|SkipJsonSchema[None]=None
-    valueString: str|SkipJsonSchema[None]=None
+    value: float
+    valueString: str
 
 class AnalyticPeriodValuesItem(BaseModel):
     label: str
+    description: str
     values: list[ValueWithValueString]
     items: Optional[List["AnalyticPeriodValuesItem"]] = None  # recursive reference
 
@@ -356,7 +375,7 @@ class SingleMetricPeriodDataRequest(PeriodDataRequest):
     key: AnalyticsMetric
 
 class MonthDataRequest(PeriodDataRequest):
-    month: str
+    month: MonthFormat
 
 class DashboardKeyMetricItemChartData(BaseModel):
     values: list[float]

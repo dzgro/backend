@@ -3,16 +3,19 @@ from dzgroshared.db.country_details.model import CountriesByRegionList
 from dzgroshared.db.users.model import TempAccountRequest
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
-from dzgroshared.db.model import Paginator, PyObjectId, RenameAccountRequest, SuccessResponse
+from dzgroshared.db.model import Count, Paginator, PyObjectId, RenameAccountRequest, SuccessResponse
 router = APIRouter(prefix="/advertising-account", tags=["Advertising Account"])
 
 async def db(request: Request):
     return (await RequestHelper(request).client).db.advertising_accounts
 
-
 @router.post("/", response_model=AdvertisingAccountList, response_model_exclude_none=True, response_model_by_alias=False)
 async def getAdvertisingAccounts(request: Request, paginator: Paginator):
     return await (await db(request)).getAdvertisingAccounts(paginator)
+
+@router.get("/count", response_model=Count, response_model_exclude_none=True, response_model_by_alias=False)
+async def getAdvertisingAccountsCount(request: Request):
+    return await (await db(request)).getAdvertisingAccountsCount()
 
 @router.put("/", response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def renameAdvertisingAccount(request: Request, body: RenameAccountRequest):

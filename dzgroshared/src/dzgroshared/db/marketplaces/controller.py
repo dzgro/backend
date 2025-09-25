@@ -122,12 +122,11 @@ class MarketplaceHelper:
     async def getMarketplaces(self, paginator: Paginator):
         pipeline = GetUserMarketplaces.pipeline(self.client.uid, paginator)
         data = await self.db.aggregate(pipeline)
-        count: int|None = None
-        if paginator.skip==0:
-            count = await self.db.count({"uid": self.client.uid})
-            if count==0: raise ValueError("No Marketplaces found for the user")
-        count = None if paginator.skip!=0 else await self.db.count({"uid": self.client.uid})
-        return UserMarketplaceList.model_validate({"data": data, "count": count})
+        return {"data": data}
+    
+    async def getMarketplacesCount(self):
+        count = await self.db.count({"uid": self.client.uid})
+        return {"count": count}
 
     async def getUserMarketplace(self):
         pipeline = GetUserMarketplaces.pipeline(self.client.uid, Paginator(skip=0, limit=1), self.client.marketplaceId)

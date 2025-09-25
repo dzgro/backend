@@ -143,17 +143,22 @@ async def test_date_analytics_missing_required_fields(
 
 @pytest.mark.asyncio
 async def test_date_analytics_invalid_month_format(
-    client: AsyncClient, 
-    invalid_month_request: MonthDataRequest
+    client: AsyncClient
 ):
     """Test date analytics with invalid month format"""
+    # Send raw JSON with invalid month format to test API validation
+    invalid_data = {
+        "collatetype": "marketplace",
+        "month": "Invalid Month"
+    }
+    
     resp = await client.post(
         f"{ROUTER.DATE_ANALYTICS}/months", 
-        json=invalid_month_request.model_dump(mode="json")
+        json=invalid_data
     )
     
-    # Should handle invalid month gracefully
-    assert resp.status_code in [200, 400, 422]
+    # Should handle invalid month gracefully with proper error response
+    assert resp.status_code in [400, 422], f"Expected 400/422 for invalid month, got {resp.status_code}"
 
 @pytest.mark.asyncio
 async def test_date_analytics_concurrent_requests(
@@ -192,7 +197,7 @@ async def test_date_analytics_endpoints_with_period_request(
         json=sample_period_request.model_dump(mode="json")
     )
     
-    data = assert_analytics_response(resp, f"Date Analytics {endpoint}")
+    data = assert_analytics_response(resp)
     
     # All endpoints should return consistent response structure
     if data:

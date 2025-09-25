@@ -19,7 +19,7 @@ class PipelineProcessor:
     marketplace: ObjectId
     uid: str
 
-    def __init__(self, uid: str|None, marketplace: ObjectId|str|PyObjectId|None = None):
+    def __init__(self, uid: str|None=None, marketplace: ObjectId|str|PyObjectId|None = None):
         if(marketplace): self.marketplace = marketplace if isinstance(marketplace, ObjectId) else ObjectId(str(marketplace))
         if(uid): self.uid = uid
 

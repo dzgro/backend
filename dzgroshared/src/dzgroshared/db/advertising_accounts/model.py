@@ -27,7 +27,6 @@ class AdvertisingAccount(ItemId, AdvertisingAccountBasic):
 
 class AdvertisingAccountList(BaseModel):
     data: list[AdvertisingAccount]
-    count: int|SkipJsonSchema[None] = None
 
 
 class AdAccount(BaseModel):

@@ -4,7 +4,7 @@ Centralized location for all test fixtures and mock data.
 """
 
 from dzgroshared.db.model import Paginator, MonthDataRequest, PeriodDataRequest
-from dzgroshared.db.state_analytics.model import StateDetailedDataByStateRequest
+from dzgroshared.db.state_analytics.model import StateRequest
 from dzgroshared.db.enums import CollateType
 from typing import Dict, Any, List, Optional
 import random
@@ -21,15 +21,37 @@ except ImportError:
 class TestDataFactory:
     """Factory for generating test data."""
     
-    # Constants
+    # Constants - SINGLE SOURCE OF TRUTH
     EMAIL = "dzgrotechnologies@gmail.com"
     MARKETPLACE_ID = "6895638c452dc4315750e826"
     QUERY_ID = "686750af5ec9b6bf57fe9060"
-    TEST_MONTH = "Dec 2024"
-    TEST_SKU = "TEST-SKU-123"
+    TEST_MONTH = "Aug 2025"
+    TEST_SKU = "Mad PD Photo Portrait"
+    TEST_ASIN = "B0C739QDTP"
+    TEST_CATEGORY = "WALL_ART"
+    TEST_PARENT_SKU = "Mad PD Single Photo-$P"
     TEST_STATE = "Karnataka"
-    INVALID_MONTH = "Invalid Month"
     INVALID_STATE = "InvalidState"
+    
+    # Pagination defaults
+    PAGINATOR_SKIP = 0
+    PAGINATOR_LIMIT = 10
+    
+    # Default Collate Types
+    DEFAULT_COLLATE_TYPE = CollateType.MARKETPLACE
+    SKU_COLLATE_TYPE = CollateType.SKU
+    
+    @staticmethod
+    def get_value_for_collate_type(collatetype: CollateType) -> str:
+        """Get the appropriate test value for a given CollateType."""
+        value_map = {
+            CollateType.SKU: TestDataFactory.TEST_SKU,
+            CollateType.ASIN: TestDataFactory.TEST_ASIN,
+            CollateType.CATEGORY: TestDataFactory.TEST_CATEGORY,
+            CollateType.PARENT: TestDataFactory.TEST_PARENT_SKU,
+            CollateType.MARKETPLACE: TestDataFactory.MARKETPLACE_ID
+        }
+        return value_map.get(collatetype, "")
     
     @staticmethod
     def create_paginator(skip: int = 0, limit: int = 10) -> Paginator:
@@ -65,9 +87,9 @@ class TestDataFactory:
         collatetype: CollateType = CollateType.MARKETPLACE,
         value: Optional[str] = None,
         state: Optional[str] = None
-    ) -> StateDetailedDataByStateRequest:
+    ) -> StateRequest:
         """Create a state detailed data request."""
-        return StateDetailedDataByStateRequest(
+        return StateRequest(
             collatetype=collatetype,
             value=value,
             state=state or TestDataFactory.TEST_STATE
@@ -89,18 +111,34 @@ class TestDataFactory:
             value=TestDataFactory.TEST_SKU
         )
     
-    @staticmethod
-    def create_invalid_month_request() -> MonthDataRequest:
-        """Create a month request with invalid month."""
-        return TestDataFactory.create_month_request(
-            month=TestDataFactory.INVALID_MONTH
-        )
+    # Note: create_invalid_month_request removed - invalid data should be tested with raw JSON
+    # to properly test API validation rather than trying to create invalid Pydantic models
     
     @staticmethod
-    def create_invalid_state_request() -> StateDetailedDataByStateRequest:
+    def create_invalid_state_request() -> StateRequest:
         """Create a state request with invalid state."""
         return TestDataFactory.create_state_detailed_request(
             state=TestDataFactory.INVALID_STATE
+        )
+    
+    # CollateType-specific request creators
+    @staticmethod
+    def create_period_request_for_collate_type(collatetype: CollateType) -> PeriodDataRequest:
+        """Create a period request with appropriate value for the given CollateType."""
+        value = TestDataFactory.get_value_for_collate_type(collatetype) if collatetype != CollateType.MARKETPLACE else None
+        return PeriodDataRequest(
+            collatetype=collatetype,
+            value=value
+        )
+    
+    @staticmethod
+    def create_month_request_for_collate_type(collatetype: CollateType, month: Optional[str] = None) -> MonthDataRequest:
+        """Create a month request with appropriate value for the given CollateType."""
+        value = TestDataFactory.get_value_for_collate_type(collatetype) if collatetype != CollateType.MARKETPLACE else None
+        return MonthDataRequest(
+            collatetype=collatetype,
+            value=value,
+            month=month or TestDataFactory.TEST_MONTH
         )
     
     @staticmethod

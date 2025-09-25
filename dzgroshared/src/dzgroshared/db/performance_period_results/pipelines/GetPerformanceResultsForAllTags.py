@@ -13,11 +13,12 @@ def getPeriodPerformance(collatetype: CollateType, value: str|None):
             }, 
             'pipeline': [
                 {
-                    '$match': {
+                    '$match': { '$expr': {
                                     '$eq': [
                                         '$marketplace', '$$marketplace'
                                     ]
                                 }
+                    }
                 }, {
                     '$lookup': {
                         'from': 'performance_period_results', 
@@ -48,11 +49,8 @@ def getPeriodPerformance(collatetype: CollateType, value: str|None):
                                     }
                                 }
                             }, {
-                                '$project': {
-                                    'data': 1, 
-                                    '_id': 0
-                                }
-                            }
+            "$replaceWith": "$data"
+          }
                         ], 
                         'as': 'data'
                     }
@@ -273,7 +271,7 @@ def getPeriodPerformance(collatetype: CollateType, value: str|None):
                             }, 
                             'in': {
                                 'data': {
-                                    '$first': '$$q.performance.data'
+                                    '$first': '$$q.data'
                                 }, 
                                 'tag': '$$q.tag', 
                                 'curr': '$$curr', 
@@ -307,7 +305,13 @@ def getPeriodPerformance(collatetype: CollateType, value: str|None):
                 }
             }
         }
-    }]
+    },
+    {
+        "$unwind": "$data"
+    },{
+        "$replaceWith": "$data"
+    }
+    ]
 
 def pipeline(marketplace: ObjectId, req: PeriodDataRequest):
     pipeline: list[dict] = [{ '$match': { '_id': marketplace } }]

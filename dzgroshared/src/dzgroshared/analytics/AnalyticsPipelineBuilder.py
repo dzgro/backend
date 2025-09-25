@@ -36,6 +36,7 @@ from dzgroshared.analytics.model import (
 from dzgroshared.analytics.controller import SchemaType, GroupBySchema
 from dzgroshared.db.model import PeriodDataRequest, MonthDataRequest
 from dzgroshared.analytics.CurrencyUtils import get_currency_symbol
+from dzgroshared.db.state_analytics.model import StateRequest
 
 
 class AnalyticsPipelineBuilder:
@@ -323,6 +324,355 @@ class AnalyticsPipelineBuilder:
         """
         return self._create_generic_metric_items(group_schema, data_field_prefix)
     
+    def _create_comparison_metric_items(self, group_schema, data_field_prefix: str = "data") -> list[dict]:
+        """
+        Create items array for comparison metrics with curr/pre/growth structure.
+        This mimics the transformComparisonData function from controller.py.
+        
+        Each metric in comparison data has structure:
+        {
+            metric_name: {
+                curr: value,
+                pre: value, 
+                growth: percentage_change
+            }
+        }
+        
+        The transformation creates:
+        - curr: {value, valueString}
+        - pre: {value, valueString}
+        - growth: {value, valueString}  
+        - value: "curr vs pre"
+        - valueString: "formatted_curr vs formatted_pre"
+        - growing: boolean
+        - growth: formatted_growth_string
+        """
+        items = []
+        
+        for item in group_schema.items:
+            metric_field = f"{data_field_prefix}.{item.metric.value}"
+            
+            # Get metric details for label and description
+            metric_detail = next((d for d in METRIC_DETAILS if d.metric == item.metric), None)
+            is_reverse_growth = metric_detail.isReverseGrowth if metric_detail else False
+            
+            # Create curr object with value and valueString
+            curr_obj = {
+                "value": {
+                    "$round": [
+                        {"$ifNull": [f"${metric_field}.curr", 0]}, 
+                        2
+                    ]
+                },
+                "valueString": self._create_format_number_expression(f"${metric_field}.curr", item.metric)
+            }
+            
+            # Create pre object with value and valueString  
+            pre_obj = {
+                "value": {
+                    "$round": [
+                        {"$ifNull": [f"${metric_field}.pre", 0]}, 
+                        2
+                    ]
+                },
+                "valueString": self._create_format_number_expression(f"${metric_field}.pre", item.metric)
+            }
+            
+            # Create growth object with value and valueString (growth formatting depends on metric type)
+            is_percent_field = item.metric.value in self.percent_fields
+            growth_obj = {
+                "value": {
+                    "$round": [
+                        {"$ifNull": [f"${metric_field}.growth", 0]}, 
+                        2
+                    ]
+                },
+                "valueString": {
+                    "$cond": [
+                        is_percent_field,
+                        # For percentage fields, just show the number (no % added)
+                        {
+                            "$toString": {
+                                "$round": [
+                                    {"$ifNull": [f"${metric_field}.growth", 0]}, 
+                                    2
+                                ]
+                            }
+                        },
+                        # For non-percentage fields, add % to show growth
+                        {
+                            "$concat": [
+                                {
+                                    "$toString": {
+                                        "$round": [
+                                            {"$ifNull": [f"${metric_field}.growth", 0]}, 
+                                            2
+                                        ]
+                                    }
+                                },
+                                "%"
+                            ]
+                        }
+                    ]
+                }
+            }
+            
+            item_dict = {
+                "label": item.label or (metric_detail.label if metric_detail else item.metric.value),
+                # Combined value: "curr vs pre"
+                "value": {
+                    "$concat": [
+                        {"$toString": curr_obj["value"]},
+                        " vs ",
+                        {"$toString": pre_obj["value"]}
+                    ]
+                },
+                # Combined valueString: "formatted_curr vs formatted_pre"
+                "valueString": {
+                    "$concat": [
+                        curr_obj["valueString"],
+                        " vs ",
+                        pre_obj["valueString"]
+                    ]
+                },
+                # Growing boolean - positive growth is good unless isReverseGrowth
+                "growing": {
+                    "$cond": [
+                        is_reverse_growth,
+                        {"$lt": [f"${metric_field}.growth", 0]},  # For reverse growth, negative is good
+                        {"$gt": [f"${metric_field}.growth", 0]}   # For normal growth, positive is good
+                    ]
+                },
+                # Growth string (same as growth.valueString)
+                "growth": growth_obj["valueString"]
+            }
+            
+            # Add description if available
+            if metric_detail and metric_detail.description:
+                item_dict["description"] = metric_detail.description
+            
+            # Handle nested items recursively
+            if item.items:
+                item_dict["items"] = []
+                for nested_item in item.items:
+                    nested_metric_field = f"{data_field_prefix}.{nested_item.metric.value}"
+                    nested_metric_detail = next((d for d in METRIC_DETAILS if d.metric == nested_item.metric), None)
+                    is_nested_reverse_growth = nested_metric_detail.isReverseGrowth if nested_metric_detail else False
+                    
+                    # Create nested curr/pre/growth objects
+                    nested_curr_obj = {
+                        "value": {
+                            "$round": [
+                                {"$ifNull": [f"${nested_metric_field}.curr", 0]}, 
+                                2
+                            ]
+                        },
+                        "valueString": self._create_format_number_expression(f"${nested_metric_field}.curr", nested_item.metric)
+                    }
+                    
+                    nested_pre_obj = {
+                        "value": {
+                            "$round": [
+                                {"$ifNull": [f"${nested_metric_field}.pre", 0]}, 
+                                2
+                            ]
+                        },
+                        "valueString": self._create_format_number_expression(f"${nested_metric_field}.pre", nested_item.metric)
+                    }
+                    
+                    is_nested_percent_field = nested_item.metric.value in self.percent_fields
+                    nested_growth_obj = {
+                        "value": {
+                            "$round": [
+                                {"$ifNull": [f"${nested_metric_field}.growth", 0]}, 
+                                2
+                            ]
+                        },
+                        "valueString": {
+                            "$cond": [
+                                is_nested_percent_field,
+                                # For percentage fields, just show the number (no % added)
+                                {
+                                    "$toString": {
+                                        "$round": [
+                                            {"$ifNull": [f"${nested_metric_field}.growth", 0]}, 
+                                            2
+                                        ]
+                                    }
+                                },
+                                # For non-percentage fields, add % to show growth
+                                {
+                                    "$concat": [
+                                        {
+                                            "$toString": {
+                                                "$round": [
+                                                    {"$ifNull": [f"${nested_metric_field}.growth", 0]}, 
+                                                    2
+                                                ]
+                                            }
+                                        },
+                                        "%"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                    
+                    nested_item_dict = {
+                        "label": nested_item.label or (nested_metric_detail.label if nested_metric_detail else nested_item.metric.value),
+                        "value": {
+                            "$concat": [
+                                {"$toString": nested_curr_obj["value"]},
+                                " vs ",
+                                {"$toString": nested_pre_obj["value"]}
+                            ]
+                        },
+                        "valueString": {
+                            "$concat": [
+                                nested_curr_obj["valueString"],
+                                " vs ",
+                                nested_pre_obj["valueString"]
+                            ]
+                        },
+                        "growing": {
+                            "$cond": [
+                                is_nested_reverse_growth,
+                                {"$lt": [f"${nested_metric_field}.growth", 0]},
+                                {"$gt": [f"${nested_metric_field}.growth", 0]}
+                            ]
+                        },
+                        "growth": nested_growth_obj["valueString"]
+                    }
+                    
+                    if nested_metric_detail and nested_metric_detail.description:
+                        nested_item_dict["description"] = nested_metric_detail.description
+                    
+                    # Handle deeply nested items (3rd level)
+                    if nested_item.items:
+                        nested_item_dict["items"] = []
+                        for deep_nested_item in nested_item.items:
+                            deep_nested_metric_field = f"{data_field_prefix}.{deep_nested_item.metric.value}"
+                            deep_nested_metric_detail = next((d for d in METRIC_DETAILS if d.metric == deep_nested_item.metric), None)
+                            is_deep_nested_reverse_growth = deep_nested_metric_detail.isReverseGrowth if deep_nested_metric_detail else False
+                            
+                            deep_nested_curr_obj = {
+                                "value": {
+                                    "$round": [
+                                        {"$ifNull": [f"${deep_nested_metric_field}.curr", 0]}, 
+                                        2
+                                    ]
+                                },
+                                "valueString": self._create_format_number_expression(f"${deep_nested_metric_field}.curr", deep_nested_item.metric)
+                            }
+                            
+                            deep_nested_pre_obj = {
+                                "value": {
+                                    "$round": [
+                                        {"$ifNull": [f"${deep_nested_metric_field}.pre", 0]}, 
+                                        2
+                                    ]
+                                },
+                                "valueString": self._create_format_number_expression(f"${deep_nested_metric_field}.pre", deep_nested_item.metric)
+                            }
+                            
+                            is_deep_nested_percent_field = deep_nested_item.metric.value in self.percent_fields
+                            deep_nested_growth_obj = {
+                                "value": {
+                                    "$round": [
+                                        {"$ifNull": [f"${deep_nested_metric_field}.growth", 0]}, 
+                                        2
+                                    ]
+                                },
+                                "valueString": {
+                                    "$cond": [
+                                        is_deep_nested_percent_field,
+                                        # For percentage fields, just show the number (no % added)
+                                        {
+                                            "$toString": {
+                                                "$round": [
+                                                    {"$ifNull": [f"${deep_nested_metric_field}.growth", 0]}, 
+                                                    2
+                                                ]
+                                            }
+                                        },
+                                        # For non-percentage fields, add % to show growth
+                                        {
+                                            "$concat": [
+                                                {
+                                                    "$toString": {
+                                                        "$round": [
+                                                            {"$ifNull": [f"${deep_nested_metric_field}.growth", 0]}, 
+                                                            2
+                                                        ]
+                                                    }
+                                                },
+                                                "%"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                            
+                            deep_nested_item_dict = {
+                                "label": deep_nested_item.label or (deep_nested_metric_detail.label if deep_nested_metric_detail else deep_nested_item.metric.value),
+                                "value": {
+                                    "$concat": [
+                                        {"$toString": deep_nested_curr_obj["value"]},
+                                        " vs ",
+                                        {"$toString": deep_nested_pre_obj["value"]}
+                                    ]
+                                },
+                                "valueString": {
+                                    "$concat": [
+                                        deep_nested_curr_obj["valueString"],
+                                        " vs ",
+                                        deep_nested_pre_obj["valueString"]
+                                    ]
+                                },
+                                "growing": {
+                                    "$cond": [
+                                        is_deep_nested_reverse_growth,
+                                        {"$lt": [f"${deep_nested_metric_field}.growth", 0]},
+                                        {"$gt": [f"${deep_nested_metric_field}.growth", 0]}
+                                    ]
+                                },
+                                "growth": deep_nested_growth_obj["valueString"]
+                            }
+                            
+                            if deep_nested_metric_detail and deep_nested_metric_detail.description:
+                                deep_nested_item_dict["description"] = deep_nested_metric_detail.description
+                            
+                            nested_item_dict["items"].append(deep_nested_item_dict)
+                    
+                    item_dict["items"].append(nested_item_dict)
+            
+            items.append(item_dict)
+        
+        return items
+    
+    def create_comparison_pipeline(self, data_field: str = "data") -> list[dict]:
+        """
+        Create pipeline stages to transform data into Comparison format.
+        This mimics the transformComparisonData function from controller.py.
+        
+        The comparison data structure expects each metric to have:
+        - curr, pre, growth values (each with value and valueString)
+        - Combined value string: "curr vs pre"
+        - Combined valueString: "formatted_curr vs formatted_pre" 
+        - growing boolean based on growth direction
+        - growth string showing formatted growth percentage
+        """
+        comparison_groups = []
+        
+        for group_schema in COMPARISON_METRICS:
+            group_dict = {
+                "label": group_schema.metric.value,
+                "items": self._create_comparison_metric_items(group_schema, data_field)
+            }
+            comparison_groups.append(group_dict)
+        
+        return [ { "$addFields": { "data": comparison_groups } } ]
+    
     
     
     def create_month_data_pipeline(self, data_field: str = "data") -> list[dict]:
@@ -466,26 +816,14 @@ class AnalyticsPipelineBuilder:
         return pipeline+create_period_pipeline()
     
     def get_comparison_pipeline(self, req: PeriodDataRequest) -> list[dict]:
-
-        def create_comparison_pipeline(data_field: str = "data") -> list[dict]:
-            """
-            Create pipeline stages to transform data into Comparison format.
-            This mimics the transformComparisonData function from controller.py.
-            """
-            comparison_groups = []
-            
-            for group_schema in COMPARISON_METRICS:
-                group_dict = {
-                    "label": group_schema.metric.value,
-                    "items": self._create_generic_metric_items(group_schema, data_field)
-                }
-                comparison_groups.append(group_dict)
-            
-            return [ { "$addFields": { "data": comparison_groups } } ]
-        
         from dzgroshared.db.performance_period_results.pipelines import GetPerformanceResultsForAllTags
         pipeline = GetPerformanceResultsForAllTags.pipeline(self.marketplace_id, req)
-        return pipeline+create_comparison_pipeline()
+        return pipeline+self.create_comparison_pipeline()
+    
+    def get_comparison_table_pipeline(self, req: PeriodDataRequest) -> list[dict]:
+        from dzgroshared.db.performance_period_results.pipelines import GetPerformanceResultsForAllTags
+        pipeline = GetPerformanceResultsForAllTags.pipeline(self.marketplace_id, req)
+        return pipeline+self.create_comparison_pipeline()
 
     def get_state_lite_pipeline(self, req: MonthDataRequest) -> list[dict]:
         def create_state_lite_pipeline(data_field: str = "data") -> list[dict]:
@@ -507,33 +845,28 @@ class AnalyticsPipelineBuilder:
         pipeline = GetStatesDataForMonth.pipeline(self.marketplace_id, req)
         return pipeline+create_state_lite_pipeline()
     
-    def create_state_detail_pipeline(self, data_field: str = "data") -> list[dict]:
-        """
-        Create pipeline stages to transform data into State Detail format.
-        """
-        state_groups = []
-        
-        for group_schema in STATE_DETAILED_METRICS:
-            group_dict = {
-                "label": group_schema.metric.value,
-                "items": self._create_generic_metric_items(group_schema, data_field)
-            }
-            state_groups.append(group_dict)
-        
-        return [
-            {
-                "$addFields": {
-                    "data": state_groups
+    def get_state_detail_pipeline(self, req: StateRequest) -> list[dict]:
+        def create_state_detail_pipeline(data_field: str = "data") -> list[dict]:
+            """
+            Create pipeline stages to transform data into State Detail format.
+            """
+            state_groups = []
+            
+            for group_schema in STATE_DETAILED_METRICS:
+                group_dict = {
+                    "label": group_schema.metric.value,
+                    "items": self._create_generic_metric_items(group_schema, data_field)
                 }
-            },
-            {
-                "$project": {
-                    "data": 1,
-                    "state": 1,
-                    "_id": 0
-                }
-            }
-        ]
+                state_groups.append(group_dict)
+            return [ { "$addFields": { "data": state_groups } } ]
+        from dzgroshared.db.state_analytics.pipelines import GetMonthlyStateData
+        pipeline = GetMonthlyStateData.pipeline(self.marketplace_id, req)
+        transform = [
+            { '$group': { '_id': None, 'columns': { '$push': { 'month': '$month', 'period': '$period' } }, 'rows': { '$push': '$data' } } }, 
+            { '$set': { 'rows': { '$map': { 'input': '$rows', 'as': 'r', 'in': { '$getField': { 'input': { '$first': '$$r' }, 'field': 'items' } } } } } }, 
+            { '$set': { 'rows': { "$map": { "input": { "$range": [0, { "$size": { "$ifNull": [{ "$arrayElemAt": ["$rows", 0] }, []] } }] }, "as": "idx", "in": { "$let": { "vars": { "byIndex": { "$map": { "input": "$rows", "as": "row", "in": { "$arrayElemAt": ["$$row", "$$idx"] } } } }, "in": { "label": { "$first": "$$byIndex.label" }, "description": { "$first": "$$byIndex.description" }, "values": { "$map": { "input": "$$byIndex", "as": "b", "in": { "value": "$$b.value", "valueString": "$$b.valueString" } } }, "items": { "$cond": [ { "$gt": [ { "$size": { "$ifNull": [{ "$first": "$$byIndex.items" }, []] } }, 0 ] }, { "$map": { "input": { "$range": [ 0, { "$size": { "$ifNull": [{ "$arrayElemAt": ["$$byIndex.items", 0] }, []] } } ] }, "as": "subIdx", "in": { "$let": { "vars": { "bySub": { "$map": { "input": "$$byIndex", "as": "b", "in": { "$arrayElemAt": ["$$b.items", "$$subIdx"] } } } }, "in": { "label": { "$first": "$$bySub.label" }, "description": { "$first": "$$bySub.description" }, "values": { "$map": { "input": "$$bySub", "as": "bb", "in": { "value": "$$bb.value", "valueString": "$$bb.valueString" } } }, "items": [] } } } } }, [] ] } } } } } } } }]
+        pipeline = pipeline+create_state_detail_pipeline()+transform
+        return pipeline
 
     def get_state_all_pipeline(self, req: MonthDataRequest) -> list[dict]:
         def create_state_all_pipeline(data_field: str = "data") -> list[dict]:

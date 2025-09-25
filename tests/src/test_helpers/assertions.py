@@ -37,13 +37,11 @@ def assert_list_response(resp: Response, key: str, label: str, paginator: Pagina
     assert data is not None, "Incorrect Response"
     
     accounts_count = len(data)
-    if paginator.skip == 0:
-        assert accounts_count > 0, f"{label} count not be Fetched"
+    if paginator.skip == 0 and accounts_count > 0:
         assert accounts_count <= paginator.limit, "Data count exceeds limit"
-        count = res.get('count', None)
-        assert count is not None, f"{label} count not be Fetched"
-        if count <= paginator.limit:
-            assert count == accounts_count, f"{label} count mismatch"
+    
+    # Count field is no longer returned in POST "/" responses
+    assert 'count' not in res, "POST / should not return count field"
     
     return data
 

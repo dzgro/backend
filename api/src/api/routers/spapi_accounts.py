@@ -4,7 +4,7 @@ from dzgroshared.db.users.model import TempAccountRequest
 from dzgroshared.db.enums import CountryCode
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
-from dzgroshared.db.model import Paginator, PyObjectId, RenameAccountRequest, SuccessResponse
+from dzgroshared.db.model import Count, Paginator, PyObjectId, RenameAccountRequest, SuccessResponse
 router = APIRouter(prefix="/selling-account", tags=["Selling Partner Account"])
 
 async def db(request: Request):
@@ -13,6 +13,10 @@ async def db(request: Request):
 @router.post("/", response_model=SPAPIAccountList, response_model_exclude_none=True, response_model_by_alias=False)
 async def getSellerAccounts(request: Request, paginator: Paginator):
     return await (await db(request)).getSellerAccounts(paginator)
+
+@router.get("/count", response_model=Count, response_model_exclude_none=True, response_model_by_alias=False)
+async def getSellerAccountsCount(request: Request):
+    return await (await db(request)).getSellerAccountsCount()
 
 @router.put("/", response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def renameSPAPIAccount(request: Request, body: RenameAccountRequest):

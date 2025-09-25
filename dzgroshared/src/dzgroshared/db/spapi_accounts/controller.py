@@ -42,8 +42,11 @@ class SPAPIAccountsHelper:
 
     async def getSellerAccounts(self, paginator: Paginator):
         data = await self.db.find({"uid": self.client.uid}, skip=paginator.skip, limit=paginator.limit, projectionExc=["refreshtoken"])
-        count = None if paginator.skip!=0 else await self.db.count({"uid": self.client.uid})
-        return SPAPIAccountList.model_validate({"data": data, "count": count})
+        return {"data": data}
+
+    async def getSellerAccountsCount(self):
+        count = await self.db.count({"uid": self.client.uid})
+        return {"count": count}
 
     async def rename(self, body: RenameAccountRequest):
         count = await self.db.updateOne({"_id": ObjectId(body.id)}, setDict={"name": body.name})

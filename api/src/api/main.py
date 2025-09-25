@@ -20,6 +20,10 @@ from dzgroshared.db.enums import ENVIRONMENT, CountryCode
 env = ENVIRONMENT(os.getenv("ENV", None))
 if not env: raise ValueError("ENV environment variable not set")
 
+# Import local development middleware (only in LOCAL environment)
+if env == ENVIRONMENT.LOCAL:
+    from api.middleware.local_dev_auth import create_local_dev_auth_middleware_with_secrets
+
 # Move imports to module level for better performance
 from dzgroshared.secrets.client import SecretManager
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -122,6 +126,11 @@ async def lifespan(app: FastAPI):
         )
         
         print("✅ All clients initialized successfully")
+        
+        # Setup local development auth middleware if in LOCAL environment
+        if env == ENVIRONMENT.LOCAL:
+            app.state.local_auth_middleware = create_local_dev_auth_middleware_with_secrets(env, secrets)
+            print("🔧 Local development auth middleware configured with shared secrets")
         
     except asyncio.TimeoutError:
         print("❌ Client initialization timeout - some services may be unavailable")
@@ -249,7 +258,24 @@ app.openapi = custom_openapi
 origins: list[str] = ["http://localhost:4200"] if env==ENVIRONMENT.LOCAL else ["https://dev.dzgro.com","http://localhost:4200"] if env==ENVIRONMENT.DEV else ["https://staging.dzgro.com"] if env==ENVIRONMENT.STAGING else ["https://dzgro.com", "https://www.dzgro.com"]
 headers: list[str] = ["Authorization","marketplaceId", "Content-Type", "Accept", "Origin", "X-Requested-With"]
 
-# Add ResponseFormatMiddleware first (innermost)
+# Add LocalDevAuthMiddleware first (only in LOCAL environment)
+# Note: The middleware function is created in lifespan with shared secrets
+if env == ENVIRONMENT.LOCAL:
+    @app.middleware("http")
+    async def local_dev_auth_middleware(request: Request, call_next):
+        # Use the middleware function created in lifespan with shared secrets
+        if hasattr(app.state, 'local_auth_middleware'):
+            return await app.state.local_auth_middleware(request, call_next)
+        else:
+            # Fallback if middleware not yet initialized
+            return await call_next(request)
+    
+    print("🔧 Local development auth middleware enabled for FastAPI UI")
+    print("   ↳ FastAPI UI will automatically get auth headers injected")
+    print("   ↳ Swagger UI: http://127.0.0.1:8000/docs")
+    print("   ↳ ReDoc: http://127.0.0.1:8000/redoc")
+
+# Add ResponseFormatMiddleware (innermost for responses)
 app.add_middleware(ResponseFormatMiddleware)
 
 # Universal CORS handling middleware

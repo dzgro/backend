@@ -1,5 +1,5 @@
 
-from dzgroshared.db.model import AnalyticPeriodItem, AnalyticPeriodValuesGroup, MonthLite, MultiLevelColumns, PeriodDataRequest, ValueWithValueString
+from dzgroshared.db.model import AnalyticPeriodItem, AnalyticPeriodValuesGroup, AnalyticPeriodValuesItem, MonthLite, MultiLevelColumns, PeriodDataRequest, ValueWithValueString
 from pydantic import BaseModel
 
 
@@ -10,12 +10,12 @@ class StateMonthDataResponseItem(BaseModel):
 class StateMonthDataResponse(BaseModel):
     data: list[StateMonthDataResponseItem]
 
-class StateDetailedDataByStateRequest(PeriodDataRequest):
+class StateRequest(PeriodDataRequest):
     state: str
 
 class StateDetailedDataResponse(BaseModel):
     columns: list[MonthLite]
-    rows: list[AnalyticPeriodValuesGroup]
+    rows: list[AnalyticPeriodValuesItem]
 
 class AllStateDataItem(BaseModel):
     state: str

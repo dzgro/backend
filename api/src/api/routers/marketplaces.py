@@ -2,7 +2,7 @@ from calendar import Month
 from dzgroshared.db.enums import CollateType, PlanType
 from dzgroshared.db.marketplaces.model import MarketplaceOnboardPaymentRequest, UserMarketplace, UserMarketplaceList
 from dzgroshared.db.pricing.model import Pricing, PricingDetail
-from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
+from dzgroshared.db.model import AddMarketplaceRequest, Count, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
 from dzgroshared.razorpay.common import RazorpayOrderObject
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
@@ -15,9 +15,13 @@ async def db(request: Request):
 async def listMonths(request: Request):
     return await (await db(request)).getMonths()
 
-@router.post("/list", response_model=UserMarketplaceList, response_model_exclude_none=True, response_model_by_alias=False)
+@router.post("/", response_model=UserMarketplaceList, response_model_exclude_none=True, response_model_by_alias=False)
 async def getUserMarketplaces(request: Request, paginator: Paginator):
     return await (await db(request)).getMarketplaces(paginator)
+
+@router.get("/count", response_model=Count, response_model_exclude_none=True, response_model_by_alias=False)
+async def getUserMarketplacesCount(request: Request):
+    return await (await db(request)).getMarketplacesCount()
 
 @router.get("/current", response_model=UserMarketplace, response_model_exclude_none=True, response_model_by_alias=False)
 async def getUserMarketplace(request: Request):

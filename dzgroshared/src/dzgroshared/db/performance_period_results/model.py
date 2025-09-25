@@ -1,7 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.db.model import PeriodDataRequest, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId
+from dzgroshared.db.model import PeriodDataRequest, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId, StartEndDate
 from dzgroshared.db.products.model import Product, ProductCategory
 from dzgroshared.db.enums import CollateType, AnalyticGroupMetricLabel, QueryTag
 
@@ -35,6 +35,8 @@ class PerformancePeriodData(BaseModel):
 
 class PerformanceDashboardResponseItem(BaseModel):
     tag: QueryTag
+    curr: StartEndDate
+    pre: StartEndDate
     data: list[PerformancePeriodGroup]
 
 class PerformanceDashboardResponse(BaseModel):
@@ -91,7 +93,7 @@ class PerformanceTableResponse(BaseModel):
     columns: list[str]
 
      
-class PerformanceTableRequest(BaseModel):
+class ComparisonTableRequest(BaseModel):
     queryId: PyObjectId
     collatetype: CollateType
     value: str|SkipJsonSchema[None]=None
@@ -99,6 +101,19 @@ class PerformanceTableRequest(BaseModel):
     filters: list[AnalyticValueFilterItem] = []
     paginator: Paginator = Paginator(skip=0, limit=10)
     sort: Sort = Sort(field='revenue', order=-1)
+
+    @model_validator(mode="after")
+    def checkValueOrParent(self):
+        if self.collatetype==CollateType.MARKETPLACE:
+            raise ValueError("'Marketplace' is not a valid collate type for this request.")
+        else:
+            if not self.value and not self.parent:
+                raise ValueError("Either 'value' or 'parent' must be provided.")
+            if self.collatetype == CollateType.CATEGORY and self.parent:
+                raise ValueError("'parent' should not be provided when collatetype is 'CATEGORY'.")
+            if self.collatetype == CollateType.PARENT and self.parent:
+                raise ValueError("'parent' should not be provided when collatetype is 'PARENT'.")
+        return self
 
 class ComparisonPeriodDataRequest(PeriodDataRequest):
     queryId: PyObjectId

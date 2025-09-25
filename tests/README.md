@@ -32,7 +32,7 @@ poetry run pytest --cov=src --cov-report=html
 ```
 sam-app/tests/                     # Dedicated test project root
 ├── 📄 pyproject.toml              # Poetry configuration & dependencies
-├── 📄 conftest.py                 # Global fixtures & configuration
+├── 📄 shared_fixtures.py          # 🎯 SINGLE SOURCE for all pytest fixtures
 ├── 📄 pytest.ini                 # Legacy pytest config (migrated to pyproject.toml)
 ├── 📄 README.md                   # This documentation
 ├── 📄 poetry.lock                 # Dependency lock file
@@ -40,39 +40,40 @@ sam-app/tests/                     # Dedicated test project root
 ├── 📂 src/test_helpers/           # 🛠️ Centralized test utilities
 │   ├── 📄 __init__.py
 │   ├── 📄 assertions.py           # Response validation helpers
-│   └── 📄 fixtures.py             # Test data factories & mock generators
+│   └── 📄 fixtures.py             # 🔧 TestDataFactory - SINGLE SOURCE OF TRUTH
 │
-├── 📂 integration/                # 🔗 API endpoint integration tests
-│   ├── 📄 conftest.py            # Integration-specific fixtures
-│   ├── 📂 test_analytics/        # Analytics router tests
-│   │   ├── 📄 test_date_analytics.py    # /analytics/dates/* endpoints
-│   │   └── 📄 test_state_analytics.py   # /states/* endpoints
-│   └── 📂 test_accounts/         # Account management tests
-│       ├── 📄 test_marketplace.py       # /marketplace/* endpoints
-│       ├── 📄 test_selling_account.py   # /selling-account/* endpoints
-│       └── 📄 test_advertising_account.py # /advertising-account/* endpoints
-│
-├── 📂 unit/                      # ⚙️ Unit tests for direct function testing
-│   ├── 📄 conftest.py           # Unit-specific fixtures
-│   └── 📂 test_handlers/
-│       └── 📄 test_handler.py    # Handler function tests
-│
-└── 📂 legacy/                    # 🔄 Backward compatibility
-    └── 📄 test_bed.py           # Original parametrized test file
+└── 📂 integration/                # 🔗 Full-stack API integration tests
+    ├── 📄 conftest.py            # 🔗 Simple import from shared_fixtures.py
+    ├── 📂 test_analytics/        # Analytics router tests
+    │   ├── 📄 test_date_analytics.py    # /analytics/dates/* endpoints
+    │   └── 📄 test_state_analytics.py   # /states/* endpoints
+    └── 📂 test_accounts/         # Account management tests
+        ├── 📄 test_marketplace.py       # /marketplace/* endpoints
+        ├── 📄 test_selling_account.py   # /selling-account/* endpoints
+        └── 📄 test_advertising_account.py # /advertising-account/* endpoints
 ```
 
 ## 🏗️ Architecture Principles
 
+### **Clean Test Structure (Updated!)**
+
+The test structure has been simplified and optimized:
+
+- **`shared_fixtures.py`**: 🎯 Single location for all pytest fixtures
+- **`src/test_helpers/fixtures.py`**: 🔧 `TestDataFactory` - single source of truth for all constants
+- **`integration/conftest.py`** & **`unit/conftest.py`**: Simple imports from shared fixtures
+- **No duplication**: Eliminated confusing multiple `conftest.py` files
+
 ### **Separation of Concerns**
 
 - **Integration Tests**: Test complete API workflows with authentication, database, and external services
-- **Unit Tests**: Test individual functions, classes, and business logic in isolation
 - **Test Helpers**: Reusable utilities to eliminate code duplication
+- **Centralized Fixtures**: Single source of truth for all test data and configuration
 
 ### **Centralized Configuration**
 
-- All hardcoded values (emails, IDs, test data) centralized in `TestConfig` class
-- Shared fixtures available across all test files
+- All hardcoded values (emails, IDs, test data) centralized in `TestDataFactory` class
+- Shared fixtures available across all test files via `shared_fixtures.py`
 - Consistent assertion helpers for response validation
 
 ### **Isolated Environment**
@@ -153,17 +154,10 @@ export TEST_ENV="local"
 
 ### Integration Tests (`integration/`)
 
-- **Purpose**: Test API endpoints end-to-end
-- **Scope**: FastAPI routes, authentication, database integration
+- **Purpose**: Test API endpoints end-to-end with full application stack
+- **Scope**: FastAPI routes, authentication, database integration, business logic
 - **Location**: `integration/test_analytics/`, `integration/test_accounts/`
 - **Markers**: `@pytest.mark.integration`
-
-### Unit Tests (`unit/`)
-
-- **Purpose**: Test individual functions and classes
-- **Scope**: Business logic, data models, utilities
-- **Location**: `unit/test_handlers/`, `unit/test_models/`, etc.
-- **Markers**: `@pytest.mark.unit`
 
 ## 🧪 Running Tests
 
@@ -186,11 +180,8 @@ poetry run pytest -x
 ### Test Categories & Organization
 
 ```bash
-# 🔗 Integration tests (API endpoints)
+# 🔗 Integration tests (API endpoints with full stack)
 poetry run pytest integration/
-
-# ⚙️ Unit tests (isolated functions)
-poetry run pytest unit/
 
 # 📊 Analytics tests specifically
 poetry run pytest integration/test_analytics/
@@ -210,7 +201,6 @@ poetry run pytest integration/test_analytics/test_date_analytics.py::test_get_mo
 ```bash
 # 🏷️ Run by markers
 poetry run pytest -m integration          # Integration tests only
-poetry run pytest -m unit                 # Unit tests only
 poetry run pytest -m "api and not slow"   # API tests, exclude slow ones
 poetry run pytest -m marketplaces         # Marketplace functionality
 
@@ -253,26 +243,35 @@ poetry run pytest --benchmark-only
 
 ### 🎛️ Test Data Configuration
 
-All hardcoded test values are centralized in the `TestConfig` class (`conftest.py`):
+All hardcoded test values are centralized in the `TestDataFactory` class (`src/test_helpers/fixtures.py`):
 
 ```python
-class TestConfig:
-    # Authentication & Marketplace
+class TestDataFactory:
+    """Factory for generating test data - SINGLE SOURCE OF TRUTH"""
+
+    # Constants
     EMAIL = "dzgrotechnologies@gmail.com"
     MARKETPLACE_ID = "6895638c452dc4315750e826"
     QUERY_ID = "686750af5ec9b6bf57fe9060"
-
-    # Test Data Values
     TEST_MONTH = "Dec 2024"
     TEST_SKU = "TEST-SKU-123"
     TEST_STATE = "Karnataka"
 
-    # Pagination Defaults
+    # Pagination defaults
     PAGINATOR_SKIP = 0
     PAGINATOR_LIMIT = 10
+
+    # Factory methods
+    @staticmethod
+    def create_month_request():
+        return MonthDataRequest(...)
+
+    @staticmethod
+    def create_paginator():
+        return Paginator(skip=0, limit=10)
 ```
 
-**💡 Best Practice**: Edit these values in one place to affect all tests globally.
+**💡 Best Practice**: Edit these values in `TestDataFactory` to affect all tests globally.
 
 ### 🛠️ Test Helpers & Utils
 
@@ -351,7 +350,7 @@ test_function()
 # ✅ Good: Use factories
 request = TestDataFactory.create_month_request(
     collatetype=CollateType.SKU,
-    value="TEST-SKU-123"
+    value=TestDataFactory.TEST_SKU
 )
 
 # ❌ Avoid: Hardcoded data in tests
@@ -364,7 +363,7 @@ request = MonthDataRequest(
 
 #### **Configuration Management**
 
-- Edit `TestConfig` class for global changes
+- Edit `TestDataFactory` class in `src/test_helpers/fixtures.py` for global changes
 - Use environment variables for sensitive data
 - Mock external services with `MockDataGenerator`
 
@@ -467,11 +466,11 @@ from .conftest import assert_ok_response
 # With:
 from src.test_helpers.assertions import assert_ok_response
 
-# 3. Use TestConfig for hardcoded values
+# 3. Use TestDataFactory for hardcoded values
 # Replace:
 email = "test@example.com"
 # With:
-email = TestConfig.EMAIL
+email = TestDataFactory.EMAIL
 
 # 4. Remove duplicate helper functions
 # Delete local assert_* functions, use centralized ones

@@ -16,7 +16,7 @@ class ROUTER:
 async def test_advertising_account_list(client: AsyncClient, paginator: Paginator):
     """Test advertising account list endpoint"""
     endpoint = ROUTER.ADVERTISING_ACCOUNTS
-    resp = await client.post(f"{endpoint}/list", json=paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=paginator.model_dump(mode="json"))
     label = endpoint.replace('/', '').replace("_", " ").title()
     data = assert_list_response(resp, key='data', label=label, paginator=paginator)
     
@@ -24,9 +24,10 @@ async def test_advertising_account_list(client: AsyncClient, paginator: Paginato
         return
     
     # Test pagination
-    paginator.skip = 1
-    resp = await client.post(f"{endpoint}/list", json=paginator.model_dump(mode="json"))
-    newData = assert_list_response(resp, key='data', label=label, paginator=paginator)
+    pagination_paginator = Paginator(skip=1, limit=paginator.limit)
+    resp = await client.post(f"{endpoint}/", json=pagination_paginator.model_dump(mode="json"))
+    label = endpoint.replace('/', '').replace("_", " ").title()
+    newData = assert_list_response(resp, key='data', label=label, paginator=pagination_paginator)
     
     if not newData: 
         return
@@ -40,7 +41,7 @@ async def test_advertising_account_list_with_different_limits(client: AsyncClien
     
     # Test with small limit
     small_paginator = Paginator(skip=0, limit=5)
-    resp = await client.post(f"{endpoint}/list", json=small_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=small_paginator.model_dump(mode="json"))
     label = endpoint.replace('/', '').replace("_", " ").title()
     data = assert_list_response(resp, key='data', label=label, paginator=small_paginator)
     
@@ -54,7 +55,7 @@ async def test_advertising_account_list_empty_pagination(client: AsyncClient):
     
     # Test with very high skip to get empty results
     high_skip_paginator = Paginator(skip=1000, limit=10)
-    resp = await client.post(f"{endpoint}/list", json=high_skip_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=high_skip_paginator.model_dump(mode="json"))
     
     assert_ok_response(resp)
     res = resp.json()
@@ -69,7 +70,7 @@ async def test_advertising_account_list_invalid_pagination(client: AsyncClient):
     
     # Test with negative skip
     invalid_paginator = Paginator(skip=-1, limit=10)
-    resp = await client.post(f"{endpoint}/list", json=invalid_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=invalid_paginator.model_dump(mode="json"))
     
     # Should handle invalid pagination gracefully
     assert resp.status_code in [200, 400, 422], "Should handle invalid pagination"
@@ -81,7 +82,7 @@ async def test_advertising_account_list_large_limit(client: AsyncClient):
     
     # Test with large limit
     large_limit_paginator = Paginator(skip=0, limit=1000)
-    resp = await client.post(f"{endpoint}/list", json=large_limit_paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=large_limit_paginator.model_dump(mode="json"))
     
     # Should handle large limit gracefully (may cap it or return error)
     assert resp.status_code in [200, 400, 422], "Should handle large limit"
@@ -92,7 +93,7 @@ async def test_advertising_account_list_malformed_json(client: AsyncClient):
     endpoint = ROUTER.ADVERTISING_ACCOUNTS
     
     resp = await client.post(
-        f"{endpoint}/list", 
+        f"{endpoint}/", 
         content="{'invalid': json}",  # Malformed JSON
         headers={"Content-Type": "application/json"}
     )
@@ -105,7 +106,7 @@ async def test_advertising_account_list_missing_body(client: AsyncClient):
     """Test advertising account list with missing request body"""
     endpoint = ROUTER.ADVERTISING_ACCOUNTS
     
-    resp = await client.post(f"{endpoint}/list")
+    resp = await client.post(f"{endpoint}/")
     
     # Should handle missing body gracefully
     assert resp.status_code in [200, 400, 422], "Should handle missing request body"
@@ -119,7 +120,7 @@ async def test_advertising_account_list_concurrent_requests(client: AsyncClient,
     # Make multiple concurrent requests
     tasks = []
     for _ in range(3):
-        task = client.post(f"{endpoint}/list", json=paginator.model_dump(mode="json"))
+        task = client.post(f"{endpoint}/", json=paginator.model_dump(mode="json"))
         tasks.append(task)
     
     responses = await asyncio.gather(*tasks)
@@ -135,13 +136,27 @@ async def test_advertising_account_list_response_structure(client: AsyncClient, 
     """Test advertising account list response structure"""
     endpoint = ROUTER.ADVERTISING_ACCOUNTS
     
-    resp = await client.post(f"{endpoint}/list", json=paginator.model_dump(mode="json"))
+    resp = await client.post(f"{endpoint}/", json=paginator.model_dump(mode="json"))
     assert_ok_response(resp)
     
     data = resp.json()
     
-    # Verify expected response structure
+    # Verify expected response structure - no count field in POST /
     assert 'data' in data, "Response should contain 'data' field"
-    assert 'count' in data, "Response should contain 'count' field"
+    assert 'count' not in data, "Response should not contain 'count' field in POST /"
     assert isinstance(data['data'], list), "'data' should be a list"
+
+@pytest.mark.asyncio
+async def test_advertising_account_count(client: AsyncClient):
+    """Test advertising account count endpoint"""
+    endpoint = ROUTER.ADVERTISING_ACCOUNTS
+    
+    resp = await client.get(f"{endpoint}/count")
+    assert_ok_response(resp)
+    
+    data = resp.json()
+    
+    # Verify count response structure
+    assert 'count' in data, "Count endpoint should return 'count' field"
     assert isinstance(data['count'], int), "'count' should be an integer"
+    assert data['count'] >= 0, "'count' should be non-negative"

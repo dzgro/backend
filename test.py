@@ -34,7 +34,7 @@ async def buildStateDateAnalyticsAndQueries():
 
 async def testapi():
     from dzgroshared.models.collections.analytics import PeriodDataResponse, PeriodDataRequest, ComparisonPeriodDataRequest,PerformancePeriodDataResponse,MonthDataRequest, StateMonthDataResponse,StateDetailedDataByStateRequest, StateDetailedDataResponse, AllStateData,MonthTableResponse, MonthDataResponse,MonthDateTableResponse
-    from dzgroshared.db.performance_period_results.model import PerformanceTableRequest, PerformanceTableResponse
+    from dzgroshared.db.performance_period_results.model import ComparisonTableRequest, PerformanceTableResponse
     # periodreq = PeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None)
     # comparisonreq = ComparisonPeriodDataRequest(collatetype=CollateType.MARKETPLACE, value=None, queryId=queryId)
     # monthreq = MonthDataRequest(collatetype=CollateType.MARKETPLACE, value=None, month="Jul 2025")

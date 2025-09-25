@@ -1,4 +1,4 @@
-from dzgroshared.db.state_analytics.model import AllStateData, StateDetailedDataByStateRequest, StateDetailedDataResponse, StateMonthDataResponse
+from dzgroshared.db.state_analytics.model import AllStateData, StateRequest, StateDetailedDataResponse, StateMonthDataResponse
 from dzgroshared.db.model import MonthDataRequest
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
@@ -12,7 +12,7 @@ async def getStateDataDetailedForMonth(request: Request, req: MonthDataRequest):
     return await (await db(request)).getStateDataDetailedForMonth(req)
 
 @router.post("/detailed", response_model=StateDetailedDataResponse, response_model_exclude_none=True)
-async def getStateDataDetailed(request: Request, req: StateDetailedDataByStateRequest):
+async def getStateDataDetailed(request: Request, req: StateRequest):
     return await (await db(request)).getStateDataDetailed(req)
 
 @router.post("/lite", response_model=StateMonthDataResponse, response_model_exclude_none=True)
