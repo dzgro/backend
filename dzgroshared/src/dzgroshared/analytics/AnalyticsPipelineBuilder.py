@@ -715,30 +715,8 @@ class AnalyticsPipelineBuilder:
 
     
     def get_complete_month_lite_data_pipeline(self, req: PeriodDataRequest) -> list[dict]:
-        """
-        Create a complete pipeline for getMonthLiteData that includes all transformations.
-        This replaces all transformData calls and creates a complete MonthDataResponse structure.
-        
-        Args:
-            req: Period data request
-            
-        Returns:
-            Complete aggregation pipeline that produces MonthDataResponse-compatible results
-        """
 
         def create_complete_month_data_response_pipeline(data_field: str = "data") -> list[dict]:
-            """
-            Create pipeline stages to transform data into complete MonthDataResponse format.
-            This creates all three components: data, bars, and meterGroups.
-            
-            Args:
-                data_field: Name of the field containing the analytics data
-                
-            Returns:
-                Pipeline stages that create complete MonthDataResponse structure
-            """
-            
-            # Create meter groups
             meter_groups = []
             for group_schema in MONTH_METER_GROUPS:
                 group_dict = {
@@ -843,7 +821,7 @@ class AnalyticsPipelineBuilder:
         
         from dzgroshared.db.state_analytics.pipelines import GetStatesDataForMonth
         pipeline = GetStatesDataForMonth.pipeline(self.marketplace_id, req)
-        return pipeline+create_state_lite_pipeline()
+        return pipeline+create_state_lite_pipeline()+[{"$set": { "data": { "$first": "$data.items" } }}, {"$project": { "state": 1, "data": 1 }}]
     
     def get_state_detail_pipeline(self, req: StateRequest) -> list[dict]:
         def create_state_detail_pipeline(data_field: str = "data") -> list[dict]:

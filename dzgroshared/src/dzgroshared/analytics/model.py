@@ -518,9 +518,11 @@ MONTH_BARS: MetricGroup = MetricGroup(
                     MetricItem(metric=AnalyticsMetric.TACOS),
                     MetricItem(metric=AnalyticsMetric.ACOS),
                     MetricItem(metric=AnalyticsMetric.RETURN_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.FBA_RETURN_PERCENTAGE),
                     MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
                     MetricItem(metric=AnalyticsMetric.PAYOUT_PERCENTAGE),
                     MetricItem(metric=AnalyticsMetric.BUY_BOX_PERCENTAGE),
+                    MetricItem(metric=AnalyticsMetric.FBA_REVENUE_PERCENTAGE),
         ])
 
 MONTH_DATA = MetricGroup(
@@ -531,8 +533,6 @@ MONTH_DATA = MetricGroup(
                     MetricItem(metric=AnalyticsMetric.SPEND),
                     MetricItem(metric=AnalyticsMetric.AD_SALES),
                     MetricItem(metric=AnalyticsMetric.ROAS),
-                    MetricItem(metric=AnalyticsMetric.TACOS),
-                    MetricItem(metric=AnalyticsMetric.UNIT_SESSION_PERCENTAGE),
         ])
 
 KEY_METRICS: list[MetricGroup] = [

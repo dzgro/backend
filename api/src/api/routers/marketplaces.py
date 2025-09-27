@@ -1,8 +1,7 @@
-from calendar import Month
 from dzgroshared.db.enums import CollateType, PlanType
 from dzgroshared.db.marketplaces.model import MarketplaceOnboardPaymentRequest, UserMarketplace, UserMarketplaceList
 from dzgroshared.db.pricing.model import Pricing, PricingDetail
-from dzgroshared.db.model import AddMarketplaceRequest, Count, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
+from dzgroshared.db.model import AddMarketplaceRequest, Count, Month, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
 from dzgroshared.razorpay.common import RazorpayOrderObject
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
@@ -23,9 +22,9 @@ async def getUserMarketplaces(request: Request, paginator: Paginator):
 async def getUserMarketplacesCount(request: Request):
     return await (await db(request)).getMarketplacesCount()
 
-@router.get("/current", response_model=UserMarketplace, response_model_exclude_none=True, response_model_by_alias=False)
-async def getUserMarketplace(request: Request):
-    return await (await db(request)).getUserMarketplace()
+@router.get("/{id}", response_model=UserMarketplace, response_model_exclude_none=True, response_model_by_alias=False)
+async def getUserMarketplace(request: Request, id: PyObjectId):
+    return await (await db(request)).getUserMarketplace(id)
 
 @router.post("/test/linkage", response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def testLinkage(request: Request, req: AddMarketplaceRequest):

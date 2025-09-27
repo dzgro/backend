@@ -128,8 +128,8 @@ class MarketplaceHelper:
         count = await self.db.count({"uid": self.client.uid})
         return {"count": count}
 
-    async def getUserMarketplace(self):
-        pipeline = GetUserMarketplaces.pipeline(self.client.uid, Paginator(skip=0, limit=1), self.client.marketplaceId)
+    async def getUserMarketplace(self, id: PyObjectId):
+        pipeline = GetUserMarketplaces.pipeline(self.client.uid, Paginator(skip=0, limit=1), id)
         data = await self.db.aggregate(pipeline)
         if len(data)==0: raise ValueError("No Marketplace found for the user")
         return UserMarketplace.model_validate(data[0])

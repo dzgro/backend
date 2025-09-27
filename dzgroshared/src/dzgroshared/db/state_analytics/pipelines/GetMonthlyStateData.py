@@ -17,7 +17,7 @@ def pipeline(marketplace: ObjectId, req: StateRequest) -> list[dict]:
             'from': CollectionType.STATE_ANALYTICS.value,
             'let': { 'marketplace': '$_id', 'startdate': '$months.startdate', 'enddate': '$months.enddate', "value": req.value, "collatetype": req.collatetype.value, 'state': req.state }, 
             'pipeline': lookuppipeline,
-            'as': 'state'
+            'as': 'data'
         }
     }
     pipeline.extend([lookupdata, {"$replaceWith": pp.mergeObjects([{"data": "$data"}, "$months"])}])

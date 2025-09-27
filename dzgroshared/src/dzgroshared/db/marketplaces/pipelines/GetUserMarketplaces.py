@@ -1,8 +1,8 @@
 from bson import ObjectId
-from dzgroshared.db.model import Paginator
+from dzgroshared.db.model import Paginator, PyObjectId
 
 
-def pipeline(uid:str, paginator: Paginator, marketplace: ObjectId|None = None) -> list[dict]:
+def pipeline(uid:str, paginator: Paginator, marketplace: PyObjectId|None = None) -> list[dict]:
     pipeline: list[dict] = [{'$match': {'_id': marketplace, 'uid': uid} if marketplace else {'uid': uid}}]
     if not marketplace: pipeline.extend([{ "$sort": { "_id": -1 } },{ "$skip": paginator.skip }, { "$limit": paginator.limit }])
     pipeline.extend([{

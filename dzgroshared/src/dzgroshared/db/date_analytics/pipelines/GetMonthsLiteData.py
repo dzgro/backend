@@ -21,13 +21,5 @@ def pipeline(marketplace: ObjectId, req: PeriodDataRequest) -> list[dict]:
         }
     }
     pipeline.extend([lookupdata, pp.collateData(), controller.addMissingFields()]+controller.addDerivedMetrics())
-    pipeline.append({
-        "$replaceRoot": {
-            "newRoot": {
-                "month": "$months.month",
-                "period": "$months.period",
-                "data": "$data"
-            }
-        }
-    })
+    pipeline.append({ "$replaceRoot": { "newRoot": { "$mergeObjects": [ "$months", { "data": "$data" } ] } } })
     return pipeline

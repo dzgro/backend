@@ -1,5 +1,5 @@
 
-from dzgroshared.db.model import AnalyticPeriodGroup, AnalyticPeriodValuesGroup, MonthLite, MultiLevelColumns, ValueWithValueString
+from dzgroshared.db.model import AnalyticPeriodGroup, AnalyticPeriodValuesGroup, Month, MonthLite, MultiLevelColumns, ValueWithValueString
 from pydantic import BaseModel
 
 
@@ -8,8 +8,7 @@ class ChartData(BaseModel):
     dates: list[str]
     values: list[float]
 
-class MonthLiteResponseItem(BaseModel):
-    month: str
+class MonthLiteResponseItem(MonthLite):
     data: AnalyticPeriodGroup
     bars: AnalyticPeriodGroup
     meterGroups: list[AnalyticPeriodGroup]
