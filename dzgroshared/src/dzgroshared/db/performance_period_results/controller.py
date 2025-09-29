@@ -1,10 +1,10 @@
 from bson import ObjectId
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.db.performance_period_results.model import PerformanceDashboardResponse, ComparisonTableRequest, ComparisonPeriodDataRequest
+from dzgroshared.db.performance_period_results.model import ComparisonTableRequest
 from dzgroshared.db.enums import CollectionType, CollateType
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.analytics import controller
-from dzgroshared.db.model import PeriodDataRequest, SingleAnalyticsMetricTableResponse, SingleMetricPeriodDataRequest
+from dzgroshared.db.model import PeriodDataRequest
 
 
 class PerformancePeriodResultsHelper:
@@ -22,17 +22,24 @@ class PerformancePeriodResultsHelper:
     
     async def getCount(self, body: ComparisonTableRequest):
         matchDict = {"queryid": body.queryId, "collatetype": body.collatetype.value}
-        if body.value: matchDict.update({"value": body.value})
-        elif body.parent: matchDict.update({"parent": body.parent})
+        if body.parent: matchDict.update({"parent": body.parent})
         return {"count": await self.db.count(matchDict)}
     
     async def getPerformanceTable(self, body: ComparisonTableRequest):
-        from dzgroshared.db.performance_period_results.pipelines import GetComparisonTable
-        pipeline = GetComparisonTable.pipeline(self.client.marketplaceId, self.client.marketplace.countrycode, body)
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_comparison_table_pipeline(body)
         data = await self.db.aggregate(pipeline)
         columns = ["Skus" if body.collatetype==CollateType.SKU else "Asins" if body.collatetype==CollateType.ASIN else "Parent Skus" if body.collatetype==CollateType.PARENT else "Category"]
         columns.extend([item.metric.value for item in controller.getMetricGroupsBySchemaType('Comparison', body.collatetype)])
         return {"rows": data, "columns": columns}
+    
+    async def getPerformanceTableLite(self, body: PeriodDataRequest):
+        from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder
+        builder = AnalyticsPipelineBuilder(self.client.marketplaceId, self.client.marketplace.countrycode)
+        pipeline = builder.get_comparison_table_lite(body)
+        data = await self.client.db.marketplaces.db.aggregate(pipeline)
+        return data[0]
 
     async def getDashboardPerformanceResults(self, req: PeriodDataRequest):
         from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder

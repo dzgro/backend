@@ -279,9 +279,13 @@ class MetricDetail(BaseModel):
     label: str
     description: str|SkipJsonSchema[None] = None
 
-class NestedColumn(BaseModel):
-    header: str
+class RowColumnSpan(BaseModel):
+    rowSpan: int = 1
     colSpan: int = 1
+
+class NestedColumn(RowColumnSpan):
+    header: str
+    frozen: bool = False
 
 
 class MultiLevelColumns(BaseModel):

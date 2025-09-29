@@ -1,8 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.PipelineProcessor import PipelineProcessor
 from dzgroshared.db.enums import CollateType, CountryCode
-from dzgroshared.db.marketplaces.model import MarketplaceCache
-from dzgroshared.db.model import PyObjectId
 from dzgroshared.db.performance_period_results.model import ComparisonTableRequest
 
 
@@ -30,7 +28,9 @@ def pipeline(marketplaceId: ObjectId, countryCode: CountryCode, body: Comparison
     pp = PipelineProcessor()
     if body.collatetype==CollateType.MARKETPLACE: raise ValueError("Collate Type cannot be marketplace for performance table")
     matchDict = { "queryid": body.queryId, "collatetype": body.collatetype.value}
-    if body.parent: matchDict.update({"parent": body.parent})
+    if body.parent: 
+        matchDict['collatetype'] = CollateType.ASIN.value if body.collatetype!=CollateType.ASIN else CollateType.SKU.value
+        matchDict.update({"parent": body.parent})
     sort = pp.sort({f'data.{body.sort.field}.curr': body.sort.order})
     skip = pp.skip(body.paginator.skip)
     limit = pp.limit(body.paginator.limit)

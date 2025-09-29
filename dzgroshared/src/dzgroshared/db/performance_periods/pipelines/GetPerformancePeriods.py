@@ -27,24 +27,15 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
         '$lookup': {
             'from': CollectionType.PERFORMANCE_PERIODS.value, 
             'let': {
-                'marketplace': '$marketplace'
+                'marketplace': '$_id'
             }, 
             'pipeline': [
                 {
-                    '$match': {
-                        '$expr': {
-                            '$or': [
-                                {
-                                    '$ne': [
-                                        '$tag', 'Custom'
+                    '$match': { '$expr': {
+                                    '$eq': [
+                                        '$marketplace', '$$marketplace'
                                     ]
-                                }, {
-                                            '$eq': [
-                                                '$marketplace', '$$marketplace'
-                                            ]
-                                        }
-                            ]
-                        }
+                                }
                     }
                 }
             ], 

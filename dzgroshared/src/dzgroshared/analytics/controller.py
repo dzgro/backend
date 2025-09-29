@@ -5,12 +5,13 @@ from ..db.enums import AnalyticGroupMetricLabel, AnalyticsMetric, AnalyticsMetri
 from ..db.model import AnalyticKeyGroup, AnalyticKeylabelValue, DashboardKeyMetricGroup, DashboardKeyMetricItem, DashboardKeyMetricItemChartData, LabelValue, MetricGroup, MetricItem, NestedColumn, StartEndDate, MultiLevelColumns, SingleAnalyticsMetricTableResponseItem
 from .model import COMPARISON_METRICS, PERIOD_METRICS, METRIC_DETAILS, METRIC_CALCULATIONS, MONTH_BARS, MONTH_METER_GROUPS, MONTH_DATA, PERIOD_METRICS, STATE_DETAILED_METRICS, STATE_LITE_METRICS, ALL_STATE_METRICS, MONTH_METRICS, MONTH_DATE_METRICS,KEY_METRICS
 
-SchemaType = Literal['Period','Comparison','Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date', 'Key Metrics']
+SchemaType = Literal['Period','Comparison', 'Comparison Table', 'Month Meters', 'Month Bars', 'Month Data', 'State Lite', 'State Detail', 'State All', 'Month', 'Month Date', 'Key Metrics']
 
 GroupBySchema: dict[SchemaType, list[MetricGroup]] = {
     'Period': PERIOD_METRICS,
     'Key Metrics': KEY_METRICS,
     'Comparison': COMPARISON_METRICS,
+    'Comparison Table': COMPARISON_METRICS,
     'Month Meters': MONTH_METER_GROUPS,
     'Month Bars': [MONTH_BARS],
     'Month Data': [MONTH_DATA],

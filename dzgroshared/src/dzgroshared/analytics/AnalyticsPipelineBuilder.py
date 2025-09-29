@@ -36,6 +36,7 @@ from dzgroshared.analytics.model import (
 from dzgroshared.analytics.controller import SchemaType, GroupBySchema
 from dzgroshared.db.model import PeriodDataRequest, MonthDataRequest
 from dzgroshared.analytics.CurrencyUtils import get_currency_symbol
+from dzgroshared.db.performance_period_results.model import ComparisonTableRequest
 from dzgroshared.db.state_analytics.model import StateRequest
 
 
@@ -798,10 +799,44 @@ class AnalyticsPipelineBuilder:
         pipeline = GetPerformanceResultsForAllTags.pipeline(self.marketplace_id, req)
         return pipeline+self.create_comparison_pipeline()
     
-    def get_comparison_table_pipeline(self, req: PeriodDataRequest) -> list[dict]:
+    def get_comparison_table_lite(self, req: PeriodDataRequest) -> list[dict]:
         from dzgroshared.db.performance_period_results.pipelines import GetPerformanceResultsForAllTags
+        from dzgroshared.db.performance_period_results.pipelines import ConvertToRowsAndColumns
         pipeline = GetPerformanceResultsForAllTags.pipeline(self.marketplace_id, req)
-        return pipeline+self.create_comparison_pipeline()
+        return pipeline+self.create_comparison_pipeline()+ConvertToRowsAndColumns.pipeline()
+    
+    def get_comparison_table_pipeline(self, body: ComparisonTableRequest) -> list[dict]:
+        
+        def setCategory():
+            lookup = { '$lookup': { 'from': 'query_results', 'let': { 'marketplace': '$marketplace', 'queryid': '$queryid', 'type': 'asin', 'producttype': '$producttype' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$type', '$$type' ] }, { '$eq': [ '$queryid', '$$queryid' ] }, { '$eq': [ '$producttype', '$$producttype' ] } ] } } }, { '$sort': { 'data.revenue.curr': -1 } }, { '$lookup': { 'from': 'products', 'let': { 'marketplace': '$marketplace', 'asin': '$asin' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$asin', '$$asin' ] } ] } } }, { '$set': { 'image': { '$cond': [ { '$eq': [ { '$size': '$images' }, 0 ] }, None, { '$arrayElemAt': [ '$images', 0 ] } ] } } }, { '$project': { 'sku': 1, 'asin': 1, 'image': 1, '_id': 0 } } ], 'as': 'images' } } ], 'as': 'children' } }
+            replaceWith = { '$replaceWith': { 'data': '$data', 'category': { 'producttype': '$producttype', 'count': { '$size': '$children' }, 'skus': { '$firstN': { 'input': { '$reduce': { 'input': '$children', 'initialValue': [], 'in': { '$concatArrays': [ '$$value', '$$this.images' ] } } }, 'n': 10 } } } } }
+            return [lookup, replaceWith]
+
+        def setParent():
+            lookup = { '$lookup': { 'from': 'products', 'let': { 'marketplace': '$marketplace', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$set': { 'childskus': { '$ifNull': [ '$childskus', [ '$sku' ] ] } } }, { '$unwind': { 'path': '$childskus' } }, { '$lookup': { 'from': 'products', 'let': { 'marketplace': '$marketplace', 'sku': '$childskus' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$set': { 'image': { '$arrayElemAt': [ '$images', 0 ] } } }, { '$project': { 'image': 1, 'sku': 1, 'asin': 1, '_id': 0 } } ], 'as': 'result' } }, { '$group': { '_id': { 'sku': '$sku', 'asin': '$asin', 'title': '$title', 'producttype': '$producttype', 'variationtheme': '$variationtheme' }, 'images': { '$first': '$images' }, 'skus': { '$push': { '$first': '$result' } } } }, { '$set': { 'image': { '$cond': [ { '$gt': [ { '$size': '$images' }, 0 ] }, { '$arrayElemAt': [ '$images', 0 ] }, { '$getField': { 'input': { '$first': '$skus' }, 'field': 'image' } } ] } } }, { '$replaceWith': { '$mergeObjects': [ '$_id', { 'image': '$image' }, { 'count': { '$size': '$skus' } }, { '$cond': [ { '$eq': [ { '$ifNull': [ '$_id.variationtheme', None ] }, None ] }, {}, { 'skus': { '$slice': [ '$skus', 1, 5 ] } } ] } ] } } ], 'as': 'result' } }
+            replaceWith = { '$replaceWith': { 'data': '$data', 'parent': { '$first': '$result' } } }
+            return [lookup, replaceWith]
+
+        def setAsin():
+            lookup = { '$lookup': { 'from': 'products', 'let': {'marketplace': '$marketplace', 'asin': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$asin', '$$asin' ] } ] } } }, { '$group': { '_id': { 'asin': '$asin', 'title': '$title', 'producttype': '$producttype', 'variationtheme': '$variationtheme', 'variationdetails':'$variationdetails', 'parentsku': '$parentsku', 'parentasin': '$parentasin' }, 'images': { '$first': '$images' }, 'skus': { '$push': '$sku' } } }, { '$set': { 'image': { '$arrayElemAt': [ '$images', 0 ] } } }, { '$replaceWith': { '$mergeObjects': [ { 'asin': '$_id.asin', 'title': '$_id.title', 'producttype': '$_id.producttype' }, { '$cond': [ { '$ne': [ { '$ifNull': [ '$_id.variationtheme', None ] }, None ] }, { 'variationtheme': '$_id.variationtheme' }, {} ] }, { '$cond': [ { '$ne': [ { '$ifNull': [ '$_id.variationdetails', None ] }, None ] }, { 'variationdetails': '$_id.variationdetails' }, {} ] }, { '$cond': [ { '$and': [ { '$ne': [ { '$ifNull': [ '$_id.variationdetails', None ] }, None ] }, { '$ne': [ '$_id.parentsku', '$sku' ] } ] }, { 'parentsku': '$_id.parentsku', 'parentasin': '$_id.parentasin' }, {} ] }, { 'image': '$image' }, { '$cond': [ { '$eq': [ { '$size': '$skus' }, 1 ] }, { 'sku': { '$first': '$skus' } }, { 'count': { '$size': '$skus' } } ] } ] } } ], 'as': 'result' } }
+            replaceWith = { '$replaceWith': { 'data': '$data', 'asin': { '$first': '$result' } } }
+            return [lookup, replaceWith]
+
+        def setSku():
+            lookup = { '$lookup': { 'from': 'products', 'let': { 'marketplace': '$marketplace', 'sku': '$value' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$eq': [ '$sku', '$$sku' ] } ] } } }, { '$replaceWith': { '$mergeObjects': [ { 'sku': '$sku', 'asin': '$asin', 'title': '$title', 'producttype': '$producttype', 'variationdetails':'$variationdetails', 'image': { '$first': '$images' } }, { '$cond': [ { '$ne': [ { '$ifNull': [ '$_id.variationdetails', None ] }, None ] }, { 'variationdetails': '$_id.variationdetails' }, {} ] }, { '$cond': [ { '$ne': [ { '$ifNull': [ '$variationtheme', None ] }, None ] }, { 'variationtheme': '$variationtheme', 'variationdetails': '$variationdetails' }, {} ] }, { '$cond': [ { '$and': [ { '$ne': [ { '$ifNull': [ '$variationtheme', None ] }, None ] }, { '$ne': [ '$parentsku', '$sku' ] } ] }, { 'parentsku': '$parentsku', 'parentasin': '$parentasin' }, {} ] } ] } } ], 'as': 'result' } }
+            replaceWith = { '$replaceWith': { 'data': '$data', 'sku': { '$first': '$result' } } }
+            return [lookup, replaceWith]
+        matchDict = { "queryid": body.queryId, "collatetype": body.collatetype.value}
+        if body.parent: 
+            matchDict['collatetype'] = CollateType.ASIN.value if body.collatetype!=CollateType.ASIN else CollateType.SKU.value
+            matchDict.update({"parent": body.parent})
+        sort = {"$sort": {f'data.{body.sort.field}.curr': body.sort.order}}
+        pipeline = [{"$match": matchDict}, sort, {"$skip": body.paginator.skip}, {"$limit": body.paginator.limit}]+self.create_comparison_pipeline()
+        if body.collatetype==CollateType.CATEGORY: pipeline.extend(setCategory())
+        elif body.collatetype==CollateType.PARENT: pipeline.extend(setParent())
+        elif body.collatetype==CollateType.ASIN: pipeline.extend(setAsin())
+        elif body.collatetype==CollateType.SKU: pipeline.extend(setSku())
+        return pipeline
 
     def get_state_lite_pipeline(self, req: MonthDataRequest) -> list[dict]:
         def create_state_lite_pipeline(data_field: str = "data") -> list[dict]:
