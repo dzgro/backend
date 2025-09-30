@@ -302,46 +302,6 @@ def pipeline():
             }
         }
     }, {
-        '$set': {
-            'data.rows': {
-                '$map': {
-                    'input': '$data.rows', 
-                    'as': 'r', 
-                    'in': {
-                        '$mergeObjects': [
-                            '$$r', {
-                                'rowSpan': {
-                                    '$reduce': {
-                                        'input': '$$r.items', 
-                                        'initialValue': {
-                                            "$sum": [
-                                                {
-                                            '$size': '$$r.items'
-                                        },1
-                                            ]
-                                        }, 
-                                        'in': {
-                                            '$sum': [
-                                                '$$value', {
-                                                    '$size': [
-                                                        {
-                                                            '$ifNull': [
-                                                                '$$this.items', []
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-    }, {
         '$replaceRoot': {
             'newRoot': '$data'
         }
@@ -353,7 +313,7 @@ def pipeline():
               [
                 {
                     "header": "Metrics",
-                    "colSpan": 2,
+                    "colSpan": 1,
                     "rowSpan": 3,
                     "frozen": True
                   }

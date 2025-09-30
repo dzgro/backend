@@ -3,7 +3,7 @@ from dzgroshared.db.performance_periods.model import PerformancePeriod
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.db.model import MultiLevelColumns, PeriodDataRequest, RowColumnSpan, Sort, Paginator, AnalyticValueFilterItem, LabelValue, PyObjectId, StartEndDate
-from dzgroshared.db.products.model import Product, ProductCategory
+from dzgroshared.db.products.model import PerformanceResultCategory, PerformanceResultParent, PerformanceneResultAsin, PerformanceneResultSku, Product, ProductCategory, VariationTheme
 from dzgroshared.db.enums import CollateType, AnalyticGroupMetricLabel, QueryTag
 
 class ListingRequest(BaseModel):
@@ -83,25 +83,13 @@ class CategoryQueryResultItem(ProductCategory):
         data['moreCount'] = data['count'] - len(data['asins'])
         return data
 
-class PerformanceResultCategory(ProductCategory):
-    count: int
-    asins: List[Product] = []
-
-class PerformanceResultParent(Product):
-    count: int
-    asins: List[Product] = []
-
-class PerformanceResultAsin(Product):
-    count: int|SkipJsonSchema[None] = None
-    skus: List[Product] = []
-
 
 class PerformanceTableResponseItem(BaseModel):
     data: list[PerformancePeriodGroup]
     category: PerformanceResultCategory|SkipJsonSchema[None] = None
     parent: PerformanceResultParent|SkipJsonSchema[None] = None
-    asin: PerformanceResultAsin|SkipJsonSchema[None] = None
-    sku: Product|SkipJsonSchema[None] = None   
+    asin: PerformanceneResultAsin|SkipJsonSchema[None] = None
+    sku: PerformanceneResultSku|SkipJsonSchema[None] = None
 
 class PerformanceTableResponse(BaseModel):
     rows: list[PerformanceTableResponseItem]

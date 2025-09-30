@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Request, Query, Body,Path,Depends
-from pydantic.json_schema import SkipJsonSchema
+from fastapi import APIRouter, Request
 router = APIRouter(prefix="/products", tags=["Products"])
-from dzgroshared.db.products.model import Product, ParentProduct
+from dzgroshared.db.products.model import Product
 from api.Util import RequestHelper
 
 
@@ -12,7 +11,7 @@ async def db(request: Request):
 async def getSku(request: Request, sku:str):
     return (await db(request)).products.getSku(sku)
 
-@router.get("/parentsku/{sku}", response_model=ParentProduct, response_model_exclude_none=True)
+@router.get("/parentsku/{sku}", response_model=Product, response_model_exclude_none=True)
 async def getParentSku(request: Request, sku:str):
     return (await db(request)).products.getParentSku(sku)
 

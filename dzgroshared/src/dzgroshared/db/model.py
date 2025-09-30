@@ -280,8 +280,14 @@ class MetricDetail(BaseModel):
     description: str|SkipJsonSchema[None] = None
 
 class RowColumnSpan(BaseModel):
-    rowSpan: int = 1
-    colSpan: int = 1
+    rowSpan: int
+    colSpan: int
+
+    @model_validator(mode="before")
+    def validate_spans(cls, data):
+        data['rowSpan'] = data.get('rowSpan', 1)
+        data['colSpan'] = data.get('colSpan', 1)
+        return data
 
 class NestedColumn(RowColumnSpan):
     header: str

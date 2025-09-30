@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.db.performance_period_results.model import ComparisonTableRequest
+from dzgroshared.db.performance_period_results.model import ComparisonTableRequest, PerformanceTableResponse
 from dzgroshared.db.enums import CollectionType, CollateType
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.analytics import controller
