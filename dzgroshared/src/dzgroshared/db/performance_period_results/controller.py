@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.DbUtils import DbManager
-from dzgroshared.db.performance_period_results.model import ComparisonTableRequest, PerformanceTableResponse
+from dzgroshared.db.performance_period_results.model import ComparisonTableRequest, PerformanceDashboardResponse, PerformanceTableResponse
 from dzgroshared.db.enums import CollectionType, CollateType
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.analytics import controller
@@ -47,6 +47,7 @@ class PerformancePeriodResultsHelper:
         pipeline = builder.get_comparison_pipeline(req)
         data = await self.client.db.marketplaces.db.aggregate(pipeline)
         return {"data": data}
+        return PerformanceDashboardResponse.model_validate({"data": data})
     
     
 

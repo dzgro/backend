@@ -29,7 +29,7 @@ class DateAnalyticsHelper:
             { '$lookup': { 'from': 'date_analytics', 'let': letdict, 'pipeline': [ { '$match': matchDict },{"$replaceWith": "$data"}], 'as': 'data' } }, 
             self.db.pp.collateData(),
             {"$sort": { "startdate": -1 }},
-            {"$replaceRoot": { "newRoot": { "month": "$month", "period": "$period", "data": "$data" } }}
+            {"$replaceRoot": { "newRoot": { "month": "$month", "period": "$period", "startdate": "$startdate", "enddate": "$enddate", "data": "$data" } }}
         ]
         pipeline.append(controller.addMissingFields("data"))
         pipeline.extend(controller.addDerivedMetrics("data"))
@@ -37,7 +37,7 @@ class DateAnalyticsHelper:
         from dzgroshared.utils import mongo_pipeline_print
         mongo_pipeline_print.copy_pipeline(pipeline)
         data = await self.client.db.marketplaces.db.aggregate(pipeline)
-        months = [{"month": x['month'], "period": x['period']} for x in data]
+        months = [{k: v for k, v in d.items() if k != 'data'} for d in data]
         data = controller.transformData('Month',data, req.collatetype, self.client.marketplace.countrycode)
         return {"columns": months, "rows": data}
     

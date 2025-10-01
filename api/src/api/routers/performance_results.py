@@ -10,8 +10,9 @@ from api.Util import RequestHelper
 async def db(request: Request):
     return (await RequestHelper(request).client).db.performance_period_results
 
-@router.post("dashboard", response_model=PerformanceDashboardResponse, response_model_exclude_none=True, response_model_by_alias=False)
+@router.post("/dashboard", response_model=PerformanceDashboardResponse, response_model_exclude_none=True, response_model_by_alias=False)
 @cache_control()
+@enforce_response_model(PerformanceDashboardResponse)
 async def getDashboardPerformanceResults(request: Request, req: PeriodDataRequest):
     return await (await db(request)).getDashboardPerformanceResults(req)
 

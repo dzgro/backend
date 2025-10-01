@@ -16,13 +16,13 @@ class ProductHelper:
         return await self.db.findOne({"sku": sku})
 
     async def getAsin(self, asin: str):
-        return self.db.findOne({"asin": asin})
+        return await self.db.findOne({"asin": asin})
 
     async def getSkus(self, skus: list[str]):
         return await self.db.find({"sku": {"$in": skus}})
 
     async def getAsins(self, asins: list[str]):
-        return await self.db.find({"asin": {"$in": asins}})
+        return await self.db.find({"asin": {"$in": asins}}, projectionInc=["asin","images","title","lastUpdatedDate","variationtheme","producttype","parentsku","parentasin"], projectionExc=["_id"])
     
     async def getParentSku(self, parentsku: str):
         pipeline = [self.db.pp.matchMarketplace({'sku': parentsku}),{ '$lookup': { 'from': 'products', 'let': { 'uid': '$uid', 'marketplace': '$marketplace', 'skus': '$childskus' }, 'pipeline': [ { '$match': { '$expr': { '$and': [ { '$eq': [ '$uid', '$$uid' ] }, { '$eq': [ '$marketplace', '$$marketplace' ] }, { '$in': [ '$sku', '$$skus' ] } ] } } } ], 'as': 'children' } } ]

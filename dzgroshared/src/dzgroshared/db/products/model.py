@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, HttpUrl, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
@@ -67,14 +68,18 @@ class PerformanceneResultAsin(Asin, VariationTheme, ProductCategory, Parent):
 class PerformanceneResultSku(Sku, VariationTheme, ProductCategory, Parent):
     image: HttpUrl|SkipJsonSchema[None] = None
 
+class AsinView(Asin, VariationTheme, ProductCategory, Parent):
+    images: list[HttpUrl]|SkipJsonSchema[None] = None
+    title: str
+    lastUpdatedDate: datetime|SkipJsonSchema[None]=None
     
-class Product(Asin, ProductCategory, VariationTheme, VariationDetails):
+class Product(Sku, ProductCategory, VariationTheme, VariationDetails):
     fulfillment: str|SkipJsonSchema[None]=None
     parentsku: str|SkipJsonSchema[None]=None
     parentasin: str|SkipJsonSchema[None]=None
     images: list[HttpUrl] = []
     image: HttpUrl|SkipJsonSchema[None]=None
     title: str|SkipJsonSchema[None]=None
-    lastUpdatedDate: str|SkipJsonSchema[None]=None
+    lastUpdatedDate: datetime|SkipJsonSchema[None]=None
     children: int|SkipJsonSchema[None]=None
     childskus: list[str]|SkipJsonSchema[None]=None

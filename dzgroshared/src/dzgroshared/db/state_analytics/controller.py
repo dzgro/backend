@@ -20,7 +20,7 @@ class StateAnalyticsHelper:
         pipeline = builder.get_state_all_pipeline(req)
         rows = await self.client.db.marketplaces.db.aggregate(pipeline)
         columns = controller.convertSchematoMultiLevelColumns('State All')
-        return {"columns": columns, "rows": rows}
+        return {"columns": columns, "rows": rows, **req.model_dump(exclude_none=True)}
 
     async def getStateDataLiteByMonth(self, req: MonthDataRequest):
         from dzgroshared.analytics.AnalyticsPipelineBuilder import AnalyticsPipelineBuilder

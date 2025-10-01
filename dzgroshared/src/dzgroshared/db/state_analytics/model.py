@@ -22,6 +22,6 @@ class AllStateDataItem(BaseModel):
     values: list[ValueWithValueString]
 
 
-class AllStateData(BaseModel):
+class AllStateData(PeriodDataRequest):
     columns: MultiLevelColumns
     rows: list[AllStateDataItem]

@@ -750,6 +750,8 @@ class AnalyticsPipelineBuilder:
                     "$project": {
                         "month": 1,
                         "period": 1,
+                        "startdate": 1,
+                        "enddate": 1,
                         "data": 1,
                         "bars": 1,
                         "meterGroups": 1,
