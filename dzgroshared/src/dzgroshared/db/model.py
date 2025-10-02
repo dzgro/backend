@@ -280,8 +280,8 @@ class MetricDetail(BaseModel):
     description: str|SkipJsonSchema[None] = None
 
 class RowColumnSpan(BaseModel):
-    rowSpan: int
-    colSpan: int
+    rowSpan: int = Field(default=1, ge=1)
+    colSpan: int = Field(default=1, ge=1)
 
     @model_validator(mode="before")
     def validate_spans(cls, data):

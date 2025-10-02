@@ -9,30 +9,26 @@ from pydantic.json_schema import SkipJsonSchema
 
 
 async def db(request: Request):
-    return (await RequestHelper(request).client).db
+    return (await RequestHelper(request).client).db.dzgro_reports
 
 @router.post("/list", response_model=ListDzgroReportsResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def listReportsWithCount(request: Request, paginator: Paginator):
-    return (await db(request)).dzgro_reports.listReports(paginator)
+    return await (await db(request)).listReports(paginator)
 
 @router.post("/create", response_model=DzgroReport, response_model_exclude_none=True, response_model_by_alias=False)
 async def createReport(request: Request, body: CreateDzgroReportRequest):
     client = RequestHelper(request).client
-    report = await (await db(request)).dzgro_reports.createReport(body)
+    report = await (await db(request)).createReport(body)
     return report
 
 @router.get("/fetch/{id}", response_model=DzgroReport, response_model_exclude_none=True, response_model_by_alias=False)
 async def getReport(request: Request, id: str):
-    client = RequestHelper(request).client
-    utility = (await db(request)).dzgro_reports
-    report = await utility.getReport(id)
-    return report
+    return await (await db(request)).getReport(id)
+    
 
 @router.put("/link/{reportid}", response_model=Url, response_model_exclude_none=True)
 async def createReportLink(request: Request, reportid: str):
-    client = RequestHelper(request).client
-    utility = (await db(request)).dzgro_reports
-    url = await utility.getDownloadUrl(reportid)
+    url = await (await db(request)).getDownloadUrl(reportid)
     return Url(url=url)
 
 

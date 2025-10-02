@@ -106,12 +106,9 @@ class AmazonReportManager:
                 await self.client.db.adv_ads.refreshAll()
             elif self.message.step==AmazonDailyReportAggregationStep.CREATE_STATE_DATE_ANALYTICS:
                 from dzgroshared.functions.AmazonDailyReport.reports.pipelines.Analytics import AnalyticsProcessor
-                await AnalyticsProcessor(self.client,self.report.dates).execute()
+                await AnalyticsProcessor(self.client,self.report.dates, self.userMarketplace.dates).execute()
             elif self.message.step==AmazonDailyReportAggregationStep.ADD_QUERIES:
-                from dzgroshared.analytics import controller
-                pipeline = controller.getQueriesPipeline(self.client.marketplaceId, self.report.dates)
-                await self.client.db.performance_period_results.deletePerformanceResults()
-                await self.client.db.marketplaces.db.aggregate(pipeline)
+                await self.client.db.performance_periods.buildQueriesAndResults()
             elif self.message.step==AmazonDailyReportAggregationStep.MARK_COMPLETION:
                 await self.client.db.daily_report_item.deleteChildReports(self.message.index)
                 await self.client.db.daily_report_group.markParentAsCompleted(self.message.index)

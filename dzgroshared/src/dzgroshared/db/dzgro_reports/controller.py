@@ -22,7 +22,7 @@ class DzgroReportHelper:
         try:
             id = await self.db.insertOne(request.model_dump(exclude_none=True))
             reportId = str(id)
-            message = DzgroReportQM(marketplace=self.client.marketplaceId, index=reportId, reporttype=request.reporttype)
+            message = DzgroReportQM(uid=self.client.uid, marketplace=self.client.marketplaceId, index=reportId, reporttype=request.reporttype)
             req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
             message_id = await self.client.sqs.sendMessage(req, message)
             await self.addMessageId(reportId,message_id)

@@ -9,8 +9,8 @@ class Sku(Asin):
     sku: str
 
 class Parent(BaseModel):
-    parentsku: str
-    parentasin: str
+    parentsku: str|SkipJsonSchema[None]=None
+    parentasin: str|SkipJsonSchema[None]=None
 
 
 class ProductCategory(BaseModel):
@@ -56,10 +56,10 @@ class AsinChildren(BaseModel):
     count: int|SkipJsonSchema[None] = None
 
 class PerformanceResultParent(Sku, VariationTheme):
-    children: AsinChildren
+    children: AsinChildren|SkipJsonSchema[None] = None
 
 class PerformanceResultCategory(ProductCategory):
-    children: AsinChildren
+    children: AsinChildren|SkipJsonSchema[None] = None
 
 class PerformanceneResultAsin(Asin, VariationTheme, ProductCategory, Parent):
     sku: SkipJsonSchema[None]=None
@@ -72,6 +72,20 @@ class AsinView(Asin, VariationTheme, ProductCategory, Parent):
     images: list[HttpUrl]|SkipJsonSchema[None] = None
     title: str
     lastUpdatedDate: datetime|SkipJsonSchema[None]=None
+
+class SkuView(AsinView):
+    sku: str
+
+    @property
+    def keys(self):
+        return list(type(self).model_fields.keys())
+
+class ParentView(Asin, VariationDetails):
+    children: AsinChildren
+
+class CategoryView(ProductCategory):
+    children: AsinChildren
+
     
 class Product(Sku, ProductCategory, VariationTheme, VariationDetails):
     fulfillment: str|SkipJsonSchema[None]=None

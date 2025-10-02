@@ -60,7 +60,7 @@ class CollateType(str, Enum):
     SKU="sku"
     ASIN="asin"
     PARENT="parentsku"
-    CATEGORY="producttype"
+    CATEGORY="category"
     MARKETPLACE="marketplace"
 
     @staticmethod

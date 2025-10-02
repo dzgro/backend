@@ -9,7 +9,6 @@ class PerformancePeriod(ItemId):
     tag: QueryTag
     curr: StartEndDate
     pre: StartEndDate
-    disabled: bool
     label: str = ''
 
     @model_validator(mode="after")

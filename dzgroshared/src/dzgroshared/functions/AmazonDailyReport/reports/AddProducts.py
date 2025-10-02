@@ -62,7 +62,7 @@ class ListingsBuilder:
             await self.reportUtil.update(CollectionType.PRODUCTS, items)
         if hasMore: return date
         await self.addParents()
-        await self.addParentsWhereAbsent()
+        # await self.addParentsWhereAbsent()
 
 
     async def getProducts(self, date: datetime|None, token: str|None=None):
@@ -82,12 +82,15 @@ class ListingsBuilder:
     
     async def addParents(self):
         pp = self.client.db.products.db.pp
-        matchStage = pp.matchMarketplace({ 'childskus': { '$exists': True } })
-        unset = pp.unset([ 'parentsku', 'parentasin' ])
+        projectStage = pp.project([], ['parentsku', 'parentasin'])
+        merge = pp.merge(CollectionType.PRODUCTS, 'replace')
+        await self.client.db.products.db.aggregate([projectStage, merge])
+        matchStage = pp.matchMarketplace()
+        matchParents = pp.match({ 'childskus': { '$exists': True } })
         unwind = pp.unwind("childskus")
         replaceRoot = pp.replaceRoot({ '_id': { '$concat': [ { '$toString': '$marketplace' }, '_', '$childskus' ] }, 'parentsku': '$sku', 'parentasin': '$asin' })
         merge = pp.merge(CollectionType.PRODUCTS)
-        pipeline = [matchStage, unset, unwind, replaceRoot, merge]
+        pipeline = [projectStage, matchStage, matchParents, unwind, replaceRoot, merge]
         await self.client.db.products.db.aggregate(pipeline)
 
     async def addParentsWhereAbsent(self):
@@ -117,7 +120,7 @@ class ListingsBuilder:
             if relationship:
                 itemDict = {}
                 if 'childSkus' in relationship and relationship['childSkus']: itemDict['childskus'] = relationship['childSkus']
-                elif 'parentSkus' in relationship and relationship['parentSkus'] and len(relationship['parentSkus'])>0: itemDict['parentsku'] = relationship['parentSkus'][0]
+                # elif 'parentSkus' in relationship and relationship['parentSkus'] and len(relationship['parentSkus'])>0: itemDict['parentsku'] = relationship['parentSkus'][0]
                 if 'variationTheme' in relationship and relationship['variationTheme'] and 'attributes' in relationship['variationTheme'] and relationship['variationTheme']['attributes']: 
                     itemDict['variationtheme'] = relationship['variationTheme']['theme']
                     attributes = relationship['variationTheme']['attributes']

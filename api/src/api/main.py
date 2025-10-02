@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
                 maxIdleTimeMS=900000,  # Keep connection for 15 minutes (Lambda warm period)
                 serverSelectionTimeoutMS=10000,  # Faster timeout for Lambda
                 connectTimeoutMS=10000,  # Faster connection timeout
-                socketTimeoutMS=10000,  # Socket timeout for operations
+                socketTimeoutMS=60000,  # Socket timeout for operations
                 heartbeatFrequencyMS=60000  # Heartbeat every minute
             )
         

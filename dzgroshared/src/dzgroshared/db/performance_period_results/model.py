@@ -101,7 +101,8 @@ class PerformanceTableLiteResponse(BaseModel):
      
 class ComparisonTableRequest(BaseModel):
     queryId: PyObjectId
-    parent: str|SkipJsonSchema[None] = None
+    parentsku: str|SkipJsonSchema[None] = None
+    category: str|SkipJsonSchema[None] = None
     collatetype: CollateType
     filters: list[AnalyticValueFilterItem] = []
     paginator: Paginator

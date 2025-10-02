@@ -1,14 +1,16 @@
 from api.decorators import cache_control, enforce_response_model
 from fastapi import APIRouter, Request
 router = APIRouter(prefix="/products", tags=["Products"])
-from dzgroshared.db.products.model import AsinView, Product
+from dzgroshared.db.products.model import AsinView, Product, SkuView
 from api.Util import RequestHelper
 
 
 async def db(request: Request):
     return (await RequestHelper(request).client).db.products
 
-@router.get("/sku/{sku}", response_model=Product, response_model_exclude_none=True)
+@router.get("/sku/{sku}", response_model=SkuView, response_model_exclude_none=True)
+@cache_control()
+@enforce_response_model(SkuView)
 async def getSku(request: Request, sku:str):
     return await (await db(request)).getSku(sku)
 

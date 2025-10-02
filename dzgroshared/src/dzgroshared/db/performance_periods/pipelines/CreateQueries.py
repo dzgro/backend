@@ -1,60 +1,108 @@
 from bson import ObjectId
 from dzgroshared.db.enums import CollectionType
-from dzgroshared.db.model import StartEndDate
 
 
-def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
-    hasdates = dates is not None
-    datesObj = dates.model_dump() if dates else None
-    return [
+def pipeline(marketplaceId: ObjectId):
+        return [
     {
         '$match': {
-            '_id': marketplace
+            '_id': marketplaceId
         }
-    },
-    {
+    }, {
+        '$replaceRoot': {
+            'newRoot': {
+                'marketplace': '$_id', 
+                'dates': '$dates'
+            }
+        }
+    }, {
+        '$lookup': {
+            'from': 'performance_periods', 
+            'localField': 'marketplace', 
+            'foreignField': 'marketplace', 
+            'as': 'tag'
+        }
+    }, {
         '$set': {
-            'dates': {
-                '$cond': {
-                    'if': hasdates,
-                    'then': datesObj,
-                    'else': "$dates"
+            'tag': {
+                '$let': {
+                    'vars': {
+                        'tags': {
+                            '$reduce': {
+                                'input': [
+                                    'Last 7 Days', 'Last 30 Days', 'This Month vs Last Month (Till Date)', 'This Month vs Last Month (Complete)'
+                                ], 
+                                'initialValue': [], 
+                                'in': {
+                                    '$concatArrays': [
+                                        '$$value', [
+                                            {
+                                                'tag': '$$this'
+                                            }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    }, 
+                    'in': {
+                        '$cond': {
+                            'if': {
+                                '$eq': [
+                                    {
+                                        '$size': '$tag'
+                                    }, 0
+                                ]
+                            }, 
+                            'then': '$$tags', 
+                            'else': '$tag'
+                        }
+                    }
                 }
             }
         }
-    },
-    {
-        '$lookup': {
-            'from': CollectionType.PERFORMANCE_PERIODS.value, 
-            'let': {
-                'marketplace': '$_id'
-            }, 
-            'pipeline': [
-                {
-                    '$match': { '$expr': {
-                                    '$eq': [
-                                        '$marketplace', '$$marketplace'
-                                    ]
-                                }
-                    }
-                }
-            ], 
-            'as': 'queries'
+    }, {
+        '$unwind': {
+            'path': '$tag'
         }
     }, {
-        '$unwind': '$queries'
+        '$replaceRoot': {
+            'newRoot': {
+                '$mergeObjects': [
+                    '$tag', {
+                        '$unsetField': {
+                            'input': '$$ROOT', 
+                            'field': 'tag'
+                        }
+                    }
+                ]
+            }
+        }
     }, {
-        '$project': {
-            "_id": "$queries._id",
-            'tag': '$queries.tag', 
-            'dates': '$dates', 
+        '$set': {
+            'createdat': {
+                '$cond': {
+                    'if': {
+                        '$in': [
+                            '$tag', [
+                                'Last 7 Days', 'Last 30 Days', 'This Month vs Last Month (Till Date)', 'This Month vs Last Month (Complete)'
+                            ]
+                        ]
+                    }, 
+                    'then': '$$NOW', 
+                    'else': '$createdat'
+                }
+            }
+        }
+    }, {
+        '$set': {
             'curr': {
                 '$switch': {
                     'branches': [
                         {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'Last 7 Days'
+                                    '$tag', 'Last 7 Days'
                                 ]
                             }, 
                             'then': {
@@ -70,7 +118,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'Last 30 Days'
+                                    '$tag', 'Last 30 Days'
                                 ]
                             }, 
                             'then': {
@@ -86,7 +134,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'This Month vs Last Month (Till Date)'
+                                    '$tag', 'This Month vs Last Month (Till Date)'
                                 ]
                             }, 
                             'then': {
@@ -101,7 +149,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'This Month vs Last Month (Complete)'
+                                    '$tag', 'This Month vs Last Month (Complete)'
                                 ]
                             }, 
                             'then': {
@@ -116,13 +164,13 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'Custom'
+                                    '$tag', 'Custom'
                                 ]
                             }, 
-                            'then': '$queries.curr'
+                            'then': '$curr'
                         }
                     ], 
-                    'default': '$dates'
+                    'default': '$curr'
                 }
             }, 
             'pre': {
@@ -131,7 +179,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'Last 7 Days'
+                                    '$tag', 'Last 7 Days'
                                 ]
                             }, 
                             'then': {
@@ -153,7 +201,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'Last 30 Days'
+                                    '$tag', 'Last 30 Days'
                                 ]
                             }, 
                             'then': {
@@ -175,7 +223,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'This Month vs Last Month (Till Date)'
+                                    '$tag', 'This Month vs Last Month (Till Date)'
                                 ]
                             }, 
                             'then': {
@@ -207,7 +255,7 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'This Month vs Last Month (Complete)'
+                                    '$tag', 'This Month vs Last Month (Complete)'
                                 ]
                             }, 
                             'then': {
@@ -239,46 +287,45 @@ def pipeline(marketplace:ObjectId, dates: StartEndDate|None=None):
                         }, {
                             'case': {
                                 '$eq': [
-                                    '$queries.tag', 'Custom'
+                                    '$tag', 'Custom'
                                 ]
                             }, 
-                            'then': '$queries.pre'
+                            'then': '$pre'
                         }
                     ], 
-                    'default': '$dates'
+                    'default': '$pre'
                 }
             }
         }
     }, {
-        '$set': {
-            'disabled': {
-                '$not': {
-                    '$and': [
-                        {
-                            '$gte': [
-                                '$curr.startdate', '$dates.startdate'
-                            ]
-                        }, {
-                            '$lte': [
-                                '$curr.enddate', '$dates.enddate'
-                            ]
-                        }, {
-                            '$gte': [
-                                '$pre.startdate', '$dates.startdate'
-                            ]
-                        }, {
-                            '$lte': [
-                                '$pre.enddate', '$dates.enddate'
-                            ]
-                        }
-                    ]
-                }
+        '$match': {
+            '$expr': {
+                '$and': [
+                    {
+                        '$gte': [
+                            '$curr.startdate', '$dates.startdate'
+                        ]
+                    }, {
+                        '$lte': [
+                            '$curr.enddate', '$dates.enddate'
+                        ]
+                    }, {
+                        '$gte': [
+                            '$pre.startdate', '$dates.startdate'
+                        ]
+                    }, {
+                        '$lte': [
+                            '$pre.enddate', '$dates.enddate'
+                        ]
+                    }
+                ]
             }
         }
-    },
-    {
-        "$project": {
-            "dates": 0
+    }, {
+        '$project': {
+            'dates': 0
         }
+    }, {
+        '$merge': CollectionType.PERFORMANCE_PERIODS
     }
 ]

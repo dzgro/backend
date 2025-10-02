@@ -48,7 +48,6 @@ def getPeriodPerformance(collatetype: CollateType, value: str|None):
     ]
 
 def pipeline(marketplace: ObjectId, req: PeriodDataRequest):
-    from dzgroshared.db.performance_periods.pipelines import GetPerformancePeriods
-    pipeline = GetPerformancePeriods.pipeline(marketplace)
+    pipeline = [{"$match": {"marketplace": marketplace}}]
     pipeline.extend(getPeriodPerformance(req.collatetype, req.value))
     return pipeline
