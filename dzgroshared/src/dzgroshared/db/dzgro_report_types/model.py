@@ -12,3 +12,6 @@ class DzgroReportSpecification(BaseModel):
 
 class DzgroReportSpecificationWithProjection(DzgroReportSpecification):
     projection: dict[str, str]
+    
+class AvailableReports(BaseModel):
+    data: list[DzgroReportSpecification]

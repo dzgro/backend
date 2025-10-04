@@ -17,7 +17,7 @@ class PerformancePeriodResultsHelper:
     
     async def getCount(self, body: ComparisonTableRequest):
         matchDict = {"queryid": body.queryId, "collatetype": body.collatetype.value}
-        if body.parentsku: matchDict.update({"parent": body.parentsku})
+        if body.parentsku: matchDict.update({"parentsku": body.parentsku})
         elif body.category: matchDict.update({"category": body.category})
         return {"count": await self.db.count(matchDict)}
     

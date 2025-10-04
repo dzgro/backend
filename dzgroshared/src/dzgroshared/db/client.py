@@ -166,6 +166,16 @@ class DbClient:
         return self.dailyReportItemHelper
 
     @property
+    def traffic(self):
+        if not self.client.uid or not self.client.marketplaceId:
+            raise ValueError("Marketplace and UID must be set to access traffic.")
+        from dzgroshared.db.traffic.controller import TrafficHelper
+        if self.trafficHelper:
+            return self.trafficHelper
+        self.trafficHelper = TrafficHelper(self.client)
+        return self.trafficHelper
+
+    @property
     def performance_periods(self):
         if not self.client.uid or not self.client.marketplaceId:
             raise ValueError("Marketplace and UID must be set to access performance periods.")

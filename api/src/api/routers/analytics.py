@@ -8,7 +8,7 @@ async def getAnalyticKeyGroups(request: Request):
     from dzgroshared.analytics import controller
     return controller.getAnalyticsGroups()
 
-@router.post('/', response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
+@router.post('', response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def createAnalytics(request: Request):
     client = await RequestHelper(request).client
     dates = (await client.db.marketplaces.getUserMarketplace(client.marketplace.id)).dates

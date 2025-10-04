@@ -1,35 +1,38 @@
 from api.decorators import cache_control, enforce_response_model
 from fastapi import APIRouter, Request
 router = APIRouter(prefix="/products", tags=["Products"])
-from dzgroshared.db.products.model import AsinView, Product, SkuView
+from dzgroshared.db.products.model import ProductView
 from api.Util import RequestHelper
 
 
 async def db(request: Request):
     return (await RequestHelper(request).client).db.products
 
-@router.get("/sku/{sku}", response_model=SkuView, response_model_exclude_none=True)
+@router.get("/sku/{sku}", response_model=ProductView, response_model_exclude_none=True)
 @cache_control()
-@enforce_response_model(SkuView)
+@enforce_response_model(ProductView)
 async def getSku(request: Request, sku:str):
     return await (await db(request)).getSku(sku)
 
-@router.get("/parentsku/{sku}", response_model=Product, response_model_exclude_none=True)
+@cache_control()
+@enforce_response_model(ProductView)
+@router.get("/parent/{sku}", response_model=ProductView, response_model_exclude_none=True)
 async def getParentSku(request: Request, sku:str):
     return await (await db(request)).getParentSku(sku)
 
-@router.post("/skus", response_model=list[Product], response_model_exclude_none=True)
+@router.post("/skus", response_model=list[ProductView], response_model_exclude_none=True)
 async def getSkus(request: Request, skus:list[str]):
     return await (await db(request)).getSkus(skus)
 
 
-@router.get("/asin/{asin}", response_model=AsinView, response_model_exclude_none=True)
+@router.get("/asin/{asin}", response_model=ProductView, response_model_exclude_none=True)
 @cache_control()
-@enforce_response_model(AsinView)
+@enforce_response_model(ProductView)
 async def getAsin(request: Request, asin:str):
     return await (await db(request)).getAsin(asin)
 
-@router.post("/asin", response_model=list[Product], response_model_exclude_none=True)
+@cache_control()
+@router.post("/asin", response_model=list[ProductView], response_model_exclude_none=True)
 async def getAsins(request: Request, asins:list[str]):
     return await (await db(request)).getAsins(asins)
 

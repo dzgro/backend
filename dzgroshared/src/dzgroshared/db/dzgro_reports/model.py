@@ -81,7 +81,6 @@ class DzgroReport(CreateDzgroReportRequest, ItemId):
         return self
     
 class ListDzgroReportsResponse(BaseModel):
-    reports: list[DzgroReport]
-    count: int
+    data: list[DzgroReport]
 
 

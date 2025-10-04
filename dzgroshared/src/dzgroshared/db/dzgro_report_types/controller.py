@@ -13,14 +13,12 @@ class DzgroReportTypesHelper:
     def __init__(self, client: DzgroSharedClient) -> None:
         self.client = client
         self.db = DbManager(client.db.database.get_collection(CollectionType.DZGRO_REPORT_TYPES))
-
+    
     async def getReportTypes(self):
         reports = await self.db.find(sort=Sort(field="index", order=1), projectionExc=['projection'])
-        return reports
-
-    async def getReportType(self, reporttype: DzgroReportType):
-        return DzgroReportSpecificationWithProjection(**await self.db.findOne({ '_id': reporttype }))
-
+        return {"data": reports}
+    
+    
     async def getProjection(self, reportType: DzgroReportType, collatetype: CollateType|None=None):
         projections = (await self.getReportType(reportType)).projection
         if reportType in [DzgroReportType.KEY_METRICS] and collatetype==CollateType.SKU:
@@ -31,3 +29,6 @@ class DzgroReportTypesHelper:
     
     async def getSampleReportHeaders(self, reportType: DzgroReportType, collatetype: CollateType|None=None):
         return list((await self.getProjection(reportType, collatetype)).keys())
+
+    async def getReportType(self, reporttype: DzgroReportType):
+        return DzgroReportSpecificationWithProjection(**await self.db.findOne({ '_id': reporttype }))

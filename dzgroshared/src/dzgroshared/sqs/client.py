@@ -99,8 +99,7 @@ class SqsHelper:
         return res
     
     def getSQSEventByMessage(self, message: str, body: BaseModel):
-        return {
-            "Records": [
+        records = [
                 {
                     "messageId": message,
                     "receiptHandle": 'rec123',
@@ -109,7 +108,7 @@ class SqsHelper:
                     "messageAttributes": {}
                 }
             ]
-        }
+        return SQSEvent(Records = [SQSRecord.model_validate(record) for record in records])
 
     @catch_sqs_exceptions
     async def deleteMessage(self, queue: QueueName, receipt_handle: str) -> None:

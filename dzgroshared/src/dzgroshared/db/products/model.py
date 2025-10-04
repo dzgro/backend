@@ -67,25 +67,18 @@ class PerformanceneResultAsin(Asin, VariationTheme, ProductCategory, Parent):
 
 class PerformanceneResultSku(Sku, VariationTheme, ProductCategory, Parent):
     image: HttpUrl|SkipJsonSchema[None] = None
-
-class AsinView(Asin, VariationTheme, ProductCategory, Parent):
-    images: list[HttpUrl]|SkipJsonSchema[None] = None
-    title: str
+    
+class ProductView(Asin, VariationDetails, VariationTheme, Parent, ProductCategory):
+    sku: str|SkipJsonSchema[None]=None
+    images: list[HttpUrl] = []
     lastUpdatedDate: datetime|SkipJsonSchema[None]=None
-
-class SkuView(AsinView):
-    sku: str
-
+    title: str
+    children: AsinChildren|SkipJsonSchema[None]=None
+    
     @property
     def keys(self):
         return list(type(self).model_fields.keys())
-
-class ParentView(Asin, VariationDetails):
-    children: AsinChildren
-
-class CategoryView(ProductCategory):
-    children: AsinChildren
-
+    
     
 class Product(Sku, ProductCategory, VariationTheme, VariationDetails):
     fulfillment: str|SkipJsonSchema[None]=None

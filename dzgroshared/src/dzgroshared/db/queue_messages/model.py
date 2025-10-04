@@ -15,13 +15,15 @@ class MessageIndexOptional(BaseModel):
 class MessageIndex(BaseModel):
     index: str
 
-class AmazoMarketplaceDailyReportQM(MessageIndexOptional, MarketplaceObjectId):
+class AmazoMarketplaceDailyReportQM(MessageIndexOptional):
     uid:str
+    marketplace: ObjectId
     step: AmazonDailyReportAggregationStep
     date: datetime|SkipJsonSchema[None]=None
 
-class DzgroReportQM(MessageIndex, MarketplaceObjectId):
+class DzgroReportQM(MessageIndex):
     uid:str
+    marketplace: ObjectId
     reporttype: DzgroReportType
 
 class DailyReportByCountryQM(BaseModel):
