@@ -1,5 +1,5 @@
 from enum import Enum
-from dzgroshared.db.model import MarketplaceObjectId, PyObjectId
+from dzgroshared.db.model import PyObjectId
 from dzgroshared.functions.RazorpayWebhookProcessor.models import InvoiceExpiredQM, InvoicePaidQM, OrderPaidQM
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -13,18 +13,19 @@ class MessageIndexOptional(BaseModel):
     index: str|SkipJsonSchema[None]=None
 
 class MessageIndex(BaseModel):
-    index: str
+    index: PyObjectId
 
 class AmazoMarketplaceDailyReportQM(MessageIndexOptional):
     uid:str
-    marketplace: ObjectId
+    marketplace: PyObjectId
     step: AmazonDailyReportAggregationStep
     date: datetime|SkipJsonSchema[None]=None
 
 class DzgroReportQM(MessageIndex):
     uid:str
-    marketplace: ObjectId
+    marketplace: PyObjectId
     reporttype: DzgroReportType
+
 
 class DailyReportByCountryQM(BaseModel):
     index: CountryCode

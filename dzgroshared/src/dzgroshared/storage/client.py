@@ -13,16 +13,16 @@ def s3_exception_handler(func):
         try:
             return func(*args, **kwargs)
         except NoCredentialsError as e:
-            details.append(ErrorDetail(message="AWS credentials not found. Please configure them.", code="NoCredentialsError"))
+            details.append(ErrorDetail(message="AWS credentials not found. Please configure them.", code=400))
         except EndpointConnectionError as e:
-            details.append(ErrorDetail(message=f"Could not connect to the endpoint", code="EndpointConnectionError"))
+            details.append(ErrorDetail(message=f"Could not connect to the endpoint", code=400))
         except ClientError as e:
             error = e.response.get("Error", {})
             code = error.get("Code", "UnknownClientError")
             message = error.get("Message", str(e))
             details.append(ErrorDetail(message=message, code=code))
         except Exception as e:
-            details.append(ErrorDetail(message=str(e), code="UnknownError"))
+            details.append(ErrorDetail(message=str(e), code=400))
         if details: raise DzgroError(errors=ErrorList(errors = details))
     return wrapper
 

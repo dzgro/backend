@@ -40,7 +40,7 @@ def main():
     askSelection = False
     deployAllRegions = False
     regions = mapping.Region.all() if deployAllRegions else [mapping.Region.DEFAULT]
-    env = ENVIRONMENT.DEV if not askSelection else askForSelection()
+    env = ENVIRONMENT.DEV
     docker_started = False
     
     try:

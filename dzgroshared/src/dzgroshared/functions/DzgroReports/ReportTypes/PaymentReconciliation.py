@@ -20,9 +20,8 @@ class PaymentReconReportCreator:
 
     async def execute(self):
         orders = self.client.db.orders
-        timezone = (await self.client.db.marketplaces.getCountryBidsByMarketplace(self.client.marketplace)).timezone
+        timezone = (await self.client.db.marketplaces.getCountryBidsByMarketplace(self.client.marketplace.id)).timezone
         pipeline = self.pipeline(orders.db.pp, timezone)
-        print(pipeline)
         await orders.db.aggregate(pipeline)
 
     def pipeline(self, pp: PipelineProcessor, timezone: str):
@@ -61,5 +60,4 @@ class PaymentReconReportCreator:
         pipeline.extend([lookupOrderItems, lookupSettlements, setProducts, projectProjects, unwindProducts, setNewRoot, roundAllDouble, setPrice])
         if self.reporttype == DzgroReportType.PRODUCT_PAYMENT_RECON: pipeline.append(filteroutNull)
         pipeline.extend([setProceeds, sortByDate, merge])
-        print(pipeline)
         return pipeline

@@ -21,22 +21,23 @@ class DzgroReportHelper:
 
     async def createReport(self, request: CreateDzgroReportRequest):
         try:
+            message_id = None
             id = await self.db.insertOne(request.model_dump(exclude_none=True))
-            reportId = str(id)
             from dzgroshared.db.queue_messages.model import DzgroReportQM
-            message = DzgroReportQM(uid=self.client.uid, marketplace=self.client.marketplaceId, index=reportId, reporttype=request.reporttype)
+            message = DzgroReportQM(uid=self.client.uid, marketplace=PyObjectId(self.client.marketplaceId), index=id, reporttype=request.reporttype)
             req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
             message_id = await self.client.sqs.sendMessage(req, message)
-            await self.addMessageId(reportId,message_id)
+            await self.addMessageId(id,message_id)
             if self.client.env in ENVIRONMENT.LOCAL:
                 message = await self.client.db.sqs_messages.getMessage(message_id)
                 sqsEvent = self.client.sqs.getSQSEventByMessage(message_id, message)
                 from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor
                 await DzgroReportProcessor(self.client).execute(sqsEvent.Records[0])
-            return await self.getReport(reportId)
+            return await self.getReport(id)
         except Exception as e:
-            if not message_id: await self.client.db.dzgro_reports.deleteReport(reportId)
-            else: await self.client.db.dzgro_reports.addError(reportId, str(e))
+            if not message_id: 
+                if id: await self.client.db.dzgro_reports.deleteReport(id)
+            else: await self.client.db.dzgro_reports.addError(id, str(e))
             raise e
 
     async def listReports(self, paginator: Paginator):

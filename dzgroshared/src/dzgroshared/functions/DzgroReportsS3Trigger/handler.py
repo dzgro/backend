@@ -4,8 +4,7 @@ from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.dzgro_reports.model import DzgroReport, DzgroReportType
 from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerObject, S3TriggerType, S3FileType
-from dzgroshared.db.enums import S3Bucket
-from dzgroshared.storage.model import S3GetObjectModel, S3PutObjectModel
+from dzgroshared.storage.model import S3Bucket, S3GetObjectModel, S3PutObjectModel
 
 class DzgroReportS3TriggerProcessor:
     client: DzgroSharedClient
@@ -24,7 +23,7 @@ class DzgroReportS3TriggerProcessor:
             try:
                 self.model = S3TriggerObject(**record)
                 self.client.setUid(self.model.uid)
-                self.client.setMarketplace(ObjectId(self.model.marketplace))
+                self.client.setMarketplaceId(self.model.marketplace)
                 self.reportType = DzgroReportType[self.model.reporttype]
                 self.prefix = f"{self.model.uid}/{self.model.marketplace}/{self.model.reporttype}/{self.model.reportid}/"
                 if data is not None: 

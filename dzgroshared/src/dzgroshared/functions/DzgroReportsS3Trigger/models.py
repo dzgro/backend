@@ -1,5 +1,5 @@
 from enum import Enum
-from dzgroshared.db.enums import S3Bucket
+from dzgroshared.db.model import PyObjectId
 from pydantic import BaseModel, model_validator
 
 class S3FileType(str, Enum):
@@ -36,7 +36,7 @@ class S3TriggerDetails(BaseModel):
 
 class S3TriggerObject(BaseModel):
     uid: str
-    marketplace: str
+    marketplace: PyObjectId
     reporttype: str
     reportid: str
     eventName: str
@@ -49,4 +49,5 @@ class S3TriggerObject(BaseModel):
         splitted = tuple(data['s3']['object']['key'].split('/'))
         if len(splitted)!=5: raise ValueError("Invalid File Name")
         data['uid'],data['marketplace'],data['reporttype'],data['reportid'],filename = splitted
+        data['marketplace']=PyObjectId(data['marketplace'])
         return data
