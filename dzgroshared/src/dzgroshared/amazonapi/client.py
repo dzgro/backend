@@ -23,7 +23,7 @@ class BaseClient(Generic[ResponseT]):
     async def _get_headers(self, operation: str = "") -> Dict[str, str]:
         access_token = await self.auth_client.access_token
         if not access_token:
-            error = ErrorList(errors=[ErrorDetail(code="400", message="No access token available", details=None)])
+            error = ErrorList(errors=[ErrorDetail(code=400, message="No access token available", details=None)])
             raise DzgroError(error)
         headers = {
             "Content-Type": "application/json",
@@ -66,5 +66,5 @@ class BaseClient(Generic[ResponseT]):
                 obj = response.json()
                 error = ErrorList.model_validate(obj)
             except ValidationError:
-                error = ErrorList(errors=[ErrorDetail(code=str(response.status_code), message=str(e), details=str(response.text))])
+                error = ErrorList(errors=[ErrorDetail(code=response.status_code, message=str(e), details=str(response.text))])
             raise DzgroError(error)

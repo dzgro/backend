@@ -8,6 +8,6 @@ def copy(data):
         if env==ENVIRONMENT.LOCAL:
             import subprocess
             subprocess.run("clip", text=True, input=data)
-        print(f"/* Pipeline Copies to Clipboard */")
+        print(f"/* Pipeline Copied to Clipboard */")
     except Exception as e:
-        print(f"/* Failed to copy pipeline: {e} */")
+        pass

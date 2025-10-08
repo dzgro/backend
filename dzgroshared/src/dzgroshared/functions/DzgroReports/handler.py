@@ -1,10 +1,8 @@
-from bson import ObjectId
 from dzgroshared.db.dzgro_reports.model import DzgroReport, DzgroReportType
 from dzgroshared.db.enums import ENVIRONMENT, CollateType
-from dzgroshared.sqs.model import SQSEvent, SQSRecord
+from dzgroshared.sqs.model import SQSRecord
 from dzgroshared.db.queue_messages.model import DzgroReportQM
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.sqs.model import SQSEvent
 from dzgroshared.storage.model import S3Bucket
 
 class DzgroReportProcessor:
@@ -30,16 +28,15 @@ class DzgroReportProcessor:
                 try:
                     self.filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/{self.report.reporttype.value.replace(' ','_')}'
                     count = await self.getCount()
-                    if count==0: 
-                        return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
-                    elif count<12000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere()
+                    if count==0: return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
+                    # elif count<12000 or self.client.env==ENVIRONMENT.LOCAL: await self.executeHere()
                     else: await self.runFedQuery()
                     await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
                     await self.client.db.dzgro_reports_data.deleteReportData(self.report.id)
                 except Exception as e:
                     await self.setError(e)
-            except Exception as e: print(f"[WARNING] Message {self.messageid} is already being processed")
-        else: print(f"[WARNING] Message {self.messageid} is not for this report")
+            except Exception as e:
+                pass
 
     def __getattr__(self, item):
         return None
@@ -95,14 +92,17 @@ class DzgroReportProcessor:
 
     async def executeHere(self):
         projections = await self.getProjections()
-        data = await self.client.db.dzgro_reports_data.db.aggregate(self.getPipeline(projections))
+        pipeline = self.getPipeline(projections)
+        data = await self.client.db.dzgro_reports_data.db.aggregate(pipeline)
         await self.triggerLocal(data)
         
     async def triggerLocal(self, data: list[dict]|None=None):
         bucket = self.client.storage.getBucketName(bucket=S3Bucket.DZGRO_REPORTS)
         key = f"{self.filename}.csv"
-        triggerObj = {"eventName": "ObjectCreated:Put", "s3": {"bucket": {"name": bucket, "arn": ""}, "object": {"key": key, "size": 0}}}
+        triggerDict = {"eventName": "ObjectCreated:Put", "s3": {"bucket": {"name": bucket, "arn": ""}, "object": {"key": key, "size": 0}}}
+        triggerObj = self.client.storage.getS3TriggerObject(triggerDict)
+        print(triggerObj)
         from dzgroshared.functions.DzgroReportsS3Trigger.handler import DzgroReportS3TriggerProcessor
-        await DzgroReportS3TriggerProcessor(self.client).execute(self.client.storage.getS3TriggerObject(triggerObj), data)
+        await DzgroReportS3TriggerProcessor(self.client).execute(triggerObj, data)
 
     

@@ -9,7 +9,7 @@ from dzgroshared.db.enums import ENVIRONMENT
 from dzgroshared.db.queue_messages.model import QueueMessageModelType
 from dzgroshared.sqs.model import QueueName
 from dzgroshared.storage.model import S3Bucket
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 class Tag(BaseModel):
@@ -22,6 +22,7 @@ class LAYER_NAME(str, Enum):
     DZGRO_SHARED = "DzgroSharedLayer"
     PYMONGO = "PymongoLayer"
     INVOICE_GENERATOR = "InvoiceGeneratorLayer"
+    PANDAS = "PandasLayer"
 
 LAYER_DEPENDENCIES = {
     LAYER_NAME.PYMONGO: ["pymongo==4.15.0"],
@@ -29,7 +30,11 @@ LAYER_DEPENDENCIES = {
         "num2words==0.5.14",
         "reportlab==4.4.3"
     ],
-    LAYER_NAME.MANGUM: ["mangum==0.19.0"]
+    LAYER_NAME.MANGUM: ["mangum==0.19.0"],
+    LAYER_NAME.PANDAS: [
+        "pandas==2.3.3",
+        "openpyxl==3.1.5"
+    ]
 }
 
 class LambdaName(str, Enum):
@@ -114,6 +119,10 @@ class S3Method(str, Enum):
     POST = "POST"
     DELETE = "DELETE"
     HEAD = "HEAD"
+    
+    @classmethod
+    def all(cls):
+        return list(cls)
 
 class S3CorsRule(BaseModel):
     methods: list[S3Method]
@@ -124,6 +133,12 @@ class S3Property(BaseModel):
     trigger: S3TriggerEvent|SkipJsonSchema[None]=None
     lifeCycleConfiguration: S3LifeCycleRule|SkipJsonSchema[None]=None
     cors: S3CorsRule|SkipJsonSchema[None]=None
+    
+    @model_validator(mode="after")
+    def validate_lifecycle_and_cors(self):
+        if self.name==S3Bucket.DZGRO_REPORTS and not self.cors:
+            self.cors = S3CorsRule(methods=[S3Method.GET])
+        return self
 
 class LambdaRegion(BaseModel):
     region: Region
@@ -232,7 +247,9 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.QueueModelMessageProcessor,
-        layers = [LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.DZGRO_SHARED],
+        memorySize=1024,
+        timeout=900,
+        layers = [LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
@@ -274,13 +291,15 @@ LAMBDAS = [
                 ]
             )
                 ],
-                s3=[S3Property(name=S3Bucket.AMAZON_REPORTS, roles=S3Role.all())]
+                s3=[S3Property(name=name, roles=S3Role.all()) for name in S3Bucket.all()]
             )
         ]
     ),
     LambdaProperty(
         name=LambdaName.DzgroReportsS3Trigger,
-        layers = [LAYER_NAME.DZGRO_SHARED],
+        memorySize=1024,
+        timeout=900,
+        layers = [LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,

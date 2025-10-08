@@ -18,7 +18,7 @@ def s3_exception_handler(func):
             details.append(ErrorDetail(message=f"Could not connect to the endpoint", code=400))
         except ClientError as e:
             error = e.response.get("Error", {})
-            code = error.get("Code", "UnknownClientError")
+            code = 400
             message = error.get("Message", str(e))
             details.append(ErrorDetail(message=message, code=code))
         except Exception as e:

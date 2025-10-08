@@ -62,11 +62,11 @@ class LambdasBucketsQueuesBuilder:
             if s3.lifeCycleConfiguration:
                 properties['LifecycleConfiguration'] = s3.lifeCycleConfiguration.model_dump(mode="json")
             if s3.cors:
-                origins = ["https://localhost:4200"]
-                if self.builder.env == ENVIRONMENT.PROD: origins = ["https://dzgro.com"]
+                if self.builder.env==ENVIRONMENT.LOCAL: origins = ["https://localhost:4200"]
+                else: origins = [self.builder.envDomain()]
                 properties['CorsConfiguration'] = {
-                    "CORSRules": [
-                        { "AllowedOrigins": origins, "AllowedMethods": s3.cors.methods, "AllowedHeaders": [], "ExposeHeaders": [], "MaxAgeSeconds": 3000 }
+                    "CorsRules": [
+                        { "AllowedOrigins": origins, "AllowedMethods": [m.value for m in s3.cors.methods], "AllowedHeaders": ["*"], "MaxAge": 3000 }
                     ]
                 }
             self.builder.resources[resource_name] = {
@@ -202,12 +202,12 @@ class LambdasBucketsQueuesBuilder:
                         { 
                             "Effect": "Allow",
                             "Action": [x.value for x in [S3Role.GetObject, S3Role.PutObject, S3Role.DeleteObject]], 
-                            "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}"} for k,v in bucketnames.items()] 
+                            "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}/*"} for k,v in bucketnames.items()] 
                         },
                         { 
                             "Effect": "Allow",
-                            "Action": [x.value for x in [S3Role.GetObject, S3Role.PutObject]], 
-                            "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}/*"} for k,v in bucketnames.items()] 
+                            "Action": [x.value for x in [S3Role.ListBucket]], 
+                            "Resource": [ {"Fn::Sub": f"arn:aws:s3:::{k}"} for k,v in bucketnames.items()] 
                         }
                         
                     ]

@@ -17,16 +17,16 @@ class InventoryPlannerReport:
         self.req = req
 
     async def execute(self):
-        pipeline = await self.pipeline(self.client.db.query_results.db.pp)
+        pipeline = await self.pipeline(self.client.db.performance_period_results.db.pp)
         await self.client.db.date_analytics.db.aggregate(pipeline)
     
     
     async def pipeline(self, pp: PipelineProcessor):
         if not self.req.dayCount: raise ValueError("Day count is required")
         if self.req.configuration==DzgroInventoryPlanningRequestConfiguration.DAYS and self.req.days:
-            marketplace = await self.client.db.marketplaces.getMarketplace(self.client.marketplace)
-            if not marketplace.enddate: raise ValueError("Marketplace end date is required")
-            self.req.dates = DzgroReportDates(startDate=date_util.subtract(marketplace.enddate, self.req.days), endDate=marketplace.enddate)
+            marketplace = await self.client.db.marketplaces.getMarketplace(self.client.marketplaceId)
+            if not marketplace.dates: raise ValueError("Marketplace end date is required")
+            self.req.dates = DzgroReportDates(startDate=date_util.subtract(marketplace.dates.enddate, self.req.days), endDate=marketplace.dates.enddate)
         if not self.req.dates: raise ValueError("Invalid date range")
         dates = pp.getDatesBetweenTwoDates(self.req.dates.startDate, self.req.dates.endDate)
         matchstage = pp.matchAllExpressions([LookUpPipelineMatchExpression(key='date', value=dates, operator=Operator.IN), LookUpPipelineMatchExpression(key='collatetype', value='sku')])

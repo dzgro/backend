@@ -29,7 +29,7 @@ class SecretManager:
         username = quote_plus(MONGO_USER)
         password = quote_plus(secrets['MONGO_PASSWORD'])
         dbname = f'dzgro-{env.value}' if env!=ENVIRONMENT.LOCAL else f'dzgro-{ENVIRONMENT.DEV.value}'
-        uri = f"mongodb+srv://{username}:{password}@{secrets['MONGO_CLUSTER_URL']}/{dbname}?retryWrites=true&w=majority&appName=BluMonkey"
+        uri = f"mongodb+srv://{username}:{password}@{secrets['MONGO_CLUSTER_URL']}/{dbname}?retryWrites=true&w=majority&appName=dzgro"
         return uri
 
     def build_fed_uri(self, env: ENVIRONMENT, secrets: dict):
@@ -38,7 +38,7 @@ class SecretManager:
         username = quote_plus(MONGO_USER)
         password = quote_plus(secrets['MONGO_PASSWORD'])
         dbname = f'dzgro-{env.value}' if env!=ENVIRONMENT.LOCAL else f'dzgro-{ENVIRONMENT.DEV.value}'
-        uri = f"mongodb://{username}:{password}@{secrets['MONGO_FED_URL']}/{dbname}?ssl=true&authSource=admin&&appName=fed"
+        uri = f"mongodb://{username}:{password}@{secrets['MONGO_FED_URL']}/{dbname}?retryWrites=true&w=majority&ssl=true&authSource=admin&appName=fed-dzgro"
         uri = uri.replace('fed', f'fed-{env.value}')
         return uri
 

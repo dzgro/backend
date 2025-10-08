@@ -60,7 +60,10 @@ class TemplateBuilder:
                             print(f"Bucket {bucket} created")
                         except Exception as e: print(f"Error creating bucket {bucket}: {e}")
                 else:
+                    from deploy.TemplateBuilder.SamExecutor import SAMExecutor
+                    sam = SAMExecutor(self)
                     if region==Region.DEFAULT:
+                        sam.check_stack_status(region)
                         cognitoCertificateArn = self.getWildCardCertificateArn('Auth')
                         apiCertificateArn = self.getWildCardCertificateArn('Api')
                         from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
@@ -73,8 +76,7 @@ class TemplateBuilder:
                         CognitoBuilder(self).execute()
                     from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
                     LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
-                    from deploy.TemplateBuilder.SamExecutor import SAMExecutor
-                    SAMExecutor(self).execute(region)
+                    sam.execute(region)
                     if region==Region.DEFAULT: self.createUserPoolDomain(region, cognitoCertificateArn)
             except Exception as e:
                 print(f"Error occurred while building SAM template for region {region.value}: {e}")

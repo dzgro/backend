@@ -9,9 +9,6 @@
       "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/api-v2GU_GZ9-py3.12/Scripts/python.exe",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}/api",
-      "env": {
-        "ENV": "local"
-      },
       "jinja": true,
       "justMyCode": false
     },

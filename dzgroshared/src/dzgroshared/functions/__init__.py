@@ -6,12 +6,14 @@ class FunctionClient:
     client: DzgroSharedClient
     event: dict
     context: LambdaContext
-    record: SQSRecord|None
+    record: SQSRecord
 
-    def __init__(self, client: DzgroSharedClient, event: dict, context: LambdaContext, record: SQSRecord|None=None) -> None:
+    def __init__(self, client: DzgroSharedClient, event: dict, context: LambdaContext) -> None:
         self.client = client
         self.event = event
         self.context = context
+        
+    def setRecord(self, record: SQSRecord):
         self.record = record
 
     

@@ -24,7 +24,7 @@ class SqsHelper:
         return self.sqsclient
     
     def getQueueUrl(self, queue: QueueName) -> str:
-        return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.env.value}Q"
+        return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.env.value.title()}Q"
     
     def mockSQSEvent(self, messageId: str, body: dict|str):
         import json
@@ -44,7 +44,7 @@ class SqsHelper:
             payload.MessageAttributes.update({"model":SendMessageAttribute(StringValue=MessageBody.__class__.__name__, DataType=MessageAttributeDataType.STRING)})
             if payload.MessageAttributes: 
                 send_args["MessageAttributes"] = { 
-                    key: attr.model_dump(exclude_none=True)
+                    key: attr.model_dump(mode="json", exclude_none=True)
                     for key, attr in payload.MessageAttributes.items() 
                 }
             

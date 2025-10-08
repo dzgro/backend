@@ -20,8 +20,9 @@ class PaymentReconReportCreator:
 
     async def execute(self):
         orders = self.client.db.orders
-        timezone = (await self.client.db.marketplaces.getCountryBidsByMarketplace(self.client.marketplace.id)).timezone
+        timezone = (await self.client.db.marketplaces.getCountryBidsByMarketplace(self.client.marketplaceId)).timezone
         pipeline = self.pipeline(orders.db.pp, timezone)
+        print(pipeline)
         await orders.db.aggregate(pipeline)
 
     def pipeline(self, pp: PipelineProcessor, timezone: str):

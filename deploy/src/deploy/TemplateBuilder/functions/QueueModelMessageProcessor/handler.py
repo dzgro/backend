@@ -1,5 +1,5 @@
 import os, asyncio
-
+all_vars = dict(os.environ)
 from dzgroshared.db.queue_messages.model import QueueMessageModelType
 client=None
 
@@ -7,8 +7,10 @@ def getClient():
     global client
     from dzgroshared.db.enums import ENVIRONMENT
     ENV = ENVIRONMENT(os.environ.get("ENV"))
+    from dzgroshared.secrets.model import DzgroSecrets
     from dzgroshared.client import DzgroSharedClient
     client = DzgroSharedClient(ENV)
+    client.setSecretsClient(DzgroSecrets.model_validate(all_vars))
     return client
 
 
@@ -25,20 +27,18 @@ async def execute(event: dict, context):
     client = getClient()
     try:
         parsed = SQSEvent.model_validate(event)
+        fn = client.functions(event, context)
         for record in parsed.Records:
+            fn.setRecord(record)
             try:
                 if record.model==QueueMessageModelType.COUNTRY_REPORT:
-                    await client.functions(event, context).daily_report_refresh
+                    await fn.daily_report_refresh
                 elif record.model==QueueMessageModelType.DZGRO_REPORT:
-                    await client.functions(event, context).dzgro_reports
+                    await fn.dzgro_reports
                 elif record.model==QueueMessageModelType.AMAZON_DAILY_REPORT:
-                    await client.functions(event, context).amazon_daily_report
-                elif record.model==QueueMessageModelType.ORDER_PAID:
-                    await client.functions(event, context).razorpay_webhook_processor
-                elif record.model==QueueMessageModelType.INVOICE_PAID:
-                    await client.functions(event, context).razorpay_webhook_processor
-                elif record.model==QueueMessageModelType.INVOICE_EXPIRED:
-                    await client.functions(event, context).razorpay_webhook_processor
+                    await fn.amazon_daily_report
+                elif record.model in [QueueMessageModelType.ORDER_PAID, QueueMessageModelType.INVOICE_PAID, QueueMessageModelType.INVOICE_EXPIRED]:
+                    await fn.razorpay_webhook_processor
             except Exception as e:
                 await client.db.sqs_messages.setMessageAsFailed(record.messageId, str(e))
     except Exception as e:

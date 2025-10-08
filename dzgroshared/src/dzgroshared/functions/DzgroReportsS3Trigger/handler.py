@@ -1,10 +1,9 @@
 from io import BytesIO, StringIO
-import pandas as pd
-from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.dzgro_reports.model import DzgroReport, DzgroReportType
 from dzgroshared.functions.DzgroReportsS3Trigger.models import S3TriggerObject, S3TriggerType, S3FileType
 from dzgroshared.storage.model import S3Bucket, S3GetObjectModel, S3PutObjectModel
+import pandas as pd
 
 class DzgroReportS3TriggerProcessor:
     client: DzgroSharedClient
@@ -33,7 +32,8 @@ class DzgroReportS3TriggerProcessor:
                     self.report = await self.client.db.dzgro_reports.getReport(self.model.reportid)
                     await self.collate()
             except Exception as e:
-                print(e)
+                error = e.args[0] if e.args else str(e)
+                await self.client.db.dzgro_reports.addError(self.model.reportid, error)
 
     async def collate(self):
         resp = self.client.storage.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)
@@ -60,6 +60,7 @@ class DzgroReportS3TriggerProcessor:
         with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
             df.to_excel(writer, index=False)
         final_key = f'{self.prefix}{self.reportType.value}.xlsx'
+        print(final_key)
         req = S3PutObjectModel(Bucket=self.bucket, Key=final_key, ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         self.client.s3.put_object(req, Body=output_buffer.getvalue())
         await self.client.db.dzgro_reports.addKey(self.model.reportid, final_key)

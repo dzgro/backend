@@ -18,6 +18,7 @@ class DzgroSharedClient:
     marketplace: MarketplaceCache
     marketplaceId: ObjectId
     mongoClient: AsyncIOMotorClient
+    mongoFedClient: AsyncIOMotorClient
     secretsClient: DzgroSecrets
 
     def __init__(self, env: ENVIRONMENT):
@@ -49,6 +50,9 @@ class DzgroSharedClient:
 
     def setMongoClient(self, mongoClient: AsyncIOMotorClient):
         self.mongoClient = mongoClient
+
+    def setFedClient(self, mongoFedClient: AsyncIOMotorClient):
+        self.mongoFedClient = mongoFedClient
 
     @property
     def secrets(self):
@@ -89,6 +93,13 @@ class DzgroSharedClient:
     @property
     def fedDb(self):
         if self.fedDbClient: return self.fedDbClient
+        if not self.mongoFedClient:
+            try:
+                print("Connecting to Fed MongoDB...")
+                self.mongoFedClient = AsyncIOMotorClient(self.secrets.MONGO_DB_FED_CONNECT_URI)
+            except Exception as e:
+                print(f"Error connecting to Fed MongoDB: {e}")
+                raise e
         from dzgroshared.fed_db.client import FedDbClient
         self.fedDbClient = FedDbClient(self)
         return self.fedDbClient

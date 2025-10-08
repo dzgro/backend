@@ -13,7 +13,6 @@ from dzgroshared.db.enums import AmazonDailyReportAggregationStep, AmazonReportT
 from dzgroshared.db.daily_report_group.model import AmazonParentReport
 from dzgroshared.db.daily_report_item.model import AmazonAdReport, AmazonDataKioskReport, AmazonExportReport, AmazonSpapiReport
 from dzgroshared.sqs.model import SendMessageRequest
-from pandas import date_range
 
 class AmazonReportManager:
     client: DzgroSharedClient

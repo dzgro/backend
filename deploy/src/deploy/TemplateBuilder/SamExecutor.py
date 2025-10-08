@@ -24,6 +24,59 @@ class SAMExecutor:
         """Get the name of the cached SAM template"""
         return f'dzgro-sam-{self.builder.envtextlower}'
 
+    def check_stack_status(self, region: Region) -> None:
+        """Check if CloudFormation stack is in a valid state for deployment"""
+        import boto3
+        from botocore.exceptions import ClientError
+
+        stack_name = self.get_template_name()
+        cfn = boto3.client('cloudformation', region_name=region.value)
+
+        try:
+            response = cfn.describe_stacks(StackName=stack_name)
+            stack_status = response['Stacks'][0]['StackStatus']
+
+            # Statuses that are OK for deployment
+            deployable_statuses = [
+                'CREATE_COMPLETE',
+                'UPDATE_COMPLETE',
+                'UPDATE_ROLLBACK_COMPLETE',
+                'ROLLBACK_COMPLETE'
+            ]
+
+            # Statuses that indicate stack is in transition
+            in_progress_statuses = [
+                'CREATE_IN_PROGRESS',
+                'UPDATE_IN_PROGRESS',
+                'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_ROLLBACK_IN_PROGRESS',
+                'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+                'DELETE_IN_PROGRESS',
+                'REVIEW_IN_PROGRESS'
+            ]
+
+            # Failed statuses
+            failed_statuses = [
+                'CREATE_FAILED',
+                'DELETE_FAILED',
+                'UPDATE_FAILED'
+            ]
+
+            if stack_status in deployable_statuses:
+                print(f"✅ Stack {stack_name} is in {stack_status} state - ready for deployment")
+            elif stack_status in in_progress_statuses:
+                raise Exception(f"❌ Stack {stack_name} is in {stack_status} state. Wait for current operation to complete before deploying.")
+            elif stack_status in failed_statuses:
+                raise Exception(f"❌ Stack {stack_name} is in {stack_status} state. Manual intervention required before deploying.")
+            else:
+                raise Exception(f"❌ Stack {stack_name} is in unexpected state: {stack_status}")
+
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ValidationError' and 'does not exist' in str(e):
+                print(f"ℹ️  Stack {stack_name} does not exist - will create new stack")
+            else:
+                raise Exception(f"❌ Error checking stack status: {str(e)}")
+
     def get_template_path(self) -> str:
         """Get the path to the cached SAM template"""
         name = self.get_template_name()
@@ -87,6 +140,9 @@ class SAMExecutor:
         template_file = self.get_template_path()
         name = self.get_template_name()
         built_template_file = os.path.join(template_builder_root, '.aws-sam', 'build', 'template.yaml')
+
+        # Check CloudFormation stack status before proceeding
+        self.check_stack_status(region)
 
         # Check if bucket exists in the region, create if not
         import boto3

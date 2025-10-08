@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from bson import ObjectId
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.db.DataTransformer import Datatransformer
 from dzgroshared.db.dzgro_reports.model import KeyMetricsRequest, DzgroReport
 from dzgroshared.db.enums import DzgroReportType, DzroReportPaymentReconSettlementRangeType, Operator,CollectionType
 from dzgroshared.db.PipelineProcessor import LookUpLetExpression, LookUpPipelineMatchExpression, PipelineProcessor
@@ -35,6 +34,4 @@ class KeyMetricsReportCreator:
         replaceRoot = pp.replaceRoot(pp.mergeObjects([ '$data', { 'value': '$_id', 'collatetype': self.options.collatetype.value, 'startdate': self.options.dates.startDate, 'enddate': self.options.dates.endDate, 'reportid': self.reportId } ]))
         merge= pp.merge(CollectionType.DZGRO_REPORT_DATA)
         pipeline.extend([dt.addMissingKeys(), dt.addCalculatedKeysToData(), dt.addValue(), dt.hideKeys(), replaceRoot, merge])
-        from dzgroshared.utils import mongo_pipeline_print
-        mongo_pipeline_print.copy_pipeline(pipeline)
         return pipeline

@@ -38,5 +38,6 @@ def getPipelineString(pipeline):
         print(f"/* Failed to print pipeline: {e} */")
 
 def copy_pipeline(pipeline):
+    
     from dzgroshared.utils.copy_clipboard import copy
     copy(getPipelineString(pipeline))
