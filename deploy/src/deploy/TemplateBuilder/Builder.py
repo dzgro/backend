@@ -65,18 +65,18 @@ class TemplateBuilder:
                     if region==Region.DEFAULT:
                         sam.check_stack_status(region)
                         cognitoCertificateArn = self.getWildCardCertificateArn('Auth')
-                        apiCertificateArn = self.getWildCardCertificateArn('Api')
-                        from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
-                        optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
-                        layerArns = optimized_builder.execute_optimized()
-                        optimized_builder.print_performance_summary()
-                        from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
-                        ApiGatewayBuilder(self).execute(apiCertificateArn)
-                        from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
-                        CognitoBuilder(self).execute()
-                    from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
-                    LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
-                    sam.execute(region)
+                    #     apiCertificateArn = self.getWildCardCertificateArn('Api')
+                    #     from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
+                    #     optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
+                    #     layerArns = optimized_builder.execute_optimized()
+                    #     optimized_builder.print_performance_summary()
+                    #     from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
+                    #     ApiGatewayBuilder(self).execute(apiCertificateArn)
+                    #     from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
+                    #     CognitoBuilder(self).execute()
+                    # from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
+                    # LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
+                    # sam.execute(region)
                     if region==Region.DEFAULT: self.createUserPoolDomain(region, cognitoCertificateArn)
             except Exception as e:
                 print(f"Error occurred while building SAM template for region {region.value}: {e}")
@@ -107,7 +107,37 @@ class TemplateBuilder:
             if status!='PENDING_VALIDATION' and status!='ISSUED':
                 raise Exception(f"Certificate {arn} for {type} in {region} failed with status {status}")
         return arn
-        
+    
+    def getAssets(self):
+        import base64
+        import os
+        images_dir = os.path.join(os.path.dirname(__file__), 'images')
+        def file_to_bytes(filename):
+            with open(os.path.join(images_dir, filename), 'rb') as f:
+                return f.read()
+
+        assets = [
+            {
+                'Category': 'PAGE_HEADER_LOGO',
+                'ColorMode': 'LIGHT',
+                'Extension': 'PNG',
+                'Bytes': file_to_bytes('dzgro-logo.png'),
+            },
+            {
+                'Category': 'FAVICON_ICO',
+                'ColorMode': 'LIGHT',
+                'Extension': 'ICO',
+                'Bytes': file_to_bytes('dzgro-ico.ico'),
+            },
+            {
+                'Category': 'PAGE_HEADER_BACKGROUND',
+                'ColorMode': 'LIGHT',
+                'Extension': 'PNG',
+                'Bytes': file_to_bytes('cognito-bg.png'),
+            },
+        ]
+        return assets
+    
     def createUserPoolDomain(self, region: Region, authCertificateArn: str):
         idp = boto3.client("cognito-idp", region_name=region.value)
         from botocore.exceptions import ClientError
@@ -154,18 +184,27 @@ class TemplateBuilder:
                     )
                     clientId = next((client['ClientId'] for client in response['UserPoolClients'] if client['ClientName']==self.getUserPoolClientName()), None)
                     if not clientId: raise Exception(f"User Pool Client {self.getUserPoolClientName()} not found in User Pool {self.getUserPoolName()}")
+                    
+                    
                     try:
                         response = idp.describe_managed_login_branding_by_client(
                             UserPoolId=userPoolId,
                             ClientId=clientId,
-                            ReturnMergedResources=False
+                            ReturnMergedResources=True
                         )
                         print(f"Managed Login Branding already exists as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
+                        response = idp.update_managed_login_branding(
+                            UserPoolId=userPoolId,
+                            ManagedLoginBrandingId=response['ManagedLoginBranding']['ManagedLoginBrandingId'],
+                            UseCognitoProvidedValues=True,
+                            Assets=self.getAssets()
+                        )
                     except idp.exceptions.ResourceNotFoundException:
                         response = idp.create_managed_login_branding(
                             UserPoolId=userPoolId,
                             ClientId=clientId,
-                            UseCognitoProvidedValues=True
+                            UseCognitoProvidedValues=True,
+                            Assets=self.getAssets()
                         )
                     print(f"Created Managed Login Branding as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
 

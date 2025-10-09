@@ -5,6 +5,7 @@ client=None
 
 def getClient():
     global client
+    if client: return client
     from dzgroshared.db.enums import ENVIRONMENT
     ENV = ENVIRONMENT(os.environ.get("ENV"))
     from dzgroshared.secrets.model import DzgroSecrets

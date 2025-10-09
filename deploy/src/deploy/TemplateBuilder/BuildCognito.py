@@ -10,6 +10,11 @@ class CognitoBuilder:
         
     def execute(self):
         domain = self.builder.envDomain()
+        callbackUrls = [f"https://{domain}/sign-in-callback"]
+        logoutUrls = [f"https://{domain}/login"]
+        if self.builder.env==ENVIRONMENT.DEV:
+            callbackUrls.append("http://localhost:4200/sign-in-callback")
+            logoutUrls.append("http://localhost:4200/login")
         resource =  {
             "UserPool": {
               "Type": "AWS::Cognito::UserPool",
@@ -17,7 +22,8 @@ class CognitoBuilder:
                 "UserPoolName": self.builder.getUserPoolName(),
                 "AutoVerifiedAttributes": ["email"],
                 "LambdaConfig": {
-                  "CustomMessage": { "Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoCustomMessage), "Arn"] },
+                  "PreSignUp": { "Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"] },
+                  "CustomMessage": { "Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"] },
                   "PostConfirmation": { "Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"] },
                   "PreTokenGenerationConfig": {
                     "LambdaArn": { "Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"] },
@@ -80,22 +86,9 @@ class CognitoBuilder:
                   "profile",
                   { "Fn::Join": [ "", [ { "Ref": "UserPoolResourceServer" }, "/read" ] ] }
                 ],
-                "CallbackURLs": [
-                    f"https://{domain}/sign-in-callback"
-                ],
-                "LogoutURLs": [
-                    f"https://{domain}/logout"
-                ],
+                "CallbackURLs": callbackUrls,
+                "LogoutURLs": logoutUrls,
                 "SupportedIdentityProviders": ["COGNITO"]
-              }
-            },
-            "LambdaInvokePermissionCustomMessage": {
-              "Type": "AWS::Lambda::Permission",
-              "Properties": {
-                "FunctionName": { "Ref": self.builder.getFunctionName(LambdaName.CognitoCustomMessage) },
-                "Action": "lambda:InvokeFunction",
-                "Principal": "cognito-idp.amazonaws.com",
-                "SourceArn": { "Fn::GetAtt": ["UserPool", "Arn"] }
               }
             },
             "LambdaInvokePermissionCognitoTrigger": {
@@ -105,6 +98,32 @@ class CognitoBuilder:
                 "Action": "lambda:InvokeFunction",
                 "Principal": "cognito-idp.amazonaws.com",
                 "SourceArn": { "Fn::GetAtt": ["UserPool", "Arn"] }
+              }
+            },
+            self.builder.getLambdaRoleName(LambdaName.CognitoTrigger): {
+              "Type": "AWS::IAM::Role",
+              "Properties": {
+                "RoleName": self.builder.getLambdaRoleName(LambdaName.CognitoTrigger),
+                "AssumeRolePolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [{
+                    "Effect": "Allow",
+                    "Principal": {"Service": "lambda.amazonaws.com"},
+                    "Action": "sts:AssumeRole"
+                  }]
+                },
+                "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
+                "Policies": [{
+                  "PolicyName": "LambdaCognitoAccess",
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                      "Effect": "Allow",
+                      "Action": ["cognito-idp:AdminGetUser", "cognito-idp:AdminDeleteUser", "cognito-idp:ListUsers"],
+                      "Resource": "*"
+                    }]
+                  }
+                }]
               }
             }
           }

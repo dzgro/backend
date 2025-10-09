@@ -39,7 +39,6 @@ LAYER_DEPENDENCIES = {
 
 class LambdaName(str, Enum):
     Api = "Api"
-    CognitoCustomMessage = "CognitoCustomMessage"
     CognitoTrigger = "CognitoTrigger"
     QueueModelMessageProcessor = "QueueModelMessageProcessor"
     DzgroReportsS3Trigger = "DzgroReportsS3Trigger"
@@ -142,13 +141,13 @@ class S3Property(BaseModel):
 
 class LambdaRegion(BaseModel):
     region: Region
-    description: str = "General Description"
     queue: List[QueueProperty] = []
     s3: List[S3Property] = []
     api: ApiGatewayRoute|SkipJsonSchema[None]=None
 
 class LambdaProperty(BaseModel):
     name: LambdaName
+    description: str = "General Description"
     memorySize: int = 128
     timeout: int = 900
     regions: List[LambdaRegion]
@@ -204,19 +203,8 @@ def getAMSChangeSetPolicy(region: Region):
 
 LAMBDAS = [
     LambdaProperty(
-        name=LambdaName.CognitoCustomMessage,
-        memorySize=256,
-        timeout=30,
-        layers = [],
-        regions=[
-            LambdaRegion(
-                region=Region.DEFAULT
-            ),
-        ],
-        env = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]
-    ),
-    LambdaProperty(
         name=LambdaName.CognitoTrigger,
+        description="Handles Cognito triggers for user sign-up, confirmation, and token generation.",
         memorySize=512,
         timeout=10,
         layers = [LAYER_NAME.PYMONGO],
@@ -229,6 +217,7 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.Api,
+        description="Main API Lambda function behind API Gateway.",
         memorySize=1024,
         timeout=30,
         layers = [LAYER_NAME.API,LAYER_NAME.MANGUM, LAYER_NAME.DZGRO_SHARED],
@@ -247,6 +236,7 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.QueueModelMessageProcessor,
+        description="Processes messages from SQS queues based on their model type.",
         memorySize=1024,
         timeout=900,
         layers = [LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
@@ -297,6 +287,7 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.DzgroReportsS3Trigger,
+        description="Triggered by S3 events to process Dzgro reports.",
         memorySize=1024,
         timeout=900,
         layers = [LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
@@ -325,6 +316,7 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.AmsChange,
+        description="Processes AMS Change Set notifications from SNS.",
         layers = [LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(
@@ -339,6 +331,7 @@ LAMBDAS = [
     ),
     LambdaProperty(
         name=LambdaName.AmsPerformance,
+        description="Processes AMS Performance notifications from SNS.",
         layers = [LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(

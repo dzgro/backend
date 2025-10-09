@@ -31,6 +31,7 @@ class UserHelper:
 
     async def getMarketplaceOnboarding(self):
         pipeline = [
+            {"$match": { "_id": self.uid }},
             { '$lookup': { 'from': 'spapi_accounts', 'localField': '_id', 'foreignField': 'uid', 'pipeline': [ { '$project': { 'name': 1, 'countrycode': 1, 'sellerid': 1 } } ], 'as': 'spapi' } }, 
             { '$lookup': { 'from': 'advertising_accounts', 'localField': '_id', 'foreignField': 'uid', 'pipeline': [ { '$project': { 'name': 1, 'countrycode': 1, 'createdat': 1 } } ], 'as': 'ad' } }, 
             { '$lookup': { 'from': 'marketplaces', 'localField': '_id', 'foreignField': 'uid', 'pipeline': [ { '$project': { 'name': 1, 'countrycode': 1, 'storename': 1, 'marketplaceid': 1, 'status': 1} } ], 'as': 'marketplaces' } }, 
