@@ -22,7 +22,6 @@ class RequestHelper:
     
     # Routes that don't require authentication
     EXCLUDED_ROUTES = {
-        "/pricing"  # Add your routes here
     }
 
     def __init__(self, request: Request):

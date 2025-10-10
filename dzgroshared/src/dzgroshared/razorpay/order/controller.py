@@ -13,6 +13,6 @@ class RazorpayOrderHelper:
 
     @razorpay_error_wrapper
     async def create_order(self, data: RazorpayCreateOrder) -> RazorpayOrder:
-        response = await self.client.post(f"{self.base_url}/orders", json=data.model_dump(exclude_none=True))
+        response = await self.client.post(f"{self.base_url}/orders", json=data.model_dump(mode="json", exclude_none=True))
         response.raise_for_status()
         return RazorpayOrder.model_validate(response.json())

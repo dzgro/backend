@@ -287,6 +287,21 @@ class MarketplaceId(Enum):
     @staticmethod
     def values():
         return [x.value for x in MarketplaceId]
+    
+
+class PlanName(str, Enum):
+    PAYMENT_RECONCILIATION = 'Payment Reconciliation'
+    ANALYTICS = 'Analytics'
+    ADVERTISING = 'Advertising'
+    
+class PlanVariableType(str, Enum):
+    ORDERS = 'Orders'
+    REVENUE = 'Revenue'
+    
+class PlanDuration(str, Enum):
+    MONTH = 'Month'
+    YEAR = 'Year'
+    
 
 
 class CurrencyCode(Enum):
@@ -412,26 +427,12 @@ class SQSMessageStatus(str, Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
-    
-
-class PlanDuration(str, Enum):
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
 
 
 class BusinessType(str, Enum):
     PERSONAL = 'Personal'
     BUSINESS = 'Business'
-
-
-class PlanType(str, Enum):
-    REPORTS = 'Reports'
-    ANALYTICS = 'Analytics'
-    ADVERTISING = 'Advertising'
-    ADVERTISING_SERVICE = 'Advertising Service'
-
-
-
+    
 class AmazonReportType(str, Enum):
     SPAPI = "SPAPI"
     AD = "AD"

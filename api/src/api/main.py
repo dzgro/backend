@@ -370,7 +370,7 @@ from api.routers import (
     gstin, advertising_accounts, razorpay_orders, spapi_accounts, 
     users, marketplaces, performance_periods, performance_results, 
     state_analytics, date_analytics, products, payments, ad, 
-    health, analytics, dzgro_reports
+    health, analytics, dzgro_reports, pricing
 )
 
 register_exception_handlers(app)
@@ -390,6 +390,7 @@ app.include_router(spapi_accounts.router)
 app.include_router(razorpay_orders.router)
 app.include_router(state_analytics.router)
 app.include_router(users.router)
+app.include_router(pricing.router)
 
 use_route_names_as_operation_ids(app)
 
@@ -408,13 +409,6 @@ def read_items(
     marketplace: str = Security(marketplace_scheme)
 ):
     return {"Authorization": authorization, "Marketplace": marketplace}
-
-@app.get("/plans", response_model=Pricing, response_model_exclude_none=True, response_model_by_alias=False)
-async def plans():
-    helper = DzgroSharedClient(env)
-    helper.setMongoClient(app.state.mongoClient)
-    data = await helper.db.pricing.getActivePlan(CountryCode.INDIA)
-    return Pricing.model_validate(data)
 
 @app.get('/openapi.yaml', include_in_schema=False)
 @functools.lru_cache()

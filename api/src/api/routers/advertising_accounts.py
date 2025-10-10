@@ -22,7 +22,7 @@ async def renameAdvertisingAccount(request: Request, body: RenameAccountRequest)
     return await (await db(request)).rename(body)
 
 @router.get("/countries", response_model=CountriesByRegionList, response_model_exclude_none=True)
-async def getSupportedCountries(request: Request):
+async def getAdvertisingSupportedCountries(request: Request):
     return await (await RequestHelper(request).client).db.country_details.getCountriesByRegion()
 
 @router.post("/new", response_model=AdvertisingAccountUrlResponse, response_model_exclude_none=True)

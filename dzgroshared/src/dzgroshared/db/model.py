@@ -2,7 +2,7 @@
 from pydantic_core import core_schema
 from pydantic import BaseModel,Field, ConfigDict, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.db.enums import AnalyticsPeriod, CollateType, CountryCode, AnalyticGroupMetricLabel, MarketplaceId, AmazonAccountType, QueryTag, CollectionType, AnalyticsMetricOperation, AnalyticsMetric
+from dzgroshared.db.enums import AnalyticsPeriod, CollateType, CountryCode, AnalyticGroupMetricLabel, MarketplaceId, AmazonAccountType, PlanDuration, PlanName, QueryTag, CollectionType, AnalyticsMetricOperation, AnalyticsMetric
 from typing import Any, List, Optional, Literal, Annotated
 from bson import ObjectId
 from datetime import datetime
@@ -154,6 +154,12 @@ class CountryDetails(BaseModel):
     region: str
     regionName: str
     timezone: str
+    
+
+class MarketplacePlan(BaseModel):
+    plan: PlanName
+    pricing: PyObjectId
+    duration: PlanDuration
 
     
 class RequestObject(BaseModel):

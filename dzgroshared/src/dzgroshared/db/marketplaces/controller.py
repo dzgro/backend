@@ -1,19 +1,13 @@
 from datetime import datetime, timedelta
 from bson import ObjectId
-from dzgroshared.analytics import controller
-from dzgroshared.analytics.model import KEY_METRICS
-from dzgroshared.db.marketplaces.pipelines import GetMarketplaceObjectForReport, GetPeriodData, GetUserMarketplaces
+from dzgroshared.db.marketplaces.pipelines import GetMarketplaceObjectForReport, GetUserMarketplaces
 from dzgroshared.amazonapi.model import AmazonApiObject
-from dzgroshared.db.pricing.model import OfferType, Pricing
-from dzgroshared.db.enums import CollateType, CollectionType, AmazonAccountType, CountryCode, MarketplaceId, MarketplaceStatus, PlanType
-from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, StartEndDate, SuccessResponse
-from dzgroshared.db.marketplaces.model import Marketplace, MarketplaceCache, MarketplaceObjectForReport, MarketplaceOnboardPaymentRequest, UserAccountsCount, MarketplaceNameId, UserMarketplace, UserMarketplaceList
+from dzgroshared.db.enums import CollectionType, AmazonAccountType, MarketplaceId, MarketplaceStatus
+from dzgroshared.db.model import AddMarketplaceRequest, Paginator, PyObjectId, StartEndDate, SuccessResponse
+from dzgroshared.db.marketplaces.model import Marketplace, MarketplaceCache, MarketplaceObjectForReport, UserAccountsCount, MarketplaceNameId, UserMarketplace, UserMarketplaceList
 from dzgroshared.db.country_details.model import CountryDetailsWithBids
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
-from dzgroshared.razorpay.common import CustomerKeys, RazorpayOrderObject
-from dzgroshared.razorpay.order.model import RazorpayCreateOrder
-from dzgroshared.db.razorpay_orders.model import  RazorPayDbOrderCategory
 
 class MarketplaceHelper:
     client: DzgroSharedClient
@@ -35,10 +29,8 @@ class MarketplaceHelper:
     async def getMarketplaceStatus(self, id: PyObjectId):
         return MarketplaceStatus((await self.db.findOne({'_id': id}, projectionInc=['status']))['status'])
     
-    async def startMarketplaceReporting(self, id: PyObjectId, plantype: PlanType):
-        status = await self.getMarketplaceStatus(id)
-        if status != MarketplaceStatus.NEW: raise ValueError("Marketplace is already onboarded")
-        count, updatedId  = await self.db.updateOne({"_id": id}, setDict={"status": MarketplaceStatus.BUFFERING.value, "plantype": plantype.value})
+    async def startMarketplaceReporting(self, id: PyObjectId):
+        count, updatedId  = await self.db.updateOne({"_id": id, "status": MarketplaceStatus.NEW.value}, setDict={"status": MarketplaceStatus.BUFFERING.value})
         if count==0: raise ValueError("Marketplace could not be updated")
         from dzgroshared.sqs.model import SendMessageRequest, QueueName
         from dzgroshared.db.queue_messages.model import AmazoMarketplaceDailyReportQM, AmazonDailyReportAggregationStep
@@ -134,20 +126,6 @@ class MarketplaceHelper:
         if len(data)==0: raise ValueError("No Marketplace found for the user")
         return UserMarketplace.model_validate(data[0])
 
-    async def getPlans(self, id: PyObjectId):
-        pipeline = [ {"$match": {"_id": id}}, { '$lookup': { 'from': 'pricing', 'localField': 'pricing', 'foreignField': '_id', 'as': 'pricing' } }, { '$replaceRoot': { 'newRoot': { '$first': '$pricing' } } } ]
-        data = await self.db.aggregate(pipeline)
-        if len(data)==0: raise ValueError("No Pricing found")
-        return Pricing.model_validate(data[0])
-    
-    async def getPlanDetails(self, marketplaceid:PyObjectId):
-        obj = await self.getMarketplaceApiObject(marketplaceid, AmazonAccountType.SPAPI)
-        from dzgroshared.amazonapi.spapi import SpApiClient
-        client = SpApiClient(obj)
-        res = await client.sales.getLast30DaysSales()
-        sales = float(res.payload[0].total_sales.amount) if res.payload else 0
-        pricing = await self.getMarketplacePricingId(marketplaceid)
-        return await self.client.db.pricing.getPlanDetailItemsById(pricing, sales)
 
     async def getAllMarketplaceIdsBySellerIdForUser(self, sellerId: str)->list[str]:
         ids = await self.db.find({"uid": self.client.uid, "sellerId": sellerId}, projectionInc=["marketplaceId"])
@@ -189,29 +167,6 @@ class MarketplaceHelper:
         data.update({"seller": req.seller, "ad": req.ad, "status": MarketplaceStatus.NEW.value, "pricing": pricingid})
         id = await self.db.insertOne(data)
         return SuccessResponse(success=True)
-    
-    def createRazorpayOrderObject(self, orderId: str, name: str, email:str, phonenumber: str|None=None)->RazorpayOrderObject:
-        readonlyKeys:dict[CustomerKeys,bool] = {'name': True, 'email': True, 'contact': False}
-        prefill:dict[CustomerKeys,str] = {'name': name, 'email': email}
-        if phonenumber: 
-            prefill['contact'] = phonenumber
-            readonlyKeys['contact'] = True
-        return RazorpayOrderObject(order_id=orderId, prefill=prefill, key=self.client.secrets.RAZORPAY_CLIENT_ID, readonly=readonlyKeys)
-    
-    
-    async def generateOrderForOnboarding(self, req: MarketplaceOnboardPaymentRequest):
-        status = await self.getMarketplaceStatus(req.id)
-        if status != MarketplaceStatus.NEW: raise ValueError("Marketplace is already onboarded")
-        planDetails = await self.getPlanDetails(req.id)
-        plan = next((plan for plan in planDetails.plans if plan.plantype==req.plantype), None)
-        if not plan: raise ValueError("Plan not found")
-        orderReq = RazorpayCreateOrder( 
-            amount=int(plan.total*100),
-            receipt=str(req.id),
-            notes={ "uid": self.client.uid, "marketplace": str(req.id), "plantype": req.plantype.value, "pricing": str(req.pricing) } )
-        order = await self.client.razorpay.order.create_order(orderReq)
-        await self.client.db.razorpay_orders.addOrder(order, category=RazorPayDbOrderCategory.MARKETPLACE_ONBOARDING)
-        return self.createRazorpayOrderObject(order.id, self.client.user.name, self.client.user.email, self.client.user.phone_number)
     
     async def getMonths(self):
         def last_day_of_month(year: int, month: int) -> int:

@@ -1,3 +1,4 @@
+from dzgroshared.db.enums import CurrencyCode
 from pydantic import BaseModel,Field, model_validator,ConfigDict
 from pydantic.json_schema import SkipJsonSchema
 from typing import Literal, Any
@@ -20,7 +21,7 @@ class RazorpayEntity(BaseModel):
     entity: Literal['payment','subscription','order','card','invoice']
 
 class Currency(BaseModel):
-    currency: str|SkipJsonSchema[None] = 'INR'
+    currency: CurrencyCode
 
 class Amount(BaseModel):
     amount: int

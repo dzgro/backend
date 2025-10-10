@@ -1,6 +1,6 @@
 from enum import Enum
-from dzgroshared.db.enums import PlanType
 from dzgroshared.db.model import ObjectIdStr, PyObjectId
+from dzgroshared.db.pricing.model import PlanName
 from dzgroshared.razorpay.order.model import RazorpayOrder
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
@@ -15,7 +15,7 @@ class RazorPayDbOrder(ObjectIdStr):
     gstin: PyObjectId|SkipJsonSchema[None]=None
     invoiceId: str|SkipJsonSchema[None]=None
     paymentId: str|SkipJsonSchema[None]=None
-    plantype: PlanType|SkipJsonSchema[None]=None
+    plantype: PlanName|SkipJsonSchema[None]=None
     pricing: PyObjectId|SkipJsonSchema[None]=None
 
 

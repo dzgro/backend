@@ -2,12 +2,11 @@ from dzgroshared.amazonapi.model import AmazonApiObject
 from dzgroshared.db.health.model import AHR
 from dzgroshared.db.performance_period_results.model import PerformancePeriodGroup
 from dzgroshared.db.performance_periods.model import PerformancePeriod
-from dzgroshared.db.pricing.model import OfferType, PricingOffer
 from dzgroshared.db.state_analytics.model import StateMonthDataResponse, StateMonthDataResponseItem
 from pydantic import BaseModel, Field,model_validator
-from dzgroshared.db.model import Count, CountryDetails, DashboardKeyMetricGroup, ItemId, ItemId, Month, PeriodDataResponse, PyObjectId, StartEndDate
+from dzgroshared.db.model import Count, CountryDetails, DashboardKeyMetricGroup, ItemId, ItemId, MarketplacePlan, Month, PeriodDataResponse, PyObjectId, StartEndDate
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.db.enums import AmazonAccountType, CollateType, MarketplaceId, CountryCode, MarketplaceStatus, PlanType
+from dzgroshared.db.enums import AmazonAccountType, CollateType, MarketplaceId, CountryCode, MarketplaceStatus, PlanName
 from datetime import datetime
 from typing import Literal
 
@@ -34,7 +33,7 @@ class MarketplaceObjectForReport(ItemId):
     dates: StartEndDate|SkipJsonSchema[None]=None
     lastrefresh: datetime|SkipJsonSchema[None]=None
     details: CountryDetails
-    plantype: PlanType
+    plan: MarketplacePlan
 
 
 
@@ -52,7 +51,7 @@ class UserMarketplaceDetails(BaseModel):
     count: int
     countries: list[CountryCode]
     statuses: list[MarketplaceStatus]
-    plantypes: list[PlanType]
+    plantypes: list[PlanName]
 
 
 class SellerMarketplace(BaseModel):
@@ -68,7 +67,7 @@ class UserMarketplace(UserMarketplaceBasic):
     createdat: datetime
     seller: str|SkipJsonSchema[None]=None
     dates: StartEndDate|SkipJsonSchema[None]=None
-    plantype: PlanType|SkipJsonSchema[None]=None
+    plan: MarketplacePlan|SkipJsonSchema[None]=None
     health: UserMarketplaceHealth|SkipJsonSchema[None]=None
     sales: UserMarketplaceSalesData|SkipJsonSchema[None]=None
     lastrefresh: datetime|SkipJsonSchema[None]=None
@@ -110,7 +109,7 @@ class MarketplaceCache(ItemId):
     profileid: int
     sellerid: str
     dates: StartEndDate|SkipJsonSchema[None]=None
-    plantype: PlanType|SkipJsonSchema[None]=None
+    plantype: PlanName|SkipJsonSchema[None]=None
 
 class Marketplace(ItemId):
     countrycode: CountryCode
@@ -121,23 +120,13 @@ class Marketplace(ItemId):
     dates: StartEndDate
     pricing: PyObjectId
 
-class MarketplaceOnboardOffer(ItemId):
-    offerType: OfferType
-    offer: PricingOffer
-
-class MarketplaceOnboardPaymentRequest(ItemId):
-    plantype: PlanType
-    pricing: PyObjectId
-    offer: MarketplaceOnboardOffer|SkipJsonSchema[None]=None
-    
-
 class DetailedMarketplaceWithData(ItemId):
     storename: str
     marketplaceid: MarketplaceId
     dates: StartEndDate
     lastrefresh: datetime|SkipJsonSchema[None]=None
     details: CountryDetails
-    plantype: PlanType
+    plantype: PlanName
     periods: list[PerformancePeriod]
     months: list[Month]
 

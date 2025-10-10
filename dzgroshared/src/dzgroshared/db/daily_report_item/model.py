@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 from dzgroshared.amazonapi.model import AmazonApiObject
 from dzgroshared.db.model import CountryDetails, ErrorDetail, ErrorList, ItemId, ItemId, PyObjectId, StartEndDate
-from dzgroshared.db.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, QueryTag, DataKioskType, MarketplaceId, MarketplaceStatus, PlanType
+from dzgroshared.db.enums import AdExportType, AmazonDailyReportAggregationStep, AmazonParentReportTaskStatus, QueryTag, DataKioskType, MarketplaceId, MarketplaceStatus, PlanName
 from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from dzgroshared.amazonapi.adapi.common.reports.model import AdReportRequest, AdReport

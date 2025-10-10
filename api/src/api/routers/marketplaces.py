@@ -1,6 +1,5 @@
-from dzgroshared.db.enums import CollateType, PlanType
-from dzgroshared.db.marketplaces.model import MarketplaceOnboardPaymentRequest, UserMarketplace, UserMarketplaceList
-from dzgroshared.db.pricing.model import Pricing, PricingDetail
+from dzgroshared.db.marketplaces.model import MarketplacePlan, UserMarketplace, UserMarketplaceList
+from dzgroshared.db.pricing.model import Pricing
 from dzgroshared.db.model import AddMarketplaceRequest, Count, Month, Paginator, PeriodDataRequest, PeriodDataResponse, PyObjectId, SuccessResponse
 from dzgroshared.razorpay.common import RazorpayOrderObject
 from fastapi import APIRouter, Request
@@ -33,16 +32,4 @@ async def testLinkage(request: Request, req: AddMarketplaceRequest):
 @router.post("/add", response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def addNewMarketplace(request: Request, req: AddMarketplaceRequest):
     return await (await db(request)).addMarketplace(req)
-
-@router.get("/{id}/pricing", response_model=PricingDetail, response_model_exclude_none=True, response_model_by_alias=False)
-async def getMarketplacePricing(request: Request, id: PyObjectId):
-    return await (await db(request)).getPlanDetails(id)
-
-@router.get("/{id}/plans", response_model=Pricing, response_model_exclude_none=True, response_model_by_alias=False)
-async def getPlans(request: Request, id: PyObjectId):
-    return await (await db(request)).getPlans(id)
-
-@router.post("/onboard", response_model=RazorpayOrderObject, response_model_exclude_none=True, response_model_by_alias=False)
-async def getPaymentObject(request: Request, req: MarketplaceOnboardPaymentRequest):
-    return await (await db(request)).generateOrderForOnboarding(req)
 
