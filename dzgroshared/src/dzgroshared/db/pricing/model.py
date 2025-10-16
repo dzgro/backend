@@ -75,7 +75,7 @@ class PaymentPricingDetail(BaseModel):
 class MarketplacePricing(PricingCountryDetails, ItemId):
     storename: str
     marketplaceid: MarketplaceId
-    pricingid: PyObjectIdp
+    pricingid: PyObjectId
     gstin: PyObjectId|SkipJsonSchema[None]=None
     plan: MarketplacePlan|SkipJsonSchema[None]
     plans: list[PaymentPlan]

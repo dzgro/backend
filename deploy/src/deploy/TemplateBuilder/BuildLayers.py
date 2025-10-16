@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 import threading
 from dataclasses import dataclass, asdict
+from deploy.TemplateBuilder import docker_manager
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
@@ -400,26 +401,26 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             # Build with BuildKit for advanced caching
             env = os.environ.copy()
             env['DOCKER_BUILDKIT'] = '1'
-            
+
             # Build Docker image with cache
+            # Note: Remove 'docker' from args - it will be added by run_docker_command_in_wsl
             build_args = [
-                'docker', 'build',
+                'build',
                 '--progress=plain',
                 '--target=final',
-                '-f', dockerfile_path,
+                '-f', docker_manager.convert_windows_path_to_wsl(dockerfile_path),
                 '-t', f'lambda-requirements-{cache_key}',
-                '.'
+                docker_manager.convert_windows_path_to_wsl(os.path.dirname(__file__))
             ]
-            
+
             # Add cache from previous builds if available
             previous_images = self._get_similar_cache_images(layer_name)
             if previous_images:
                 build_args.extend(['--cache-from', previous_images[0]])
-            
-            result = subprocess.run(
+
+            result = docker_manager.run_docker_command_in_wsl(
                 build_args,
                 check=True,
-                cwd=os.path.dirname(__file__),
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -427,22 +428,32 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             )
             
             docker_build_time = time.time() - docker_start_time
-            
+
             # Create container and extract zip
-            container_id = subprocess.run([
-                'docker', 'create', f'lambda-requirements-{cache_key}'
-            ], capture_output=True, text=True, check=True, encoding='utf-8').stdout.strip()
-            
+            container_id = docker_manager.run_docker_command_in_wsl(
+                ['create', f'lambda-requirements-{cache_key}'],
+                capture_output=True,
+                text=True,
+                check=True,
+                encoding='utf-8'
+            ).stdout.strip()
+
             # Copy zip file to cache directory
             cached_file_path = self.get_cached_layer_path(cache_key)
-            subprocess.run([
-                'docker', 'cp', 
-                f'{container_id}:/tmp/layer/{cache_key}.zip', 
-                str(cached_file_path)
-            ], check=True, encoding='utf-8')
-            
+            docker_manager.run_docker_command_in_wsl(
+                ['cp',
+                 f'{container_id}:/tmp/layer/{cache_key}.zip',
+                 docker_manager.convert_windows_path_to_wsl(str(cached_file_path))],
+                check=True,
+                encoding='utf-8'
+            )
+
             # Clean up container
-            subprocess.run(['docker', 'rm', container_id], check=True, encoding='utf-8')
+            docker_manager.run_docker_command_in_wsl(
+                ['rm', container_id],
+                check=True,
+                encoding='utf-8'
+            )
             
             # Update cache
             combined_hash = self.generate_combined_hash(layer_name, deps, source_path=None)
@@ -530,12 +541,14 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
     def _get_similar_cache_images(self, layer_name: LAYER_NAME) -> List[str]:
         """Get similar Docker images for cache-from optimization"""
         try:
-            result = subprocess.run([
-                'docker', 'images', 
-                '--format', '{{.Repository}}',
-                '--filter', f'reference=lambda-requirements-{layer_name.value.lower()}*'
-            ], capture_output=True, text=True)
-            
+            result = docker_manager.run_docker_command_in_wsl(
+                ['images',
+                 '--format', '{{.Repository}}',
+                 '--filter', f'reference=lambda-requirements-{layer_name.value.lower()}*'],
+                capture_output=True,
+                text=True
+            )
+
             if result.returncode == 0:
                 images = [img.strip() for img in result.stdout.split('\n') if img.strip()]
                 return images[:3]  # Return up to 3 most recent similar images
@@ -699,21 +712,36 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
         # Build with Docker
         try:
             print("Building Lambda layer with Docker...")
-            subprocess.run(['docker', 'build', '-f', dockerfile_path, '-t', 'lambda-layer-builder', actual_project_root], check=True)
-            
+            docker_manager.run_docker_command_in_wsl(
+                ['build',
+                 '-f', docker_manager.convert_windows_path_to_wsl(dockerfile_path),
+                 '-t', 'lambda-layer-builder',
+                 docker_manager.convert_windows_path_to_wsl(actual_project_root)],
+                check=True
+            )
+
             # Copy the zip file out of the container
             layer_zip_name = f'{layer_name}-{self.envtextTitle.lower()}.zip'
-            container_id = subprocess.run([
-                'docker', 'create', 'lambda-layer-builder'
-            ], capture_output=True, text=True, check=True).stdout.strip()
-            
+            container_id = docker_manager.run_docker_command_in_wsl(
+                ['create', 'lambda-layer-builder'],
+                capture_output=True,
+                text=True,
+                check=True
+            ).stdout.strip()
+
             # Copy file from container to host
-            subprocess.run([
-                'docker', 'cp', f'{container_id}:/tmp/layer/{layer_zip_name}', actual_project_root
-            ], check=True)
-            
+            docker_manager.run_docker_command_in_wsl(
+                ['cp',
+                 f'{container_id}:/tmp/layer/{layer_zip_name}',
+                 docker_manager.convert_windows_path_to_wsl(actual_project_root)],
+                check=True
+            )
+
             # Clean up container
-            subprocess.run(['docker', 'rm', container_id], check=True)
+            docker_manager.run_docker_command_in_wsl(
+                ['rm', container_id],
+                check=True
+            )
             
             print("✓ Successfully built layer with Docker")
             

@@ -2,9 +2,14 @@
 from typing import List
 from dzgroshared.db.enums import GstStateCode
 from dzgroshared.db.model import ItemId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
-class BusinessDetails(BaseModel):
+class GstStateResponse(BaseModel):
+    state: str
+    statecode: GstStateCode
+
+class BusinessDetails(GstStateResponse):
     gstin: str = Field(..., min_length=15, max_length=15)
     name: str
     addressline1: str
@@ -12,7 +17,14 @@ class BusinessDetails(BaseModel):
     addressline3: str
     pincode: str
     city: str
-    state: GstStateCode
+    
+    @model_validator(mode="before")
+    def check_gstin(cls, values):
+        gstin = values.get("gstin")
+        state_code = gstin[0:2]
+        if not values["statecode"]: values["statecode"] = GstStateCode(state_code)
+        if not values["state"]: values["state"] = GstStateCode.get_state_name(state_code)
+        return values
 
 
 class GstDetail(ItemId, BusinessDetails):

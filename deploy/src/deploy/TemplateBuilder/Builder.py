@@ -65,19 +65,21 @@ class TemplateBuilder:
                     if region==Region.DEFAULT:
                         sam.check_stack_status(region)
                         cognitoCertificateArn = self.getWildCardCertificateArn('Auth')
-                    #     apiCertificateArn = self.getWildCardCertificateArn('Api')
-                    #     from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
-                    #     optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
-                    #     layerArns = optimized_builder.execute_optimized()
-                    #     optimized_builder.print_performance_summary()
-                    #     from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
-                    #     ApiGatewayBuilder(self).execute(apiCertificateArn)
-                    #     from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
-                    #     CognitoBuilder(self).execute()
-                    # from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
-                    # LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
-                    # sam.execute(region)
-                    if region==Region.DEFAULT: self.createUserPoolDomain(region, cognitoCertificateArn)
+                        apiCertificateArn = self.getWildCardCertificateArn('Api')
+                        from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
+                        optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
+                        layerArns = optimized_builder.execute_optimized()
+                        optimized_builder.print_performance_summary()
+                        from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
+                        ApiGatewayBuilder(self).execute(apiCertificateArn)
+                        from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
+                        CognitoBuilder(self).execute()
+                    from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
+                    LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
+                    
+                    sam.saveTemplateAsYaml(region)
+                    sam.execute(region)
+                    # if region==Region.DEFAULT: self.createUserPoolDomain(region, cognitoCertificateArn)
             except Exception as e:
                 print(f"Error occurred while building SAM template for region {region.value}: {e}")
                 raise e
@@ -282,5 +284,5 @@ class TemplateBuilder:
 if __name__ == "__main__":
     import docker_manager
     docker_manager.start_ubuntu_docker()
-    # TemplateBuilder().deploy()
+    TemplateBuilder().deploy()
     docker_manager.stop_ubuntu_docker()

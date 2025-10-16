@@ -1,6 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.gstin.model import BusinessDetails, LinkedGsts, GstDetail
-from dzgroshared.db.enums import CollectionType
+from dzgroshared.db.enums import CollectionType, GstStateCode
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.model import PyObjectId, SuccessResponse
@@ -16,6 +16,16 @@ class GSTHelper:
     async def listGSTs(self):
         data = await self.db.find({"uid": self.client.uid})
         return LinkedGsts.model_validate({"data": data})
+
+    async def getGstState(self, gstin:str):
+        state_code: GstStateCode
+        try: state_code = GstStateCode(gstin[0:2])
+        except: raise ValueError("Please enter a valid GSTIN.")
+        try:
+            await self.db.find({"uid": self.client.uid, "gstin": gstin})
+        except Exception as e:
+            return {"state": GstStateCode.get_state_name(state_code.value), "statecode": state_code}
+        raise ValueError("This GSTIN is already added.")
 
     async def getGST(self, id: PyObjectId):
         data = await self.db.findOne({"_id": id, "uid": self.client.uid})

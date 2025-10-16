@@ -1,5 +1,6 @@
 from deploy.TemplateBuilder.Builder import TemplateBuilder
 from deploy.TemplateBuilder.StarterMapping import Region
+from deploy.TemplateBuilder import docker_manager
 import os, yaml
 from pathlib import Path
 from typing import Optional
@@ -83,7 +84,6 @@ class SAMExecutor:
         return os.path.join(template_builder_root, f'{name}.yaml')
 
     def execute(self, region: Region):
-        self.saveTemplateAsYaml(region)
         print(f"🚀 Deploying from template: {self.get_template_path()}")
         self.build_deploy_sam_template(region)
 
@@ -134,12 +134,52 @@ class SAMExecutor:
             print("   Template has been generated and may still be valid")
             raise e
 
+    def run_sam_in_wsl(self, sam_args, cwd, distro="Ubuntu", user="dzgro"):
+        """
+        Run SAM CLI command through WSL to access WSL Docker daemon
+
+        Args:
+            sam_args: List of SAM command arguments (e.g., ['build', '--use-container', ...])
+            cwd: Working directory (Windows path, will be converted to WSL path)
+            distro: WSL distribution name
+            user: WSL username
+
+        Returns:
+            subprocess.CompletedProcess result
+        """
+        import subprocess
+
+        # Convert Windows paths in arguments to WSL paths
+        converted_args = []
+        for arg in sam_args:
+            # Check if this looks like a Windows path
+            if len(arg) > 2 and arg[1] == ':' and arg[0].isalpha():
+                converted_args.append(docker_manager.convert_windows_path_to_wsl(arg))
+            else:
+                converted_args.append(arg)
+
+        # Convert working directory to WSL path
+        wsl_cwd = docker_manager.convert_windows_path_to_wsl(cwd)
+
+        # Build the command: wsl -d Ubuntu -u dzgro bash -c "cd /path && sam ..."
+        sam_command = " ".join(converted_args)
+        bash_command = f"cd {wsl_cwd} && sam {sam_command}"
+
+        wsl_command = [
+            "wsl", "-d", distro, "-u", user, "--exec", "bash", "-c", bash_command
+        ]
+
+        return subprocess.run(wsl_command, check=True)
+
     def build_deploy_sam_template(self, region: Region):
         import subprocess
         import os
         template_file = self.get_template_path()
         name = self.get_template_name()
         built_template_file = os.path.join(template_builder_root, '.aws-sam', 'build', 'template.yaml')
+
+        # Note: Docker daemon must be running in WSL (started by docker_manager.start_ubuntu_docker())
+        # SAM CLI runs through WSL to access the WSL Docker daemon
 
         # Check CloudFormation stack status before proceeding
         self.check_stack_status(region)
@@ -157,39 +197,40 @@ class SAMExecutor:
                 s3.create_bucket(Bucket=name, CreateBucketConfiguration={'LocationConstraint': region.value})
             print(f"✅ Bucket {name} created in region {region.value}.")
 
-        # Build using Docker container
-        build_command = [
-            'sam', 'build',
+        # Build using Docker container through WSL
+        build_args = [
+            'build',
             '--use-container',  # This flag tells SAM to use Docker
             '--template-file', template_file
         ]
-        
-        # Deploy command remains the same
-        deploy_command = [
-            'sam', 'deploy',
+
+        # Deploy command
+        deploy_args = [
+            'deploy',
             '--template-file', built_template_file,
             '--region', region.value,
             '--no-confirm-changeset',
             '--capabilities', 'CAPABILITY_NAMED_IAM',
             '--stack-name', name,
-            '--s3-bucket', name, '--force-upload'
+            '--s3-bucket', name,
+            '--force-upload'
         ]
-        
+
         try:
-            print(f"🔨 Building SAM template using Docker containers...")
+            print(f"🔨 Building SAM template using Docker containers (via WSL)...")
             print(f"   Template: {template_file}")
-            subprocess.run(build_command, check=True, shell=True, cwd=template_builder_root)
-            
-            print(f"🚀 Deploying SAM template to region {region.value}...")
-            subprocess.run(deploy_command, check=True, shell=True, cwd=template_builder_root)
-            
+            self.run_sam_in_wsl(build_args, template_builder_root)
+
+            print(f"🚀 Deploying SAM template to region {region.value} (via WSL)...")
+            self.run_sam_in_wsl(deploy_args, template_builder_root)
+
             print(f"✅ Successfully deployed {name} to {region.value}")
-            
+
             # Clean up template file after successful deployment
             if os.path.exists(template_file):
                 os.remove(template_file)
                 print(f"🧹 Cleaned up SAM template: {template_file}")
-                
+
         except subprocess.CalledProcessError as e:
             print(f"❌ Error building or deploying SAM template for region {region.value} for {self.builder.env.value}: {e}")
             raise e

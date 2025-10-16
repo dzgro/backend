@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mkdir:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(wsl:*)"
     ],
     "deny": [],
     "ask": []

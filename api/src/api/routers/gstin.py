@@ -1,4 +1,4 @@
-from dzgroshared.db.gstin.model import BusinessDetails, GstDetail, LinkedGsts
+from dzgroshared.db.gstin.model import BusinessDetails, GstDetail, GstStateResponse, LinkedGsts
 from dzgroshared.db.enums import GstStateCode
 from fastapi import APIRouter, Request, Depends
 from api.Util import RequestHelper
@@ -13,9 +13,9 @@ async def db(request: Request):
 async def listGST(request: Request):
     return await (await db(request)).listGSTs()
 
-@router.get("/states", response_model=list[GstStateCode], response_model_exclude_none=True, response_model_by_alias=False)
-async def getStates(request: Request):
-    return GstStateCode.values()
+@router.get("/state/{gstin}", response_model=GstStateResponse, response_model_exclude_none=True, response_model_by_alias=False)
+async def getStates(request: Request, gstin: str):
+    return await (await db(request)).getGstState(gstin)
 
 @router.get("/{id}", response_model=GstDetail, response_model_exclude_none=True, response_model_by_alias=False)
 async def getGST(request: Request, id: PyObjectId):

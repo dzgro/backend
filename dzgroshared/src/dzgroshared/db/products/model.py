@@ -61,11 +61,11 @@ class PerformanceResultParent(Sku, VariationTheme):
 class PerformanceResultCategory(ProductCategory):
     children: AsinChildren|SkipJsonSchema[None] = None
 
-class PerformanceneResultAsin(Asin, VariationTheme, ProductCategory, Parent):
+class PerformanceResultAsin(Asin, VariationTheme, ProductCategory, Parent):
     sku: SkipJsonSchema[None]=None
     image: HttpUrl|SkipJsonSchema[None] = None
 
-class PerformanceneResultSku(Sku, VariationTheme, ProductCategory, Parent):
+class PerformanceResultSku(Sku, VariationTheme, ProductCategory, Parent):
     image: HttpUrl|SkipJsonSchema[None] = None
     
 class ProductView(Asin, VariationDetails, VariationTheme, Parent, ProductCategory):
