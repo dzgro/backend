@@ -160,6 +160,11 @@ class MarketplacePlan(BaseModel):
     plan: PlanName
     pricing: PyObjectId
     duration: PlanDuration
+    
+class MarketplacePlanOrderObject(MarketplacePlan):
+    marketplace: PyObjectId
+    gstin: PyObjectId|SkipJsonSchema[None] = None
+    
 
     
 class RequestObject(BaseModel):

@@ -4,7 +4,7 @@ from dzgroshared.db.enums import CollectionType
 from dzgroshared.db.DbUtils import DbManager
 from dzgroshared.db.model import PyObjectId, SuccessResponse
 from dzgroshared.db.razorpay_orders.model import RazorPayDbOrderCategory, RazorPayDbOrder, OrderVerificationRequest
-from dzgroshared.razorpay.order.model import RazorpayOrder
+from dzgroshared.razorpay.order.model import RazorPayOrderNotes, RazorpayOrder
 from dzgroshared.sqs.model import QueueName, SendMessageRequest
 
 class RazorPayDbOrderHelper:
@@ -34,17 +34,23 @@ class RazorPayDbOrderHelper:
         count, updatedId = await self.db.updateOne({"_id": id, "status": {"$ne": "expired"}}, setDict={"status": "expired"})
         await self.client.db.users.setUserAsOverdue()
 
-    async def addOrder(self, order: RazorpayOrder, category: RazorPayDbOrderCategory) -> RazorPayDbOrder:
-        item = {"_id": order.id, "amount": order.amount/100, "currency": order.currency, "status": order.status, "uid": self.client.uid}
-        item.update({k: ObjectId(v) if ObjectId.is_valid(v) else v for k,v in order.notes.items()})
-        item["category"] = category.value
-        await self.db.insertOne(item)
-        return RazorPayDbOrder.model_validate(item)
+    async def addOrder(self, order: RazorpayOrder, notes: RazorPayOrderNotes, category: RazorPayDbOrderCategory) -> RazorPayDbOrder:
+        try:
+            item = {"_id": order.id, "amount": order.amount/100, "currency": order.currency.value, "status": order.status.value, "uid": self.client.uid}
+            item.update({"notes": notes.model_dump(mode="json")})
+            item["category"] = category.value
+            await self.db.insertOne(item)
+            return RazorPayDbOrder.model_validate(item)
+        except Exception as e:
+            raise ValueError("We could not process your order. Please contact support.")
     
     async def verifyOrder(self, req: OrderVerificationRequest):
         success = self.client.razorpay.verify_razorpay_signature(req.razorpayOrderId, req.razorpayPaymentId, req.razorpaySignature, self.client.secrets.RAZORPAY_CLIENT_SECRET)
-        plantype = (await self.getOrderById(req.razorpayOrderId)).plantype
-        if not plantype: raise ValueError("Invalid Order, Plan Type not found")
+        order = (await self.getOrderById(req.razorpayOrderId))
+        if order.paymentId: raise ValueError("Payment has been processed")
+        if not order.notes.marketplace: raise ValueError("Marketplace not found in order notes")
+        if not order.notes.plan: raise ValueError("Plan not found in order notes")
         success = await self.client.db.users.setUserAsPaid()
-        await self.client.db.marketplaces.startMarketplaceReporting(req.marketplace, plantype)
+        await self.client.db.marketplace_plans.addPlan(order.notes.marketplace, order.notes.plan)
+        await self.client.db.marketplaces.startMarketplaceReporting(req.marketplace)
         return SuccessResponse(success=success)

@@ -8,7 +8,6 @@ router = APIRouter(prefix="/gst", tags=["GST"])
 async def db(request: Request):
     return (await RequestHelper(request).client).db.gstin
 
-
 @router.get("/list", response_model=LinkedGsts, response_model_exclude_none=True, response_model_by_alias=False)
 async def listGST(request: Request):
     return await (await db(request)).listGSTs()
@@ -32,3 +31,4 @@ async def updatesGST(request: Request, id: PyObjectId, details: BusinessDetails)
 @router.delete("/{id}", response_model=SuccessResponse, response_model_exclude_none=True, response_model_by_alias=False)
 async def deleteGST(request: Request, id: PyObjectId):
     return await (await db(request)).deleteGST(id)
+

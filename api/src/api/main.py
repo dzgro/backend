@@ -1,5 +1,5 @@
-from dzgroshared.client import DzgroSharedClient
-from dzgroshared.secrets.model import DzgroSecrets
+from dzgroshared.amazonapi.spapi.feeds.model import ErrorList
+from dzgroshared.db.model import ErrorDetail
 from fastapi import Depends, FastAPI, Request, Security
 from fastapi.responses import Response, RedirectResponse, JSONResponse
 from api.exception_handlers import register_exception_handlers
@@ -402,6 +402,10 @@ async def docs_redirect():
 async def health_check():
     """Simple health check endpoint that doesn't require database access"""
     return {"status": "healthy", "message": "API is running"}
+
+@app.get("/error", response_model=ErrorList, response_model_exclude_none=True, response_model_by_alias=False)
+async def errorType():
+    return ErrorList( errors=[ ErrorDetail() ] )
 
 @app.get("/items")
 def read_items(

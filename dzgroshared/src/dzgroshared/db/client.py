@@ -106,6 +106,26 @@ class DbClient:
         return self.gstinHelper
 
     @property
+    def marketplace_gstin(self):
+        if not self.client.uid:
+            raise ValueError("UID must be set to access gstin.")
+        from dzgroshared.db.marketplace_gstin.controller import MarketplaceGstHelper
+        if self.marketplaceGstinHelper:
+            return self.marketplaceGstinHelper
+        self.marketplaceGstinHelper = MarketplaceGstHelper(self.client)
+        return self.marketplaceGstinHelper
+
+    @property
+    def marketplace_plans(self):
+        if not self.client.uid:
+            raise ValueError("UID must be set to access gstin.")
+        from dzgroshared.db.marketplace_plans.controller import MarketplacePlanHelper
+        if self.marketplacePlanHelper:
+            return self.marketplacePlanHelper
+        self.marketplacePlanHelper = MarketplacePlanHelper(self.client)
+        return self.marketplacePlanHelper
+
+    @property
     def razorpay_orders(self):
         if not self.client.uid:
             raise ValueError("UID must be set to access Razorpay Orders.")

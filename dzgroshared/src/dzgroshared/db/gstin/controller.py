@@ -22,7 +22,7 @@ class GSTHelper:
         try: state_code = GstStateCode(gstin[0:2])
         except: raise ValueError("Please enter a valid GSTIN.")
         try:
-            await self.db.find({"uid": self.client.uid, "gstin": gstin})
+            await self.db.findOne({"uid": self.client.uid, "gstin": gstin})
         except Exception as e:
             return {"state": GstStateCode.get_state_name(state_code.value), "statecode": state_code}
         raise ValueError("This GSTIN is already added.")
@@ -34,7 +34,7 @@ class GSTHelper:
     async def addGST(self, req: BusinessDetails):
         data = {**req.model_dump(mode="json"), "uid": self.client.uid}
         id = await self.db.insertOne(data)
-        return self.getGST(PyObjectId(id))
+        return GstDetail.model_validate({"_id": id, **data})
     
     async def updateGST(self, id: PyObjectId, req: BusinessDetails):
         await self.db.updateOne({"_id": id}, setDict=req.model_dump(mode="json"))

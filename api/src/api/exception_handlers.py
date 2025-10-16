@@ -8,14 +8,14 @@ def register_exception_handlers(app):
     async def custom_api_exception_handler(request: Request, exc: DzgroError):
         return JSONResponse(
             status_code=400,
-            content={"error": [{'errortype': 'Dzgro', **e.model_dump(exclude_none=True)} for e in exc.errors.errors]}
+            content={"errors": [{'errortype': 'Dzgro', **e.model_dump(exclude_none=True)} for e in exc.errors.errors]}
         )
     
     @app.exception_handler(ValueError)
     async def value_error_exception_handler(request: Request, exc: ValueError):
         return JSONResponse(
             status_code=400,
-            content={"error": [{'errortype': 'ValueError', 'message': exc.args[0] if exc.args else str(exc)}]}
+            content={"errors": [{'errortype': 'ValueError', 'message': exc.args[0] if exc.args else str(exc)}]}
         )
 
     @app.exception_handler(RequestValidationError)
@@ -32,7 +32,7 @@ def register_exception_handlers(app):
         )
         return JSONResponse(
             status_code=400,
-            content={"error": [{'errortype': 'Pydantic', **error.model_dump(exclude_none=True)}]}
+            content={"errors": [{'errortype': 'Pydantic', **error.model_dump(exclude_none=True)}]}
         )
 
     @app.exception_handler(Exception)
@@ -49,5 +49,5 @@ def register_exception_handlers(app):
         )
         return JSONResponse(
             status_code=400,
-            content={"error": [{'errortype': 'Unhandled', **error.model_dump(exclude_none=True)}]}
+            content={"errors": [{'errortype': 'Unhandled', **error.model_dump(exclude_none=True)}]}
         )

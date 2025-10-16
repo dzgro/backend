@@ -1,7 +1,7 @@
 from enum import Enum
-from dzgroshared.db.model import ObjectIdStr, PyObjectId
+from dzgroshared.db.model import MarketplacePlan, ObjectIdStr, PyObjectId
 from dzgroshared.db.pricing.model import PlanName
-from dzgroshared.razorpay.order.model import RazorpayOrder
+from dzgroshared.razorpay.order.model import RazorPayOrderNotes, RazorpayOrder
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 
@@ -10,13 +10,11 @@ class RazorPayDbOrderCategory(str, Enum):
     INVOICE = "INVOICE"
 
 class RazorPayDbOrder(ObjectIdStr):
-    amount: int
+    amount: float
     category: RazorPayDbOrderCategory
-    gstin: PyObjectId|SkipJsonSchema[None]=None
     invoiceId: str|SkipJsonSchema[None]=None
     paymentId: str|SkipJsonSchema[None]=None
-    plantype: PlanName|SkipJsonSchema[None]=None
-    pricing: PyObjectId|SkipJsonSchema[None]=None
+    notes: RazorPayOrderNotes
 
 
 class OrderVerificationRequest(BaseModel):

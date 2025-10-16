@@ -1,4 +1,5 @@
 from enum import Enum
+from dzgroshared.db.model import MarketplacePlan, PyObjectId
 from dzgroshared.razorpay.common import Notes,RazorpayPagination,RazorpayId, Currency, Amount, Receipt
 from pydantic import BaseModel,Field
 from pydantic.json_schema import SkipJsonSchema
@@ -8,6 +9,12 @@ class RazorpayOrderStatus(str, Enum):
     CREATED = "created"
     ATTEMPTED = "attempted"
     PAID = "paid"
+    
+class RazorPayOrderNotes(BaseModel):
+    uid: str
+    marketplace: PyObjectId|SkipJsonSchema[None]=None
+    gstin: PyObjectId|SkipJsonSchema[None]=None
+    plan: MarketplacePlan|SkipJsonSchema[None]=None
 
 
 class RazorpayOrder(RazorpayId, Currency, Notes, Amount, Receipt):
@@ -18,7 +25,8 @@ class RazorpayOrder(RazorpayId, Currency, Notes, Amount, Receipt):
     attempts: int
     created_at: int
 
-class RazorpayCreateOrder(Currency, Notes, Amount):
+class RazorpayCreateOrder(Currency, Amount):
+    notes: RazorPayOrderNotes
     receipt: str
     partial_payment: bool = Field(default=False)
     first_payment_min_amount: int|SkipJsonSchema[None]=None

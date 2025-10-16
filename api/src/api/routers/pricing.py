@@ -1,4 +1,4 @@
-from dzgroshared.db.model import MarketplacePlan, PyObjectId
+from dzgroshared.db.model import MarketplacePlanOrderObject, MarketplacePlan, PyObjectId
 from dzgroshared.db.pricing.model import MarketplacePricing, Pricing
 from dzgroshared.razorpay.common import RazorpayOrderObject
 from fastapi import APIRouter, Request
@@ -17,6 +17,6 @@ async def getPricing(request: Request):
 async def getMarketplacePricing(request: Request, id: PyObjectId):
     return await (await db(request)).getMarketplacePricing(id)
 
-@router.post("/marketplace/order/{id}", response_model=RazorpayOrderObject, response_model_exclude_none=True, response_model_by_alias=False)
-async def getPaymentObject(request: Request, id: PyObjectId, req: MarketplacePlan):
-    return await (await db(request)).generateOrderForMarketplace(id, req)
+@router.post("/marketplace/order", response_model=RazorpayOrderObject, response_model_exclude_none=True, response_model_by_alias=False)
+async def generateOrderForMarketplace(request: Request, req: MarketplacePlanOrderObject):
+    return await (await db(request)).generateOrderForMarketplace(req)

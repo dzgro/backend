@@ -1,4 +1,4 @@
-from dzgroshared.db.model import MarketplacePlan, PyObjectId
+from dzgroshared.db.model import MarketplacePlan, MarketplacePlanOrderObject, PyObjectId
 from dzgroshared.db.pricing.model import MarketplacePricing, Pricing
 from dzgroshared.client import DzgroSharedClient
 from dzgroshared.db.enums import AmazonAccountType, CollectionType, CountryCode
@@ -7,7 +7,7 @@ from dzgroshared.db.pricing.pipelines import GetPricing, GetMarketplacePricing
 from dzgroshared.db.pricing.utils import getFeatures
 from dzgroshared.db.razorpay_orders.model import RazorPayDbOrderCategory
 from dzgroshared.razorpay.common import CustomerKeys, RazorpayOrderObject
-from dzgroshared.razorpay.order.model import RazorpayCreateOrder
+from dzgroshared.razorpay.order.model import RazorPayOrderNotes, RazorpayCreateOrder
 
 class PricingHelper:
     db: DbManager
@@ -47,17 +47,25 @@ class PricingHelper:
             readonlyKeys['contact'] = True
         return RazorpayOrderObject(order_id=orderId, prefill=prefill, key=self.client.secrets.RAZORPAY_CLIENT_ID, readonly=readonlyKeys)
     
-    async def generateOrderForMarketplace(self, marketplace: PyObjectId, req: MarketplacePlan):
-        plans = (await self.getMarketplacePricing(marketplace))
+    async def generateOrderForMarketplace(self, req: MarketplacePlanOrderObject):
+        plans = (await self.getMarketplacePricing(req.marketplace))
         plan = next((plan for plan in plans.details if plan.name==req.plan and plan.duration==req.duration), None)
         if not plan: raise ValueError("Plan not found")
+        if req.gstin and not plans.gstin==req.gstin: await self.client.db.marketplace_gstin.linkGst(req.gstin, req.marketplace)
+        notes = RazorPayOrderNotes(
+            uid=self.client.uid,
+            marketplace=req.marketplace,
+            gstin=req.gstin,
+            plan=MarketplacePlan(**req.model_dump(mode="json"))
+        )
         orderReq = RazorpayCreateOrder( 
             currency=plans.currencyCode,
             amount=int(plan.total*100),
-            receipt=str(marketplace),
-            notes={ "uid": self.client.uid, "marketplace": str(marketplace), **req.model_dump(mode="json") } )
+            receipt=str(req.marketplace),
+            notes=notes
+        )
         order = await self.client.razorpay.order.create_order(orderReq)
-        await self.client.db.razorpay_orders.addOrder(order, category=RazorPayDbOrderCategory.MARKETPLACE_ONBOARDING)
+        await self.client.db.razorpay_orders.addOrder(order, notes, category=RazorPayDbOrderCategory.MARKETPLACE_ONBOARDING)
         return self._createRazorpayOrderObject(order.id, self.client.user.name, self.client.user.email, self.client.user.phone_number)
         
     

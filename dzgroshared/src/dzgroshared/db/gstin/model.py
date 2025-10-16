@@ -22,8 +22,8 @@ class BusinessDetails(GstStateResponse):
     def check_gstin(cls, values):
         gstin = values.get("gstin")
         state_code = gstin[0:2]
-        if not values["statecode"]: values["statecode"] = GstStateCode(state_code)
-        if not values["state"]: values["state"] = GstStateCode.get_state_name(state_code)
+        if not values.get("statecode"): values["statecode"] = GstStateCode(state_code)
+        if not values.get("state"): values["state"] = GstStateCode.get_state_name(state_code)
         return values
 
 

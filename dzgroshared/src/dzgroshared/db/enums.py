@@ -365,6 +365,8 @@ class CurrencySymbol(Enum):
 class CollectionType(str,Enum):
     USERS = 'users'
     GSTIN = 'gstin'
+    MARKETPLACE_GSTIN = 'marketplace_gstin'
+    MARKETPLACE_PLANS = 'marketplace_plans'
     PG_ORDERS = 'pg_orders'
     PRICING = 'pricing'
     SPAPI_ACCOUNTS = 'spapi_accounts'
