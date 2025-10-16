@@ -1,126 +1,66 @@
-"""
-Docker Desktop management utilities for Windows.
-"""
 import subprocess
 import time
-import os
 
-
-def start_docker_desktop():
-    """
-    Starts Docker Desktop on Windows if it's not already running.
-    
-    Returns:
-        bool: True if Docker is running, False otherwise
-    """
-    try:
-        # Check if Docker is already running
-        result = subprocess.run(['docker', 'info'], capture_output=True, text=True, timeout=10)
-        if result.returncode == 0:
-            print("Docker Desktop is already running.")
+def is_ubuntu_running(distro="Ubuntu"):
+    result = subprocess.run(["wsl", "--list", "--verbose"], capture_output=True, text=True)
+    for line in result.stdout.splitlines():
+        if distro in line and "Running" in line:
             return True
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        print("Docker is not running or not found.")
-    
-    print("Starting Docker Desktop...")
-    
-    # Common paths for Docker Desktop executable
-    docker_desktop_paths = [
-        r"C:\Program Files\Docker\Docker\Docker Desktop.exe",
-        r"C:\Program Files\Docker\Docker\Docker Desktop.exe",
-        r"C:\Program Files (x86)\Docker\Docker\Docker Desktop.exe",
-        os.path.expanduser(r"~\AppData\Local\Docker\Docker Desktop.exe"),
-        os.path.expanduser(r"~\AppData\Roaming\Docker Desktop\Docker Desktop.exe")
-    ]
-    
-    docker_exe = None
-    for path in docker_desktop_paths:
-        if os.path.exists(path):
-            docker_exe = path
-            break
-    
-    if not docker_exe:
-        print("Docker Desktop executable not found in common locations.")
-        print("Please start Docker Desktop manually or check installation.")
-        return False
-    
+    return False
+
+def is_docker_running(distro="Ubuntu", user="dzgro"):
     try:
-        # Start Docker Desktop (detached process)
-        subprocess.Popen([docker_exe], shell=True)
-        print("Docker Desktop is starting up...")
-        
-        # Wait for Docker to be ready (up to 60 seconds)
-        for i in range(12):  # 12 attempts, 5 seconds each = 60 seconds
-            time.sleep(5)
-            try:
-                result = subprocess.run(['docker', 'info'], capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    print("✓ Docker Desktop is now running and ready.")
-                    return True
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                pass
-            print(f"Waiting for Docker to start... ({(i+1)*5}/60 seconds)")
-        
-        print("Docker Desktop took too long to start. Please check manually.")
-        return False
-        
-    except Exception as e:
-        print(f"Error starting Docker Desktop: {e}")
+        result = subprocess.run(
+            ["wsl", "-d", distro, "-u", user, "--exec", "bash", "-c", "sudo service docker status"],
+            capture_output=True, text=True, encoding="utf-8", errors="ignore"
+        )
+        return "active (running)" in result.stdout
+    except Exception:
         return False
 
-
-def close_docker_desktop():
-    """
-    Closes Docker Desktop on Windows.
-    
-    Returns:
-        bool: True if Docker was closed successfully, False otherwise
-    """
-    try:
-        print("Closing Docker Desktop...")
-        
-        # Method 1: Try to stop Docker Desktop gracefully with psutil
+def wait_for_docker(distro="Ubuntu", user="dzgro", timeout=30):
+    start_time = time.time()
+    while time.time() - start_time < timeout:
         try:
-            import psutil
-            subprocess.run(['docker', 'context', 'use', 'default'], capture_output=True, timeout=5)
-            # Find and terminate Docker Desktop processes
-            for proc in psutil.process_iter(['pid', 'name']):
-                if 'Docker Desktop' in proc.info['name'] or 'Docker' in proc.info['name']:
-                    try:
-                        proc.terminate()
-                        print(f"Terminated {proc.info['name']} (PID: {proc.info['pid']})")
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
-        except ImportError:
-            print("psutil not available, using taskkill method...")
-        except Exception:
-            pass
-        
-        # Method 2: Use taskkill as backup
-        try:
-            subprocess.run(['taskkill', '/f', '/im', 'Docker Desktop.exe'], capture_output=True)
-            subprocess.run(['taskkill', '/f', '/im', 'dockerd.exe'], capture_output=True)
-            subprocess.run(['taskkill', '/f', '/im', 'com.docker.backend.exe'], capture_output=True)
-            subprocess.run(['taskkill', '/f', '/im', 'com.docker.cli.exe'], capture_output=True)
-        except Exception:
-            pass
-        
-        # Wait a moment for processes to close
-        time.sleep(3)
-        
-        # Verify Docker is no longer running
-        try:
-            result = subprocess.run(['docker', 'info'], capture_output=True, text=True, timeout=5)
-            if result.returncode != 0:
-                print("✓ Docker Desktop has been closed.")
+            result = subprocess.run(
+                ["wsl", "-d", distro, "-u", user, "--exec", "bash", "-c", "docker info"],
+                capture_output=True, text=True
+            )
+            if "Docker Root Dir" in result.stdout:
                 return True
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            print("✓ Docker Desktop has been closed.")
-            return True
-        
-        print("Docker Desktop may still be running.")
-        return False
-        
-    except Exception as e:
-        print(f"Error closing Docker Desktop: {e}")
-        return False
+        except:
+            pass
+        time.sleep(1)
+    return False
+
+def start_ubuntu_docker(distro="Ubuntu", user="dzgro"):
+    if not is_ubuntu_running(distro):
+        subprocess.Popen(["wsl", "-d", distro, "-u", user, "--exec", "bash", "-c", f"echo 'Ubuntu started as {user}'"])
+        time.sleep(2)
+        print("Ubuntu started.")
+
+    if not is_docker_running(distro, user):
+        subprocess.Popen(["wsl", "-d", distro, "-u", user, "--exec", "bash", "-c", "sudo service docker start"])
+        print("Docker service starting...")
+
+    if wait_for_docker(distro, user):
+        print("Docker is fully ready!")
+    else:
+        print("Warning: Docker did not start within timeout.")
+
+def stop_ubuntu_docker(distro="Ubuntu", user="dzgro", cleanup=True):
+    if is_docker_running(distro, user):
+        subprocess.Popen(["wsl", "-d", distro, "-u", user, "--exec", "bash", "-c", "sudo service docker stop"])
+        print("Docker service stopped.")
+
+    if cleanup:
+        # Remove stopped containers and unused images
+        subprocess.Popen([
+            "wsl", "-d", distro, "-u", user, "--exec", "bash", "-c",
+            "docker container prune -f && docker image prune -af && docker volume prune -f"
+        ])
+        print("Cleaned up stopped containers, images, and volumes.")
+
+    if is_ubuntu_running(distro):
+        subprocess.Popen(["wsl", "--terminate", distro])
+        print("Ubuntu WSL terminated.")

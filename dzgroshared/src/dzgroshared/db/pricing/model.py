@@ -1,6 +1,7 @@
 
 from enum import Enum
 from dzgroshared.db.enums import CountryCode, CurrencyCode, MarketplaceId, PlanDuration, PlanName, PlanVariableType
+from dzgroshared.db.gstin.model import GstDetail
 from dzgroshared.db.marketplaces.model import UserMarketplace
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -63,7 +64,7 @@ class Pricing(BaseModel):
 class PaymentPricingDetailItem(BaseModel):
     label: str
     sublabel: str|SkipJsonSchema[None]=None
-    value: float
+    value: str
     
 class PaymentPricingDetail(BaseModel):
     name: PlanName
@@ -74,11 +75,14 @@ class PaymentPricingDetail(BaseModel):
 class MarketplacePricing(PricingCountryDetails, ItemId):
     storename: str
     marketplaceid: MarketplaceId
-    pricingid: PyObjectId
+    pricingid: PyObjectIdp
+    gstin: PyObjectId|SkipJsonSchema[None]=None
     plan: MarketplacePlan|SkipJsonSchema[None]
     plans: list[PaymentPlan]
     details: list[PaymentPricingDetail]
     features: list[PlanFeatureGroup]
+    gstins: list[GstDetail]|SkipJsonSchema[None]=None
+    
     
 
     

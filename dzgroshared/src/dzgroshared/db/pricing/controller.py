@@ -26,10 +26,14 @@ class PricingHelper:
         obj = await self.client.db.marketplaces.getMarketplaceApiObject(marketplace, AmazonAccountType.SPAPI)
         from dzgroshared.amazonapi.spapi import SpApiClient
         client = SpApiClient(obj)
-        res = await client.sales.getLast30DaysSales()
-        revenue = float(res.payload[0].total_sales.amount) if res.payload else 0
-        orders = res.payload[0].order_count if res.payload else 0
-        result = await self.client.db.marketplaces.db.aggregate(GetMarketplacePricing.pipeline(marketplace, revenue, orders))
+        revenueMonth, orderMonth, revenueYear, orderYear = 0, 0, 0, 0
+        monthMetrics = await client.sales.getLast30DaysSales()
+        yearMetrics = await client.sales.getLastYearSales()
+        revenueMonth = float(monthMetrics.payload[0].total_sales.amount) if monthMetrics.payload else 0
+        orderMonth = monthMetrics.payload[0].order_count if monthMetrics.payload else 0
+        revenueYear = float(yearMetrics.payload[0].total_sales.amount) if yearMetrics.payload else 0
+        orderYear = yearMetrics.payload[0].order_count if yearMetrics.payload else 0
+        result = await self.client.db.marketplaces.db.aggregate(GetMarketplacePricing.pipeline(marketplace, revenueMonth, orderMonth, revenueYear, orderYear))
         if len(result)==0: raise ValueError("Marketplace not found")
         result = result[0]
         result['features'] = getFeatures()

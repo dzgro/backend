@@ -1,7 +1,7 @@
 from dzgroshared.db.model import PyObjectId
 
 
-def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]:
+def pipeline(marketplace: PyObjectId, revenueMonth: float, orderMonth: int, revenueYear: float, orderYear: int) -> list[dict]:
     return [
     {
         '$match': {
@@ -9,25 +9,10 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
         }
     }, {
         '$set': {
-            'value': {
-                '$let': {
-                    'vars': {
-                        'orders': orders,
-                        'revenue': revenue
-                    }, 
-                    'in': {
-                        '$cond': {
-                            'if': {
-                                '$eq': [
-                                    '$variableType', 'Orders'
-                                ]
-                            }, 
-                            'then': '$$orders', 
-                            'else': '$$revenue'
-                        }
-                    }
-                }
-            }
+            'orderMonth': orderMonth, 
+            'revenueMonth': revenueMonth, 
+            'orderYear': orderYear, 
+            'revenueYear': revenueYear
         }
     }, {
         '$lookup': {
@@ -140,13 +125,18 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
     }, {
         '$project': {
             '_id': 1, 
+            'uid': 1, 
             'storename': 1, 
             'countrycode': 1, 
-            'marketplaceid': 1,
+            'marketplaceid': 1, 
             'plan': 1, 
             'plans': 1, 
             'pricingid': 1, 
-            'value': 1
+            'orderMonth': 1, 
+            'revenueMonth': 1, 
+            'orderYear': 1, 
+            'revenueYear': 1, 
+            'gstin': 1
         }
     }, {
         '$lookup': {
@@ -161,10 +151,10 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
                             '$cond': {
                                 'if': {
                                     '$eq': [
-                                        '$countryCode', 'IN'
+                                        '$_id', 'IN'
                                     ]
                                 }, 
-                                'then': '₹', 
+                                'then': '\u20b9', 
                                 'else': {
                                     '$literal': '$'
                                 }
@@ -219,7 +209,7 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
                                                                 }, {
                                                                     '$let': {
                                                                         'vars': {
-                                                                            'variableLabel': {
+                                                                            'value': {
                                                                                 '$cond': {
                                                                                     'if': {
                                                                                         '$eq': [
@@ -227,26 +217,34 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
                                                                                         ]
                                                                                     }, 
                                                                                     'then': {
-                                                                                        '$concat': [
-                                                                                            '$currency', {
-                                                                                                '$toString': '$$this.variable'
-                                                                                            }, ' per ', {
-                                                                                                '$toString': '$$this.variableUnit'
-                                                                                            }, ' ', '$$this.variableType'
-                                                                                        ]
+                                                                                        '$cond': {
+                                                                                            'if': {
+                                                                                                '$eq': [
+                                                                                                    '$$this.duration', 'Month'
+                                                                                                ]
+                                                                                            }, 
+                                                                                            'then': '$orderMonth', 
+                                                                                            'else': '$orderYear'
+                                                                                        }
                                                                                     }, 
                                                                                     'else': {
-                                                                                        '$concat': [
-                                                                                            {
-                                                                                                '$toString': '$$this.variable'
-                                                                                            }, '% of ', '$$this.variableType'
-                                                                                        ]
+                                                                                        '$cond': {
+                                                                                            'if': {
+                                                                                                '$eq': [
+                                                                                                    '$$this.duration', 'Month'
+                                                                                                ]
+                                                                                            }, 
+                                                                                            'then': '$revenueMonth', 
+                                                                                            'else': '$revenueYear'
+                                                                                        }
                                                                                     }
                                                                                 }
-                                                                            }, 
-                                                                            'variableValue': {
-                                                                                '$round': [
-                                                                                    {
+                                                                            }
+                                                                        }, 
+                                                                        'in': {
+                                                                            '$let': {
+                                                                                'vars': {
+                                                                                    'variableLabel': {
                                                                                         '$cond': {
                                                                                             'if': {
                                                                                                 '$eq': [
@@ -254,91 +252,181 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
                                                                                                 ]
                                                                                             }, 
                                                                                             'then': {
-                                                                                                '$multiply': [
-                                                                                                    '$$this.variable', {
-                                                                                                        '$divide': [
-                                                                                                            '$value', '$$this.variableUnit'
-                                                                                                        ]
-                                                                                                    }
+                                                                                                '$concat': [
+                                                                                                    '$currency', {
+                                                                                                        '$toString': '$$this.variable'
+                                                                                                    }, ' per ', {
+                                                                                                        '$toString': '$$this.variableUnit'
+                                                                                                    }, ' ', '$$this.variableType'
                                                                                                 ]
                                                                                             }, 
                                                                                             'else': {
-                                                                                                '$multiply': {
-                                                                                                    '$divide': [
-                                                                                                        {
-                                                                                                            '$multiply': [
-                                                                                                                '$value', '$$this.variable'
-                                                                                                            ]
-                                                                                                        }, 100
-                                                                                                    ]
-                                                                                                }
+                                                                                                '$concat': [
+                                                                                                    {
+                                                                                                        '$toString': '$$this.variable'
+                                                                                                    }, '% of ', '$$this.variableType'
+                                                                                                ]
                                                                                             }
                                                                                         }
-                                                                                    }, 1
-                                                                                ]
-                                                                            }
-                                                                        }, 
-                                                                        'in': {
-                                                                            '$let': {
-                                                                                'vars': {
-                                                                                    'total': {
-                                                                                        '$sum': [
-                                                                                            '$$this.price', '$$variableValue'
+                                                                                    }, 
+                                                                                    'variableValue': {
+                                                                                        '$round': [
+                                                                                            {
+                                                                                                '$cond': {
+                                                                                                    'if': {
+                                                                                                        '$eq': [
+                                                                                                            '$$this.variableType', 'Orders'
+                                                                                                        ]
+                                                                                                    }, 
+                                                                                                    'then': {
+                                                                                                        '$multiply': [
+                                                                                                            '$$this.variable', {
+                                                                                                                '$divide': [
+                                                                                                                    '$$value', '$$this.variableUnit'
+                                                                                                                ]
+                                                                                                            }
+                                                                                                        ]
+                                                                                                    }, 
+                                                                                                    'else': {
+                                                                                                        '$multiply': {
+                                                                                                            '$divide': [
+                                                                                                                {
+                                                                                                                    '$multiply': [
+                                                                                                                        '$$value', '$$this.variable'
+                                                                                                                    ]
+                                                                                                                }, 100
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }, 1
                                                                                         ]
                                                                                     }
                                                                                 }, 
                                                                                 'in': {
                                                                                     '$let': {
                                                                                         'vars': {
-                                                                                            'gst': {
-                                                                                                '$round': {
-                                                                                                    '$multiply': [
-                                                                                                        '$$total', 0.18
-                                                                                                    ]
-                                                                                                }
+                                                                                            'total': {
+                                                                                                '$sum': [
+                                                                                                    '$$this.price', '$$variableValue'
+                                                                                                ]
                                                                                             }
                                                                                         }, 
                                                                                         'in': {
                                                                                             '$let': {
                                                                                                 'vars': {
-                                                                                                    'payable': {
-                                                                                                        '$sum': [
-                                                                                                            '$$total', '$$gst'
+                                                                                                    'gst': {
+                                                                                                        '$round': [
+                                                                                                            {
+                                                                                                                '$multiply': [
+                                                                                                                    '$$total', 0.18
+                                                                                                                ]
+                                                                                                            }, 2
                                                                                                         ]
                                                                                                     }
                                                                                                 }, 
                                                                                                 'in': {
-                                                                                                    'total': '$$payable', 
-                                                                                                    'variableLabel': '$$variableValue', 
-                                                                                                    'groups': [
-                                                                                                        {
-                                                                                                            'label': 'A. Base Price', 
-                                                                                                            'value': '$$this.price'
-                                                                                                        }, {
-                                                                                                            'label': {
-                                                                                                                '$concat': [
-                                                                                                                    'B. ', '$$this.variableType'
+                                                                                                    '$let': {
+                                                                                                        'vars': {
+                                                                                                            'payable': {
+                                                                                                                '$round': [
+                                                                                                                    {
+                                                                                                                        '$sum': [
+                                                                                                                            '$$total', '$$gst'
+                                                                                                                        ]
+                                                                                                                    }, 2
                                                                                                                 ]
-                                                                                                            }, 
-                                                                                                            'sublabel': 'Last 30 Days', 
-                                                                                                            'value': '$value'
-                                                                                                        }, {
-                                                                                                            'label': 'C. Variable Price', 
-                                                                                                            'sublabel': '$variableLabel', 
-                                                                                                            'value': '$$variableValue'
-                                                                                                        }, {
-                                                                                                            'label': 'D. Gross Total', 
-                                                                                                            'sublabel': 'Base Price + Variable', 
-                                                                                                            'value': '$$total'
-                                                                                                        }, {
-                                                                                                            'label': 'E. GST', 
-                                                                                                            'sublabel': 'Applicable Taxes', 
-                                                                                                            'value': '$$gst'
-                                                                                                        }, {
-                                                                                                            'label': 'F. Net Payable', 
-                                                                                                            'value': '$$payable'
+                                                                                                            }
+                                                                                                        }, 
+                                                                                                        'in': {
+                                                                                                            'total': '$$payable',
+                                                                                                            'groups': [
+                                                                                                                {
+                                                                                                                    'label': 'A. Base Price', 
+                                                                                                                    'value': {
+                                                                                                                        '$concat': [
+                                                                                                                            '$currency', {
+                                                                                                                                '$toString': '$$this.price'
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                }, {
+                                                                                                                    'label': {
+                                                                                                                        '$concat': [
+                                                                                                                            'B. ', '$$this.variableType'
+                                                                                                                        ]
+                                                                                                                    }, 
+                                                                                                                    'sublabel': {
+                                                                                                                        '$cond': {
+                                                                                                                            'if': {
+                                                                                                                                '$eq': [
+                                                                                                                                    '$$this.duration', 'Month'
+                                                                                                                                ]
+                                                                                                                            }, 
+                                                                                                                            'then': 'Last 30 Days', 
+                                                                                                                            'else': 'Last 1 Year'
+                                                                                                                        }
+                                                                                                                    }, 
+                                                                                                                    'value': {
+                                                                                                                        '$concat': [
+                                                                                                                            {
+                                                                                                                                '$cond': {
+                                                                                                                                    'if': {
+                                                                                                                                        '$eq': [
+                                                                                                                                            '$$this.variableType', 'Orders'
+                                                                                                                                        ]
+                                                                                                                                    }, 
+                                                                                                                                    'then': '', 
+                                                                                                                                    'else': '$currency'
+                                                                                                                                }
+                                                                                                                            }, {
+                                                                                                                                '$toString': '$$value'
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                }, {
+                                                                                                                    'label': 'C. Variable Price', 
+                                                                                                                    'sublabel': '$variableLabel', 
+                                                                                                                    'value': {
+                                                                                                                        '$concat': [
+                                                                                                                            '$currency', {
+                                                                                                                                '$toString': '$$variableValue'
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                }, {
+                                                                                                                    'label': 'D. Gross Total', 
+                                                                                                                    'sublabel': 'Base Price + Variable', 
+                                                                                                                    'value': {
+                                                                                                                        '$concat': [
+                                                                                                                            '$currency', {
+                                                                                                                                '$toString': '$$total'
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                }, {
+                                                                                                                    'label': 'E. GST', 
+                                                                                                                    'sublabel': 'Applicable Taxes', 
+                                                                                                                    'value': {
+                                                                                                                        '$concat': [
+                                                                                                                            '$currency', {
+                                                                                                                                '$toString': '$$gst'
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                }, {
+                                                                                                                    'label': 'F. Net Payable', 
+                                                                                                                    'value': {
+                                                                                                                        '$concat': [
+                                                                                                                            '$currency', {
+                                                                                                                                '$toString': '$$payable'
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            ]
                                                                                                         }
-                                                                                                    ]
+                                                                                                    }
                                                                                                 }
                                                                                             }
                                                                                         }
@@ -365,7 +453,18 @@ def pipeline(marketplace: PyObjectId, revenue: float, orders: int) -> list[dict]
     }, {
         '$project': {
             'value': 0, 
-            'plan._id': 0
+            'plan._id': 0, 
+            'revenueMonth': 0, 
+            'orderMonth': 0, 
+            'orderYear': 0, 
+            'revenueYear': 0
+        }
+    }, {
+        '$lookup': {
+            'from': 'gstin', 
+            'localField': 'uid', 
+            'foreignField': 'uid', 
+            'as': 'gstins'
         }
     }
 ]

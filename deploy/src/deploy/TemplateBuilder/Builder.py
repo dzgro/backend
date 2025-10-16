@@ -280,4 +280,7 @@ class TemplateBuilder:
 
 
 if __name__ == "__main__":
-    TemplateBuilder().deploy()
+    import docker_manager
+    docker_manager.start_ubuntu_docker()
+    # TemplateBuilder().deploy()
+    docker_manager.stop_ubuntu_docker()

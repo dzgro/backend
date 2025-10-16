@@ -60,3 +60,11 @@ class SalesClient(BaseClient):
             interval=f"{thirty_days_ago}--{now.strftime(self.dateformat)}",
             granularity=Granularity.TOTAL
         )
+
+    async def getLastYearSales(self):
+        now = datetime.now()
+        one_year_ago = (now - timedelta(days=365)).strftime(self.dateformat)
+        return await self.get_order_metrics(
+            interval=f"{one_year_ago}--{now.strftime(self.dateformat)}",
+            granularity=Granularity.TOTAL
+        )
