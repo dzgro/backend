@@ -1,10 +1,10 @@
 from typing import Literal
 from dzgroshared.sqs.model import QueueName
 from dzgroshared.storage.model import S3Bucket
-from deploy.TemplateBuilder.StarterMapping import Region, LambdaName, Tag
+from sam_deploy.config.mapping import Region, LambdaName, Tag
 from dzgroshared.db.enums import ENVIRONMENT
 import os, boto3
-    
+
 
 class TemplateBuilder:
     env: ENVIRONMENT
@@ -15,77 +15,25 @@ class TemplateBuilder:
     lambdaRoleName: str = 'DzgroLambdaRole'
     apigateway: dict
 
-    def __init__(self) -> None:
+    def __init__(self, env: ENVIRONMENT = None) -> None:
         from dotenv import load_dotenv
         load_dotenv()
         from dzgroshared.db.enums import ENVIRONMENT, CountryCode
-        env = ENVIRONMENT(os.getenv("ENV", None))
-        if not env: raise ValueError("ENV environment variable not set")
+        # Allow env to be passed in, otherwise read from ENV variable
+        if env is None:
+            env = ENVIRONMENT(os.getenv("ENV", None))
+            if not env: raise ValueError("ENV environment variable not set")
         self.env = env
         self.envtextlower = env.value
         self.envtextTitle = env.value.title()
 
-    
-    def askForRegions(self):
-        import inquirer
-        choices=[x.value for x in Region.all()]
-        choices.append("All Regions")
-        question = [
-            inquirer.List(
-                "script",
-                message="Select a Region to run:",
-                choices=choices,
-            )
-        ]
-        answer = inquirer.prompt(question)
-        if not answer or "script" not in answer:
-            print("No selection made.")
-            exit(1)
-        if answer["script"] == "All Regions":
-            return Region.all()
-        return [Region(answer["script"])]
-
-    def deploy(self):
-        # regions = self.askForRegions()
-        regions = [Region.DEFAULT]
-        for region in regions:
-            try:
-                self.resources = {}
-                if self.env==ENVIRONMENT.LOCAL:
-                    buckets = [self.getBucketName(bucket) for bucket in S3Bucket.all()]
-                    s3 = boto3.client('s3', region_name=region.value)
-                    for bucket in buckets:
-                        try: 
-                            s3.create_bucket(Bucket=bucket, CreateBucketConfiguration={'LocationConstraint': region.value})
-                            print(f"Bucket {bucket} created")
-                        except Exception as e: print(f"Error creating bucket {bucket}: {e}")
-                else:
-                    from deploy.TemplateBuilder.SamExecutor import SAMExecutor
-                    sam = SAMExecutor(self)
-                    if region==Region.DEFAULT:
-                        sam.check_stack_status(region)
-                        cognitoCertificateArn = self.getWildCardCertificateArn('Auth')
-                        apiCertificateArn = self.getWildCardCertificateArn('Api')
-                        from deploy.TemplateBuilder.BuildLayers import LambdaLayerBuilder
-                        optimized_builder = LambdaLayerBuilder(self.env, region, max_workers=4)
-                        layerArns = optimized_builder.execute_optimized()
-                        optimized_builder.print_performance_summary()
-                        from deploy.TemplateBuilder.BuildApiGateway import ApiGatewayBuilder
-                        ApiGatewayBuilder(self).execute(apiCertificateArn)
-                        from deploy.TemplateBuilder.BuildCognito import CognitoBuilder
-                        CognitoBuilder(self).execute()
-                    from deploy.TemplateBuilder.BuildLambdasBucketsQueues import LambdasBucketsQueuesBuilder
-                    LambdasBucketsQueuesBuilder(self).execute(region, layerArns)
-                    
-                    sam.saveTemplateAsYaml(region)
-                    sam.execute(region)
-                    if region==Region.DEFAULT: self.createUserPoolDomain(region, cognitoCertificateArn)
-            except Exception as e:
-                print(f"Error occurred while building SAM template for region {region.value}: {e}")
-                raise e
-
-    def getWildCardCertificateArn(self, type: Literal['Auth','Api']) -> str:
-        region = Region.DEFAULT.value if type=='Api' else 'us-east-1'
+    def getWildCardCertificateArn(self, type: Literal['Auth', 'Api', 'Webhook']) -> str:
+        """Create/retrieve certificate ARN via boto3
+        - Auth: us-east-1 (Cognito requirement)
+        - Api: region-specific
+        - Webhook: region-specific
+        """
+        region = 'us-east-1' if type == 'Auth' else Region.DEFAULT.value
         acm = boto3.client("acm", region_name=region)
         certificates = acm.list_certificates(CertificateStatuses=['PENDING_VALIDATION', 'ISSUED', 'INACTIVE', 'EXPIRED', 'VALIDATION_TIMED_OUT', 'REVOKED', 'FAILED'])
         domain = self.getDomainNameByType(type)
@@ -109,7 +57,7 @@ class TemplateBuilder:
             if status!='PENDING_VALIDATION' and status!='ISSUED':
                 raise Exception(f"Certificate {arn} for {type} in {region} failed with status {status}")
         return arn
-    
+
     def getAssets(self):
         import base64
         import os
@@ -139,7 +87,7 @@ class TemplateBuilder:
             },
         ]
         return assets
-    
+
     def createUserPoolDomain(self, region: Region, authCertificateArn: str):
         idp = boto3.client("cognito-idp", region_name=region.value)
         from botocore.exceptions import ClientError
@@ -186,8 +134,8 @@ class TemplateBuilder:
                     )
                     clientId = next((client['ClientId'] for client in response['UserPoolClients'] if client['ClientName']==self.getUserPoolClientName()), None)
                     if not clientId: raise Exception(f"User Pool Client {self.getUserPoolClientName()} not found in User Pool {self.getUserPoolName()}")
-                    
-                    
+
+
                     try:
                         response = idp.describe_managed_login_branding_by_client(
                             UserPoolId=userPoolId,
@@ -211,7 +159,7 @@ class TemplateBuilder:
                     print(f"Created Managed Login Branding as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
 
 
-                    
+
             except ClientError as e:
                 print(f"Error creating User Pool Domain {domain}: {e}")
                 raise e
@@ -223,17 +171,21 @@ class TemplateBuilder:
 
     def getUserPoolClientName(self):
         return f"Dzgro{self.envtextTitle}Client"
-    
+
     def rootDomain(self):
         return "dzgro.com"
 
     def envDomain(self):
         if self.env==ENVIRONMENT.PROD: return self.rootDomain()
         return f'{self.envtextlower}.{self.rootDomain()}'
-    
-    def getDomainNameByType(self, type: Literal['Auth','Api']):
-        if self.env==ENVIRONMENT.PROD: return f'{type.lower()}.{self.envDomain()}'
-        return f'{type.lower()}.{self.envDomain()}'
+
+    def getDomainNameByType(self, type: Literal['Auth', 'Api', 'Webhook']):
+        """Generate domain name based on type and environment"""
+        prefix = type.lower()
+        if self.env == ENVIRONMENT.PROD:
+            return f"{prefix}.dzgro.com"
+        else:
+            return f"{prefix}.{self.envtextlower}.dzgro.com"
 
     def getAuthDomainName(self):
         return self.getDomainNameByType('Auth')
@@ -241,8 +193,13 @@ class TemplateBuilder:
     def getApiDomainName(self):
         return self.getDomainNameByType('Api')
 
+    def getWebhookDomainName(self) -> str:
+        """Returns webhook.{env}.dzgro.com"""
+        return self.getDomainNameByType('Webhook')
+
     def getLambdaRoleName(self, name: LambdaName):
-        return f'{name.value}LambdaRole{self.envtextTitle}'
+        """Returns Lambda role name WITHOUT environment suffix"""
+        return f'{name.value}LambdaRole'
 
     def getUserPoolName(self):
         return f'DzgroUserPool{self.envtextTitle}'
@@ -251,7 +208,8 @@ class TemplateBuilder:
         return f'ApiGatewayRole{self.envtextTitle}'
 
     def getApiGatewayName(self):
-        return f'ApiGateway{self.envtextTitle}'
+        """Returns API Gateway name WITHOUT environment suffix"""
+        return 'ApiGateway'
 
     def getBucketName(self, name: S3Bucket):
         return f'{name.value}-{self.envtextlower}'
@@ -260,7 +218,8 @@ class TemplateBuilder:
         return f'{name.value.replace("-", " ").title().replace(" ", "")}{self.envtextTitle}Bucket'
 
     def getFunctionName(self, name: LambdaName):
-        return f'{name.value}{self.envtextTitle}Function'
+        """Returns Lambda function name WITHOUT environment suffix"""
+        return f'{name.value}Function'
 
     def getQueueName(self, name: QueueName, type: Literal['Q','DLQ','EventSourceMapping']):
         return f'{name.value}{self.envtextTitle}{type}'
@@ -280,9 +239,22 @@ class TemplateBuilder:
     def createQEventMapping(self, q:str, functionName: str):
         return { 'Type': 'AWS::Lambda::EventSourceMapping', 'Properties': { 'EventSourceArn': {'Fn::GetAtt': [q, 'Arn']}, 'FunctionName': {'Ref': functionName} } }
 
+    def getLambdaAliasName(self, env: ENVIRONMENT) -> str:
+        """Returns alias name: 'dev', 'staging', 'prod'"""
+        return env.value.lower()
 
-if __name__ == "__main__":
-    import docker_manager
-    docker_manager.start_ubuntu_docker()
-    TemplateBuilder().deploy()
-    docker_manager.stop_ubuntu_docker()
+    def getApiStageName(self, env: ENVIRONMENT) -> str:
+        """Returns stage name: 'dev', 'staging', 'prod'"""
+        return env.value.lower()
+
+    def getLambdaArnWithAlias(self, function_name: str, alias: str) -> dict:
+        """Helper for Lambda ARN with alias"""
+        return {'Fn::Sub': f'${{{{{AWS::AccountId}}}}}/${{{{{AWS::Region}}}}}/functions/{function_name}:{alias}'}
+
+    def getApiHttpApiName(self) -> str:
+        """Name for API HTTP API"""
+        return 'ApiHttpApi'
+
+    def getWebhookHttpApiName(self) -> str:
+        """Name for Webhook HTTP API"""
+        return 'WebhookHttpApi'
