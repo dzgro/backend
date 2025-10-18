@@ -49,14 +49,14 @@ class PricingHelper:
     
     async def generateOrderForMarketplace(self, req: MarketplacePlanOrderObject):
         plans = (await self.getMarketplacePricing(req.marketplace))
-        plan = next((plan for plan in plans.details if plan.name==req.plan and plan.duration==req.duration), None)
+        plan = next((plan for plan in plans.details if plan.name==req.plan.plan and plan.duration==req.plan.duration), None)
         if not plan: raise ValueError("Plan not found")
         if req.gstin and not plans.gstin==req.gstin: await self.client.db.marketplace_gstin.linkGst(req.gstin, req.marketplace)
         notes = RazorPayOrderNotes(
             uid=self.client.uid,
             marketplace=req.marketplace,
             gstin=req.gstin,
-            plan=MarketplacePlan(**req.model_dump(mode="json"))
+            plan=req.plan
         )
         orderReq = RazorpayCreateOrder( 
             currency=plans.currencyCode,

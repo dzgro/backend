@@ -65,7 +65,7 @@ class ApiGatewayBuilder:
                                 {
                                     "Effect": "Allow",
                                     "Action": "sqs:SendMessage",
-                                    "Resource": { "Fn::Sub": f"arn:aws:sqs:${{AWS::Region}}:${{AWS::AccountId}}:*{self.builder.env.value}Q" }
+                                    "Resource": { "Fn::Sub": f"arn:aws:sqs:${{AWS::Region}}:${{AWS::AccountId}}:*{self.builder.env.value.title()}Q" }
                                 }
                             ]
                         }

@@ -121,7 +121,7 @@ class DbManager:
     
     async def updateMany(self, filterDict: dict = {}, setDict: dict = {})->int:
         filterDict = self.getFilterDict(filterDict)
-        return (await self.collection.update_many(filterDict, setDict)).modified_count
+        return (await self.collection.update_many(filterDict, {"$set": setDict})).modified_count
     
     async def deleteFields(self, fields: list[str], filterDict: dict = {})->int:
         unsetDict = {"$unset": {f: "" for f in fields}}

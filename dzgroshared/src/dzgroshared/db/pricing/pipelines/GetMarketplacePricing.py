@@ -466,5 +466,47 @@ def pipeline(marketplace: PyObjectId, revenueMonth: float, orderMonth: int, reve
             'foreignField': 'uid', 
             'as': 'gstins'
         }
+    },
+    {
+        '$lookup': {
+            'from': 'marketplace_gstin', 
+            'localField': '_id', 
+            'foreignField': 'marketplace', 
+            'pipeline': [
+                {
+                    '$match': {
+                        '$expr': {
+                            '$eq': [
+                                '$status', 'Active'
+                            ]
+                        }
+                    }
+                }, {
+                    '$project': {
+                        'gstin': 1, 
+                        '_id': 0
+                    }
+                }
+            ], 
+            'as': 'gstin'
+        }
+    }, {
+        '$set': {
+            'gstin': {
+                '$cond': {
+                    'if': {
+                        '$gt': [
+                            {
+                                '$size': '$gstin'
+                            }, 0
+                        ]
+                    }, 
+                    'then': {
+                        '$first': '$gstin.gstin'
+                    }, 
+                    'else': None
+                }
+            }
+        }
     }
 ]

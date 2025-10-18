@@ -28,15 +28,6 @@ class MarketplaceHelper:
     
     async def getMarketplaceStatus(self, id: PyObjectId):
         return MarketplaceStatus((await self.db.findOne({'_id': id}, projectionInc=['status']))['status'])
-    
-    async def startMarketplaceReporting(self, id: PyObjectId):
-        count, updatedId  = await self.db.updateOne({"_id": id, "status": MarketplaceStatus.NEW.value}, setDict={"status": MarketplaceStatus.BUFFERING.value})
-        if count==0: raise ValueError("Marketplace could not be updated")
-        from dzgroshared.sqs.model import SendMessageRequest, QueueName
-        from dzgroshared.db.queue_messages.model import AmazoMarketplaceDailyReportQM, AmazonDailyReportAggregationStep
-        req = SendMessageRequest(Queue=QueueName.AMAZON_REPORTS)
-        body = AmazoMarketplaceDailyReportQM(marketplace=id, step=AmazonDailyReportAggregationStep.CREATE_REPORTS, uid=self.client.uid)
-        await self.client.sqs.sendMessage(req, body)
 
     async def getMarketplaceForCache(self, id: PyObjectId):
         return MarketplaceCache.model_validate(self.db.findOne({"_id": id, "uid": self.client.uid}, projectionInc=["sellerid", "profileid", "marketplaceid","countrycode","uid"]))

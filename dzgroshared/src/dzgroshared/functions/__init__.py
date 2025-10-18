@@ -36,6 +36,12 @@ class FunctionClient:
         return await RazorpayWebhookProcessor(self.client).execute(self.record)
     
     @property
+    async def invoice_generator(self):
+        if not self.record: raise ValueError("Record is required for InvoiceGenerator function")
+        from dzgroshared.functions.RazorpayWebhookProcessor.handler import RazorpayWebhookProcessor
+        return await RazorpayWebhookProcessor(self.client).execute(self.record)
+    
+    @property
     async def daily_report_refresh(self):
         from dzgroshared.functions.DailyReportRefreshByCountryCode.handler import DailyReportRefreshByCountryCodeProcessor
         if not self.record: raise ValueError("Record is required for DzgroReports function")

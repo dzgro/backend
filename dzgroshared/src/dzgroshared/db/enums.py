@@ -230,6 +230,7 @@ class QueueMessageModelType(str, Enum):
     ORDER_PAID = "OrderPaidQM"
     INVOICE_PAID = "InvoicePaidQM"
     INVOICE_EXPIRED = "InvoiceExpiredQM"
+    GENERATE_INVOICE = "GenerateInvoiceQM"
     
 class CountryCode(Enum):
     CANADA = 'CA'

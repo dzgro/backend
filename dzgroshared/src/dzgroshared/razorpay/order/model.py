@@ -12,8 +12,8 @@ class RazorpayOrderStatus(str, Enum):
     
 class RazorPayOrderNotes(BaseModel):
     uid: str
+    gstin: PyObjectId
     marketplace: PyObjectId|SkipJsonSchema[None]=None
-    gstin: PyObjectId|SkipJsonSchema[None]=None
     plan: MarketplacePlan|SkipJsonSchema[None]=None
 
 

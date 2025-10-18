@@ -9,13 +9,13 @@ from pydantic.json_schema import SkipJsonSchema
 
 
 class MarketplaceGSTStatus(str, Enum):
-    ACTIVE = "ACTIVE"
-    ARCHIVED = "ARCHIVED"
+    ACTIVE = "Active"
+    ARCHIVED = "Archived"
 
 class MarketplaceGst(ItemId):
     gstin: PyObjectId
     marketplace: PyObjectId
-    active: MarketplaceGSTStatus
+    status: MarketplaceGSTStatus
     createdat: datetime
     archivedat: datetime|SkipJsonSchema[None]=None
     

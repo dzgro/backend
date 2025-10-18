@@ -239,7 +239,7 @@ LAMBDAS = [
         description="Processes messages from SQS queues based on their model type.",
         memorySize=1024,
         timeout=900,
-        layers = [LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
+        layers = [LAYER_NAME.DZGRO_SHARED, LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.PANDAS],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
@@ -257,29 +257,33 @@ LAMBDAS = [
                         roles=QueueRole.all()
                     ),
                     QueueProperty(
-                name=QueueName.RAZORPAY_WEBHOOK,
-                roles=QueueRole.all(),
-                apiTrigger=[
-                    APIGatewaySQSTrigger(
-                        method='POST',
-                        path='/webhook/rzrpay/order/paid',
-                        headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
-                        modeltype=QueueMessageModelType.ORDER_PAID
+                        name=QueueName.INVOICE_GENERATOR,
+                        roles=QueueRole.all()
                     ),
-                    APIGatewaySQSTrigger(
-                        method='POST',
-                        path='/webhook/rzrpay/invoice/paid',
-                        headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
-                        modeltype=QueueMessageModelType.INVOICE_PAID
-                    ),
-                    APIGatewaySQSTrigger(
-                        method='POST',
-                        path='/webhook/rzrpay/invoice/expired',
-                        headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
-                        modeltype=QueueMessageModelType.INVOICE_EXPIRED
+                    QueueProperty(
+                        name=QueueName.RAZORPAY_WEBHOOK,
+                        roles=QueueRole.all(),
+                        apiTrigger=[
+                            APIGatewaySQSTrigger(
+                                method='POST',
+                                path='/webhook/rzrpay/order/paid',
+                                headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
+                                modeltype=QueueMessageModelType.ORDER_PAID
+                            ),
+                            APIGatewaySQSTrigger(
+                                method='POST',
+                                path='/webhook/rzrpay/invoice/paid',
+                                headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
+                                modeltype=QueueMessageModelType.INVOICE_PAID
+                            ),
+                            APIGatewaySQSTrigger(
+                                method='POST',
+                                path='/webhook/rzrpay/invoice/expired',
+                                headers=['x-razorpay-event-id', 'X-Razorpay-Signature'],
+                                modeltype=QueueMessageModelType.INVOICE_EXPIRED
+                            )
+                        ]
                     )
-                ]
-            )
                 ],
                 s3=[S3Property(name=name, roles=S3Role.all()) for name in S3Bucket.all()]
             )

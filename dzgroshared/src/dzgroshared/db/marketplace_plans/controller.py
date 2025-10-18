@@ -17,17 +17,16 @@ class MarketplacePlanHelper:
 
     async def getActivePlan(self):
         try:
-            data = await self.db.findOne({"marketplace": self.client.marketplaceId, "active": MarketplacePlanStatus.ACTIVE.value})
+            data = await self.db.findOne({"marketplace": self.client.marketplaceId, "status": MarketplacePlanStatus.ACTIVE.value})
             return MarketplacePlan.model_validate({"data": data})
         except Exception as e:
             raise ValueError("No active plan found for this marketplace.")
 
-    async def addPlan(self, marketplace: PyObjectId, plan: MarketplacePlan):
-        data = {"marketplace": marketplace, "active": MarketplacePlanStatus.ACTIVE.value}
-        await self.db.updateMany(data, setDict={"active": MarketplacePlanStatus.ARCHIVED.value})
-        data.update(plan.model_dump(mode="json"))
-        data['_id'] = await self.db.insertOne(data)
-        return MarketplacePlan.model_validate(**data)
+    async def addPlan(self, orderid: str, marketplace: PyObjectId, plan: MarketplacePlan):
+        data = {"marketplace": marketplace, "status": MarketplacePlanStatus.ACTIVE.value}
+        await self.db.updateMany(data, setDict={"status": MarketplacePlanStatus.ARCHIVED.value})
+        data.update({"plan": plan.plan.value, "pricing": plan.pricing, "duration": plan.duration.value, "orderid": orderid})
+        return await self.db.insertOne(data)
     
         
     

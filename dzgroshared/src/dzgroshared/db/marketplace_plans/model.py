@@ -8,12 +8,12 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 class MarketplacePlanStatus(str, Enum):
-    ACTIVE = "ACTIVE"
-    ARCHIVED = "ARCHIVED"
+    ACTIVE = "Active"
+    ARCHIVED = "Archived"
 
     
 class MarketplacePlanDb(MarketplacePlan, ItemId):
-    active: MarketplacePlanStatus
+    status: MarketplacePlanStatus
     gstin: PyObjectId
     createdat: datetime
     archivedat: datetime|SkipJsonSchema[None]=None

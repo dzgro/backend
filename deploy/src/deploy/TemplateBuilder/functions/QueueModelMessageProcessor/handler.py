@@ -38,6 +38,8 @@ async def execute(event: dict, context):
                     await fn.dzgro_reports
                 elif record.model==QueueMessageModelType.AMAZON_DAILY_REPORT:
                     await fn.amazon_daily_report
+                elif record.model==QueueMessageModelType.GENERATE_INVOICE:
+                    await fn.invoice_generator
                 elif record.model in [QueueMessageModelType.ORDER_PAID, QueueMessageModelType.INVOICE_PAID, QueueMessageModelType.INVOICE_EXPIRED]:
                     await fn.razorpay_webhook_processor
             except Exception as e:

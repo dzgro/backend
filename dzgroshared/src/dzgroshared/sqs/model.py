@@ -16,7 +16,7 @@ class QueueName(str, Enum):
     DZGRO_REPORTS = "DzgroReports"
     AMS_CHANGE = "AmsChange"
     AMS_PERFORMANCE = "AmsPerformance"
-    PAYMENT_PROCESSOR = "PaymentProcessor"
+    INVOICE_GENERATOR = "InvoiceGenerator"
     DAILY_REPORT_REFRESH_BY_COUNTRY_CODE = "DailyReportRefreshByCountryCode"
 
     @classmethod

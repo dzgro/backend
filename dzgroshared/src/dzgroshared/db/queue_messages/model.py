@@ -32,8 +32,13 @@ class DailyReportByCountryQM(BaseModel):
     success: int|SkipJsonSchema[None]=None
     failed: int|SkipJsonSchema[None]=None
     total: int|SkipJsonSchema[None]=None
+    
+class GenerateInvoiceQM(BaseModel):
+    orderid: str
+    paymentid: str
+    uid: str
 
-QueueMessageModel = Union[AmazoMarketplaceDailyReportQM, DzgroReportQM, DailyReportByCountryQM, OrderPaidQM, InvoicePaidQM, InvoiceExpiredQM]
+QueueMessageModel = Union[AmazoMarketplaceDailyReportQM, DzgroReportQM, DailyReportByCountryQM, OrderPaidQM, InvoicePaidQM, InvoiceExpiredQM, GenerateInvoiceQM]
 
 MODEL_REGISTRY: dict[QueueMessageModelType, Type[QueueMessageModel]] = {
     QueueMessageModelType.AMAZON_DAILY_REPORT: AmazoMarketplaceDailyReportQM,
@@ -42,4 +47,6 @@ MODEL_REGISTRY: dict[QueueMessageModelType, Type[QueueMessageModel]] = {
     QueueMessageModelType.ORDER_PAID: OrderPaidQM,
     QueueMessageModelType.INVOICE_PAID: InvoicePaidQM,
     QueueMessageModelType.INVOICE_EXPIRED: InvoiceExpiredQM,
+    QueueMessageModelType.GENERATE_INVOICE: GenerateInvoiceQM,
+    
 }

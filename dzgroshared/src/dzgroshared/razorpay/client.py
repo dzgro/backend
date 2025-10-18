@@ -33,7 +33,7 @@ class RazorpayClient:
         import hmac
         import hashlib
         try:
-            message = f"{payment_id}|{id}"
+            message = f"{id}|{payment_id}"
             generated_signature = hmac.new( key=secret.encode('utf-8'), msg=message.encode('utf-8'), digestmod=hashlib.sha256 ).hexdigest()
             return hmac.compare_digest(generated_signature, signature)
         except Exception as e:

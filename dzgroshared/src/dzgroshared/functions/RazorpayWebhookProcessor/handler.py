@@ -47,9 +47,8 @@ class RazorpayWebhookProcessor:
     def setNotes(self, notes: dict):
         if notes:
             uid = notes.get('uid', None)
-            marketplace = notes.get('marketplace', None)
             if uid: self.client.uid = uid
-            if marketplace: self.client.marketplaceId = ObjectId(marketplace)
+        if not self.client.uid: raise ValueError("UID not found in notes")
 
     async def updateOrder(self, order: OrderPaidQM):
         self.setNotes(order.order.notes)
@@ -67,25 +66,7 @@ class RazorpayWebhookProcessor:
         self.setNotes(invoice.invoice.notes)
         await self.client.db.razorpay_orders.setInvoiceOrderAsExpired(invoice.invoice.order_id)
 
-    async def generateInvoice(self, orderEntity:OrderEntity, paymentEntity: PaymentEntity):
-        invoiceId = await self.client.db.invoice_number.getNextInvoiceId()
-        payment = await self.client.db.payments.addPayment(PaymentRequest(_id=invoiceId, paymentId=paymentEntity.id, amount=round(paymentEntity.amount / 100,2), gstrate=18))
-        from dzgroshared.functions.RazorpayWebhookProcessor.invoice import generate_gst_invoice
-        order = await self.client.db.razorpay_orders.getOrderById(orderEntity.id)
-        gstin = None if not order.gstin else await self.client.db.gstin.getGST(order.gstin)
-        user = await self.client.db.users.getUser()
-        buffer = generate_gst_invoice(invoiceId, user, payment, gstin)
-        self.saveToS3(buffer, invoiceId)
-                
-    def saveToS3(self, buffer: BytesIO, invoiceId:str):
-        buffer.seek(0)
-        from dzgroshared.storage.model import S3PutObjectModel, S3Bucket
-        bucket = S3Bucket.INVOICES
-        key = f'{self.client.uid}/invoices/{invoiceId}.pdf'
-        obj = S3PutObjectModel(
-            Bucket=bucket,
-            Key=key,
-            ContentType='application/pdf'
-        )
-        self.client.storage.put_object(obj, buffer.getvalue())
-        return key
+    async def generateInvoice(self, order: OrderEntity, payment: PaymentEntity):
+        from dzgroshared.sqs import utils
+        await utils.sendGenerateInvoiceMessage(self.client, order.id, payment.id)
+            
