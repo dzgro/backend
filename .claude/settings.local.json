@@ -31,7 +31,8 @@
       "Bash(aws s3 rb:*)",
       "Bash(aws s3api list-object-versions:*)",
       "Bash(while read key versionId)",
-      "Bash(do aws s3api delete-object --bucket aws-sam-cli-managed-default-samclisourcebucket-ivwvktihli2u --key \"$key\" --version-id \"$versionId\")"
+      "Bash(do aws s3api delete-object --bucket aws-sam-cli-managed-default-samclisourcebucket-ivwvktihli2u --key \"$key\" --version-id \"$versionId\")",
+      "Bash(pip show:*)"
     ],
     "deny": [],
     "ask": []

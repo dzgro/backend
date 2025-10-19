@@ -20,7 +20,7 @@ faker = "^19.0.0"
 # Local project dependencies
 api = { path = "../api", develop = true }
 dzgroshared = { path = "../dzgroshared", develop = true }
-deploy = { path = "../deploy", develop = true }
+sam-deploy = { path = "../sam-deploy", develop = true }
 
 [tool.poetry.group.performance]
 optional = true
