@@ -25,7 +25,13 @@
       "Bash(aws cloudformation list-stack-resources:*)",
       "Bash(aws cloudformation deploy:*)",
       "Bash(aws lambda list-aliases:*)",
-      "Bash(aws lambda invoke:*)"
+      "Bash(aws lambda invoke:*)",
+      "Bash(timeout 60 python -m sam_deploy)",
+      "Bash(aws s3 ls:*)",
+      "Bash(aws s3 rb:*)",
+      "Bash(aws s3api list-object-versions:*)",
+      "Bash(while read key versionId)",
+      "Bash(do aws s3api delete-object --bucket aws-sam-cli-managed-default-samclisourcebucket-ivwvktihli2u --key \"$key\" --version-id \"$versionId\")"
     ],
     "deny": [],
     "ask": []

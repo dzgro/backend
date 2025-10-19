@@ -397,126 +397,176 @@ def deploy_core_product_features(regions: List[Region]) -> None:
         print(f"{'=' * 80}")
 
         # Create ONE builder for this region (will contain all environments)
-        # Use DEV as the base environment, but we'll create resources for all 3
+        # Use DEV as base but builder will create resources for all 3 envs
         builder = TemplateBuilder(ENVIRONMENT.DEV)
 
-            # Step 1: Build Lambda layers (only on first region + first env)
-            if region_idx == 1 and env_idx == 1:
-                print(f"\n[1/8] [PACKAGE] Building Lambda layers (will be cached for other regions and environments)...")
-                layer_builder = LambdaLayerBuilder(env, region)
+        # Step 1: Build Lambda layers (only on first region)
+        if region_idx == 1:
+            print(f"\n[1/10] [PACKAGE] Building Lambda layers (will be cached for other regions)...")
+            layer_builder = LambdaLayerBuilder(ENVIRONMENT.DEV, region)
+            layer_arns_cache[region.value] = layer_builder.execute_optimized()
+            print(f"  [OK] Layers built: {len(layer_arns_cache[region.value])} layers")
+        else:
+            print(f"\n[1/10] [PACKAGE] Publishing Lambda layers to {region.value}...")
+            if region.value not in layer_arns_cache:
+                layer_builder = LambdaLayerBuilder(ENVIRONMENT.DEV, region)
                 layer_arns_cache[region.value] = layer_builder.execute_optimized()
-                print(f"  [OK] Layers built: {len(layer_arns_cache[region.value])} layers")
-            elif region_idx == 1:
-                print(f"\n[1/8] [PACKAGE] Using cached Lambda layers from {ENVIRONMENT.DEV.value}...")
-                # Reuse layers from DEV for staging/prod in same region
-                print(f"  [OK] Layers reused: {len(layer_arns_cache[region.value])} layers")
-            else:
-                print(f"\n[1/8] [PACKAGE] Publishing Lambda layers to {region.value}...")
-                if region.value not in layer_arns_cache:
-                    layer_builder = LambdaLayerBuilder(env, region)
-                    layer_arns_cache[region.value] = layer_builder.execute_optimized()
-                print(f"  [OK] Layers published to {region.value}: {len(layer_arns_cache[region.value])} layers")
+            print(f"  [OK] Layers published to {region.value}: {len(layer_arns_cache[region.value])} layers")
 
-            # Get layers for current region
-            current_layer_arns = layer_arns_cache[region.value]
+        # Get layers for current region
+        current_layer_arns = layer_arns_cache[region.value]
 
-            # Step 2: Build certificates (Auth, API, Webhook)
-            print(f"\n[2/8] [SECURE] Building certificates for {env.value.upper()} (Auth, API, Webhook)...")
-            try:
-                # Auth certificate (us-east-1 for Cognito)
-                auth_certificate_arn = builder.getWildCardCertificateArn('Auth')
-                # API certificate (region-specific)
-                api_certificate_arn = builder.getWildCardCertificateArn('Api')
-                # Webhook certificate (region-specific)
-                webhook_certificate_arn = builder.getWildCardCertificateArn('Webhook')
-                print(f"  [OK] Certificates ready for {env.value.upper()}")
-            except Exception as e:
-                print(f"  [ERROR] Certificate setup failed: {e}")
-                raise
+        # Step 2: Build certificates for ALL environments together (Auth, API, Webhook)
+        print(f"\n[2/10] [SECURE] Building certificates for all environments (dev, staging, prod)...")
+        try:
+            # Get all certificates for all environments at once
+            # This creates/retrieves all 9 certificates (3 types × 3 environments) simultaneously
+            all_certificates = TemplateBuilder.getWildCardCertificateArnsForAllEnvironments(environments, region)
+            print(f"  [OK] All certificates ready for all environments")
+        except Exception as e:
+            print(f"  [ERROR] Certificate setup failed: {e}")
+            raise
 
-            # Step 3: Build Cognito User Pool (separate per environment)
-            print(f"\n[3/8] [USER] Building Cognito User Pool for {env.value.upper()}...")
-            try:
-                cognito_builder = CognitoBuilder(builder)
-                cognito_builder.execute(auth_certificate_arn)
-                print(f"  [OK] Cognito User Pool created for {env.value.upper()}")
-            except Exception as e:
-                print(f"  [ERROR] Cognito build failed: {e}")
-                raise
+        # Step 3: Build Cognito User Pools (3 pools: dev, staging, prod)
+        print(f"\n[3/10] [USER] Building Cognito User Pools (dev, staging, prod)...")
+        try:
+            from sam_deploy.builder.build_cognito import CognitoBuilder
+            for env in environments:
+                env_builder = TemplateBuilder(env)
+                cognito_builder = CognitoBuilder(env_builder)
+                # Use environment-specific auth certificate
+                auth_cert_arn = all_certificates['Auth'][env.value]
+                cognito_builder.execute(auth_cert_arn)
+                # Copy resources to main builder
+                builder.resources.update(env_builder.resources)
+            print(f"  [OK] Created 3 Cognito User Pools")
+        except Exception as e:
+            print(f"  [ERROR] Cognito build failed: {e}")
+            raise
 
-            # Step 4: Build Lambda functions
-            print(f"\n[4/8] [LAMBDA] Building Lambda functions for {env.value.upper()}...")
-            try:
-                lambda_builder = LambdaBuilder(builder)
-                lambda_builder.execute(region, current_layer_arns)
-                print(f"  [OK] Lambda functions created for {env.value.upper()}")
-            except Exception as e:
-                print(f"  [ERROR] Lambda build failed: {e}")
-                raise
+        # Step 4: Build Lambda functions with aliases (dev, staging, prod)
+        print(f"\n[4/10] [LAMBDA] Building Lambda functions with aliases (dev, staging, prod)...")
+        try:
+            lambda_builder = LambdaBuilder(builder)
+            lambda_builder.execute_with_aliases(region, current_layer_arns, environments)
+            print(f"  [OK] Lambda functions created with aliases")
+        except Exception as e:
+            print(f"  [ERROR] Lambda build failed: {e}")
+            raise
 
-            # Step 5: Build HTTP APIs (API + Webhook)
-            print(f"\n[5/8] [API] Building HTTP APIs for {env.value.upper()} (API + Webhook)...")
-            try:
-                api_builder = HttpApiBuilder(builder)
-                api_builder.execute(api_certificate_arn, webhook_certificate_arn, region)
-                print(f"  [OK] HTTP APIs created for {env.value.upper()}")
-            except Exception as e:
-                print(f"  [ERROR] HTTP API build failed: {e}")
-                raise
+        # Step 5: Build HTTP APIs with 3 stages (dev, staging, prod)
+        print(f"\n[5/10] [API] Building HTTP APIs with 3 stages (dev, staging, prod)...")
+        try:
+            api_builder = HttpApiBuilder(builder)
+            # Pass environment-specific certificates for each domain
+            api_builder.execute_with_multi_stage(all_certificates, region, environments)
+            print(f"  [OK] HTTP APIs created with 3 stages")
+        except Exception as e:
+            print(f"  [ERROR] HTTP API build failed: {e}")
+            raise
 
-            # Step 6: Build SQS queues
-            print(f"\n[6/8] [QUEUE] Building SQS queues for {env.value.upper()}...")
-            try:
-                queue_builder = QueueBuilder(builder)
-                # Iterate through all lambdas and build their queues
+        # Step 6: Build SQS queues (3 queues per type: dev, staging, prod)
+        print(f"\n[6/10] [QUEUE] Building SQS queues for all environments...")
+        try:
+            for env in environments:
+                env_builder = TemplateBuilder(env)
+                queue_builder = QueueBuilder(env_builder)
                 for lambda_config in LAMBDAS:
-                    # Check if this lambda is configured for this region and environment
                     if env not in lambda_config.env:
                         continue
                     lambda_region = next((lr for lr in lambda_config.regions if lr.region == region), None)
                     if lambda_region and lambda_region.queue:
                         queue_builder.execute(lambda_config.name, lambda_region.queue, region)
-                print(f"  [OK] SQS queues created for {env.value.upper()}")
-            except Exception as e:
-                print(f"  [ERROR] Queue build failed: {e}")
-                raise
+                # Copy resources to main builder
+                builder.resources.update(env_builder.resources)
+            print(f"  [OK] SQS queues created for all 3 environments")
+        except Exception as e:
+            print(f"  [ERROR] Queue build failed: {e}")
+            raise
 
-            # Step 7: Build S3 buckets
-            print(f"\n[7/8] [STORAGE] Building S3 buckets for {env.value.upper()}...")
-            try:
-                bucket_builder = BucketBuilder(builder)
-                # Iterate through all lambdas and build their S3 buckets
+        # Step 7: Build S3 buckets (3 buckets per type: dev, staging, prod)
+        print(f"\n[7/10] [STORAGE] Building S3 buckets for all environments...")
+        try:
+            for env in environments:
+                env_builder = TemplateBuilder(env)
+                bucket_builder = BucketBuilder(env_builder)
                 for lambda_config in LAMBDAS:
-                    # Check if this lambda is configured for this region and environment
                     if env not in lambda_config.env:
                         continue
                     lambda_region = next((lr for lr in lambda_config.regions if lr.region == region), None)
                     if lambda_region and lambda_region.s3:
                         bucket_builder.execute(lambda_region.s3, region)
-                print(f"  [OK] S3 buckets created for {env.value.upper()}")
-            except Exception as e:
-                print(f"  [ERROR] Bucket build failed: {e}")
-                raise
+                # Copy resources to main builder
+                builder.resources.update(env_builder.resources)
+            print(f"  [OK] S3 buckets created for all 3 environments")
+        except Exception as e:
+            print(f"  [ERROR] Bucket build failed: {e}")
+            raise
 
-            # Step 8: Save template and deploy
-            print(f"\n[8/8] [SAVE] Saving SAM template for {env.value.upper()} in {region.value}...")
+        # Step 8: Save template and check for changes
+        print(f"\n[8/10] [SAVE] Saving SAM template and checking for changes...")
+        try:
+            executor = SAMExecutor(builder)
+            template_path = executor.saveTemplateAsYaml(region)
+            print(f"  [OK] Template saved: {template_path}")
+
+            # Check if template has changed
+            template_dict = {
+                'AWSTemplateFormatVersion': '2010-09-09',
+                'Transform': 'AWS::Serverless-2016-10-31',
+                'Description': f'SAM {builder.env.value} template',
+                'Resources': builder.resources
+            }
+
+            has_changed, current_hash = executor.has_template_changed(template_dict, 'core', region)
+
+            if not has_changed:
+                print(f"  [SKIP] No changes detected in template for {region.value}")
+                print(f"  [INFO] Template hash: {current_hash[:16]}...")
+                print(f"  [OK] Skipping deployment - stack is up to date")
+            else:
+                print(f"  [CHANGED] Template changes detected for {region.value}")
+                print(f"  [INFO] New hash: {current_hash[:16]}...")
+
+        except Exception as e:
+            print(f"  [ERROR] Template save failed: {e}")
+            raise
+
+        # Step 9: Deploy (only if template changed)
+        if has_changed:
+            print(f"\n[9/10] [DEPLOY] Deploying to {region.value}...")
             try:
-                executor = SAMExecutor(builder)
-                template_path = executor.saveTemplateAsYaml(region)
-                print(f"  [OK] Template saved: {template_path}")
-
-                # Auto-deploy without confirmation
-                print(f"\n[DEPLOY] Deploying {env.value.upper()} to {region.value}...")
+                # Deploy the changed template
+                print(f"  [DEPLOY] Starting CloudFormation deployment...")
                 executor.execute(region)
-                print(f"  [OK] Successfully deployed {env.value.upper()} to {region.value}")
+                print(f"  [OK] Successfully deployed to {region.value}")
+
+                # Update template hash after successful deployment
+                executor.update_template_hash(template_dict, 'core', region)
 
             except Exception as e:
-                print(f"  [ERROR] Deployment failed for {env.value.upper()}: {e}")
+                print(f"  [ERROR] Deployment failed: {e}")
                 raise
+        else:
+            print(f"\n[9/10] [DEPLOY] Skipping deployment (no changes)")
+
+        # Step 10: Create Cognito User Pool custom domains (always run)
+        print(f"\n[10/10] [POST-DEPLOY] Creating Cognito User Pool custom domains for all environments...")
+        for env in environments:
+            try:
+                env_builder = TemplateBuilder(env)
+                auth_cert_arn = all_certificates['Auth'][env.value]
+                print(f"    [COGNITO] Setting up custom domain for {env.value} User Pool...")
+                env_builder.createUserPoolDomain(region, auth_cert_arn)
+                print(f"    [OK] Cognito custom domain created for {env.value}")
+            except Exception as e:
+                print(f"    [WARNING] Cognito domain setup failed for {env.value} (may already exist): {e}")
+                # Don't fail deployment if domain setup has issues - continue to next environment
 
     print(f"\n{'=' * 80}")
-    print(f"[OK] ALL REGIONS AND ENVIRONMENTS DEPLOYED SUCCESSFULLY!")
-    print(f"  - {len(regions)} regions × {len(environments)} environments = {len(regions) * len(environments)} stacks deployed")
+    print(f"[OK] ALL REGIONS DEPLOYED SUCCESSFULLY!")
+    print(f"  - {len(regions)} stacks deployed (1 per region, each with 3 environments)")
+    print(f"  - Cognito custom domains configured for all 3 environments")
     print(f"{'=' * 80}")
 
 
@@ -558,18 +608,18 @@ def deploy_ams_features_multiregion(regions: List[Region]) -> None:
 
         # Step 1: Build Lambda layers (only on first region)
         if region_idx == 1:
-            print(f"\n[1/4] [PACKAGE] Building Lambda layers (will be cached for other regions)...")
+            print(f"\n[1/5] [PACKAGE] Building Lambda layers (will be cached for other regions)...")
             layer_builder = LambdaLayerBuilder(builder.env, region)
             layer_arns_cache = layer_builder.execute_optimized()
             print(f"  [OK] Layers built: {len(layer_arns_cache)} layers")
         else:
-            print(f"\n[1/4] [PACKAGE] Using cached Lambda layers from first region...")
+            print(f"\n[1/5] [PACKAGE] Using cached Lambda layers from first region...")
             layer_builder = LambdaLayerBuilder(builder.env, region)
             layer_arns_cache = layer_builder.execute_optimized()
             print(f"  [OK] Layers published to {region.value}: {len(layer_arns_cache)} layers")
 
         # Step 2: Build ONLY AMS Lambda functions
-        print(f"\n[2/4] [LAMBDA] Building AMS Lambda functions (AmsChange, AmsPerformance)...")
+        print(f"\n[2/5] [LAMBDA] Building AMS Lambda functions (AmsChange, AmsPerformance)...")
         try:
             lambda_builder = LambdaBuilder(builder)
             # Filter to only AMS lambdas
@@ -584,7 +634,7 @@ def deploy_ams_features_multiregion(regions: List[Region]) -> None:
             raise
 
         # Step 3: Build ONLY AMS SQS queues
-        print(f"\n[3/4] [QUEUE] Building AMS SQS queues...")
+        print(f"\n[3/5] [QUEUE] Building AMS SQS queues...")
         try:
             queue_builder = QueueBuilder(builder)
             # Build only AMS queues
@@ -598,13 +648,48 @@ def deploy_ams_features_multiregion(regions: List[Region]) -> None:
             print(f"  [ERROR] Queue build failed: {e}")
             raise
 
-        # Step 4: Save template and deploy
-        print(f"\n[4/4] [DEPLOY] Deploying SAM template to {region.value}...")
+        # Step 4: Save template and check for changes
+        print(f"\n[4/5] [SAVE] Saving SAM template and checking for changes...")
         try:
             executor = SAMExecutor(builder)
-            executor.saveTemplateAsYaml(region)
+            template_path = executor.saveTemplateAsYaml(region)
+            print(f"  [OK] Template saved: {template_path}")
+
+            # Check if template has changed
+            template_dict = {
+                'AWSTemplateFormatVersion': '2010-09-09',
+                'Transform': 'AWS::Serverless-2016-10-31',
+                'Description': f'SAM {builder.env.value} template',
+                'Resources': builder.resources
+            }
+
+            has_changed, current_hash = executor.has_template_changed(template_dict, 'ams', region)
+
+            if not has_changed:
+                print(f"  [SKIP] No changes detected in AMS template for {region.value}")
+                print(f"  [INFO] Template hash: {current_hash[:16]}...")
+                print(f"  [OK] Skipping deployment - stack is up to date")
+                # Skip to next region
+                continue
+            else:
+                print(f"  [CHANGED] Template changes detected for {region.value}")
+                print(f"  [INFO] New hash: {current_hash[:16]}...")
+
+        except Exception as e:
+            print(f"  [ERROR] Template save failed: {e}")
+            raise
+
+        # Step 5: Deploy
+        print(f"\n[5/5] [DEPLOY] Deploying AMS template to {region.value}...")
+        try:
+            # Deploy the changed template
+            print(f"  [DEPLOY] Starting CloudFormation deployment...")
             executor.execute(region)
             print(f"  [OK] Successfully deployed to {region.value}")
+
+            # Update template hash after successful deployment
+            executor.update_template_hash(template_dict, 'ams', region)
+
         except Exception as e:
             print(f"  [ERROR] Deployment failed: {e}")
             raise

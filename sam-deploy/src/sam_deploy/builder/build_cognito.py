@@ -42,18 +42,24 @@ class CognitoBuilder:
         Args:
             auth_certificate_arn: ARN of ACM certificate for custom domain (us-east-1)
         """
+        # Use environment-specific resource names
+        user_pool_resource_name = f"UserPool{self.builder.envtextTitle}"
+        cognito_trigger_function_name = self.builder.getFunctionName(LambdaName.CognitoTrigger)
+        # For multi-env setup, use environment-specific aliases
+        cognito_trigger_alias_name = f"{cognito_trigger_function_name}Alias{self.builder.envtextTitle}"
+
         resource = {
-            "UserPool": {
+            user_pool_resource_name: {
                 "Type": "AWS::Cognito::UserPool",
                 "Properties": {
                     "UserPoolName": self.builder.getUserPoolName(),
                     "AutoVerifiedAttributes": ["email"],
                     "LambdaConfig": {
-                        "PreSignUp": {"Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"]},
-                        "CustomMessage": {"Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"]},
-                        "PostConfirmation": {"Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"]},
+                        "PreSignUp": {"Ref": cognito_trigger_alias_name},
+                        "CustomMessage": {"Ref": cognito_trigger_alias_name},
+                        "PostConfirmation": {"Ref": cognito_trigger_alias_name},
                         "PreTokenGenerationConfig": {
-                            "LambdaArn": {"Fn::GetAtt": [self.builder.getFunctionName(LambdaName.CognitoTrigger), "Arn"]},
+                            "LambdaArn": {"Ref": cognito_trigger_alias_name},
                             "LambdaVersion": "V2_0"
                         }
                     },
@@ -82,41 +88,17 @@ class CognitoBuilder:
                     "UsernameAttributes": ["email"],
                 }
             },
-            "LambdaInvokePermissionCognitoTrigger": {
+            f"LambdaInvokePermissionCognitoTrigger{self.builder.envtextTitle}": {
                 "Type": "AWS::Lambda::Permission",
                 "Properties": {
-                    "FunctionName": {"Ref": self.builder.getFunctionName(LambdaName.CognitoTrigger)},
+                    "FunctionName": {"Ref": cognito_trigger_alias_name},
                     "Action": "lambda:InvokeFunction",
                     "Principal": "cognito-idp.amazonaws.com",
-                    "SourceArn": {"Fn::GetAtt": ["UserPool", "Arn"]}
-                }
-            },
-            self.builder.getLambdaRoleName(LambdaName.CognitoTrigger): {
-                "Type": "AWS::IAM::Role",
-                "Properties": {
-                    "RoleName": self.builder.getLambdaRoleName(LambdaName.CognitoTrigger),
-                    "AssumeRolePolicyDocument": {
-                        "Version": "2012-10-17",
-                        "Statement": [{
-                            "Effect": "Allow",
-                            "Principal": {"Service": "lambda.amazonaws.com"},
-                            "Action": "sts:AssumeRole"
-                        }]
-                    },
-                    "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
-                    "Policies": [{
-                        "PolicyName": "LambdaCognitoAccess",
-                        "PolicyDocument": {
-                            "Version": "2012-10-17",
-                            "Statement": [{
-                                "Effect": "Allow",
-                                "Action": ["cognito-idp:AdminGetUser", "cognito-idp:AdminDeleteUser", "cognito-idp:ListUsers"],
-                                "Resource": "*"
-                            }]
-                        }
-                    }]
+                    "SourceArn": {"Fn::GetAtt": [user_pool_resource_name, "Arn"]}
                 }
             }
+            # Note: IAM role is created by Lambda builder
+            # Cognito-specific permissions are added via managed policy in Lambda builder's _create_lambda_role
         }
         self.builder.resources.update(resource)
 
@@ -140,11 +122,16 @@ class CognitoBuilder:
             callback_urls.append("http://localhost:4200/sign-in-callback")
             logout_urls.append("http://localhost:4200/login")
 
+        # Use environment-specific resource names
+        user_pool_resource_name = f"UserPool{self.builder.envtextTitle}"
+        user_pool_client_resource_name = f"UserPoolClient{self.builder.envtextTitle}"
+        resource_server_resource_name = f"UserPoolResourceServer{self.builder.envtextTitle}"
+
         resource = {
-            "UserPoolClient": {
+            user_pool_client_resource_name: {
                 "Type": "AWS::Cognito::UserPoolClient",
                 "Properties": {
-                    "UserPoolId": {"Ref": "UserPool"},
+                    "UserPoolId": {"Ref": user_pool_resource_name},
                     "ClientName": self.builder.getUserPoolClientName(),
                     "GenerateSecret": False,
                     "AllowedOAuthFlowsUserPoolClient": True,
@@ -154,7 +141,7 @@ class CognitoBuilder:
                         "openid",
                         "phone",
                         "profile",
-                        {"Fn::Join": ["", [{"Ref": "UserPoolResourceServer"}, "/read"]]}
+                        {"Fn::Join": ["", [{"Ref": resource_server_resource_name}, "/read"]]}
                     ],
                     "CallbackURLs": callback_urls,
                     "LogoutURLs": logout_urls,
@@ -174,13 +161,17 @@ class CognitoBuilder:
 
         These scopes can be used in OAuth 2.0 flows for fine-grained access control.
         """
+        # Use environment-specific resource names
+        user_pool_resource_name = f"UserPool{self.builder.envtextTitle}"
+        resource_server_resource_name = f"UserPoolResourceServer{self.builder.envtextTitle}"
+
         resource = {
-            "UserPoolResourceServer": {
+            resource_server_resource_name: {
                 "Type": "AWS::Cognito::UserPoolResourceServer",
                 "Properties": {
                     "Identifier": "dzgro",
                     "Name": "Dzgro Resource Server",
-                    "UserPoolId": {"Ref": "UserPool"},
+                    "UserPoolId": {"Ref": user_pool_resource_name},
                     "Scopes": [
                         {
                             "ScopeName": "read",

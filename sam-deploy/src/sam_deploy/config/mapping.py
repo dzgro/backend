@@ -255,7 +255,7 @@ LAMBDAS = [
                 s3 = [S3Property(name=name, roles=S3Role.all()) for name in S3Bucket.all()]
             )
         ],
-        env = [ENVIRONMENT.STAGING, ENVIRONMENT.DEV]
+        env = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]
     ),
     LambdaProperty(
         name=LambdaName.QueueModelMessageProcessor,

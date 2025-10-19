@@ -1,9 +1,9 @@
 from sam_deploy.builder.template_builder import TemplateBuilder
 from sam_deploy.config.mapping import Region
 from sam_deploy.utils import docker_manager
-import os, yaml
+import os, yaml, json, hashlib
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 template_builder_root = os.path.join(os.path.dirname(__file__), '..')
@@ -20,10 +20,184 @@ class SAMExecutor:
         self.builder = builder
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(exist_ok=True)
+        self.hash_cache_file = self.cache_dir / "dependency_hashes.json"
+
+    def _load_template_hashes(self) -> dict:
+        """Load cached template hashes from disk (same file as layer hashes)"""
+        try:
+            if self.hash_cache_file.exists():
+                with open(self.hash_cache_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"[WARNING] Could not load template hashes: {e}")
+        return {}
+
+    def _save_template_hashes(self, hashes: dict):
+        """Save template hashes to disk (same file as layer hashes)"""
+        try:
+            with open(self.hash_cache_file, 'w') as f:
+                json.dump(hashes, f, indent=2)
+        except Exception as e:
+            print(f"[WARNING] Could not save template hashes: {e}")
+
+    def generate_template_hash(self, template_dict: dict) -> str:
+        """Generate SHA256 hash of template for change detection"""
+        # Convert template to canonical JSON string (sorted keys)
+        template_json = json.dumps(template_dict, sort_keys=True)
+        return hashlib.sha256(template_json.encode()).hexdigest()
+
+    def get_template_cache_key(self, deployment_type: str, region: Region) -> str:
+        """
+        Generate cache key for template hashing.
+
+        Args:
+            deployment_type: 'core' or 'ams'
+            region: AWS region
+
+        Returns:
+            Cache key like 'template-core' or 'template-ams-eu-west-1'
+        """
+        if deployment_type == 'core':
+            return f"template-core-{region.value}"
+        else:  # ams
+            return f"template-ams-{region.value}"
+
+    def has_template_changed(self, template_dict: dict, deployment_type: str, region: Region) -> Tuple[bool, str]:
+        """
+        Check if template has changed since last deployment.
+
+        Args:
+            template_dict: The SAM template dictionary
+            deployment_type: 'core' or 'ams'
+            region: AWS region
+
+        Returns:
+            (has_changed, current_hash)
+        """
+        current_hash = self.generate_template_hash(template_dict)
+        cache_key = self.get_template_cache_key(deployment_type, region)
+
+        # Load existing hashes
+        all_hashes = self._load_template_hashes()
+        stored_hash = all_hashes.get(cache_key)
+
+        has_changed = stored_hash != current_hash
+
+        return has_changed, current_hash
+
+    def update_template_hash(self, template_dict: dict, deployment_type: str, region: Region):
+        """
+        Update stored template hash after successful deployment.
+
+        Args:
+            template_dict: The SAM template dictionary
+            deployment_type: 'core' or 'ams'
+            region: AWS region
+        """
+        current_hash = self.generate_template_hash(template_dict)
+        cache_key = self.get_template_cache_key(deployment_type, region)
+
+        # Load existing hashes, update, and save
+        all_hashes = self._load_template_hashes()
+        all_hashes[cache_key] = current_hash
+        self._save_template_hashes(all_hashes)
+
+        print(f"[CACHE] Updated template hash for {cache_key}: {current_hash[:8]}...")
 
     def get_template_name(self) -> str:
-        """Get the name of the cached SAM template"""
-        return f'dzgro-sam-{self.builder.envtextlower}'
+        """Get the name of the cached SAM template (no environment suffix - single stack)"""
+        return 'dzgro-sam'
+
+    def get_sam_bucket_name(self, region: Region) -> str:
+        """
+        Get the S3 bucket name for SAM deployments in the specified region.
+
+        S3 bucket names must be globally unique, so we include the region in the name.
+
+        Args:
+            region: AWS region
+
+        Returns:
+            Bucket name like 'dzgro-sam-ap-south-1'
+        """
+        # S3 bucket names must be globally unique, so include region
+        return f"dzgro-sam-{region.value}"
+
+    def create_sam_bucket(self, region: Region) -> None:
+        """
+        Create S3 bucket for SAM deployment artifacts in the specified region.
+
+        Args:
+            region: AWS region to create bucket in
+        """
+        import boto3
+        from botocore.exceptions import ClientError
+
+        bucket_name = self.get_sam_bucket_name(region)
+        s3_client = boto3.client('s3', region_name=region.value)
+
+        try:
+            # Check if bucket already exists
+            try:
+                s3_client.head_bucket(Bucket=bucket_name)
+                print(f"[OK] SAM deployment bucket '{bucket_name}' already exists in {region.value}")
+                return
+            except ClientError as e:
+                error_code = e.response['Error']['Code']
+                if error_code == '404':
+                    # Bucket doesn't exist, create it
+                    pass
+                elif error_code == '403':
+                    # Bucket exists but we don't have access
+                    raise Exception(f"[ERROR] Bucket '{bucket_name}' exists but access is forbidden")
+                else:
+                    raise
+
+            # Create bucket
+            print(f"[CREATE] Creating SAM deployment bucket '{bucket_name}' in {region.value}...")
+
+            if region.value == 'us-east-1':
+                # us-east-1 doesn't need LocationConstraint
+                s3_client.create_bucket(Bucket=bucket_name)
+            else:
+                # Other regions need LocationConstraint
+                s3_client.create_bucket(
+                    Bucket=bucket_name,
+                    CreateBucketConfiguration={'LocationConstraint': region.value}
+                )
+
+            # Enable versioning for better artifact management
+            s3_client.put_bucket_versioning(
+                Bucket=bucket_name,
+                VersioningConfiguration={'Status': 'Enabled'}
+            )
+
+            # Add lifecycle policy to clean up old artifacts (optional but recommended)
+            s3_client.put_bucket_lifecycle_configuration(
+                Bucket=bucket_name,
+                LifecycleConfiguration={
+                    'Rules': [
+                        {
+                            'ID': 'DeleteOldArtifacts',  # Must be uppercase ID, not Id
+                            'Status': 'Enabled',
+                            'Filter': {'Prefix': ''},  # Use Filter instead of Prefix
+                            'NoncurrentVersionExpiration': {'NoncurrentDays': 30},
+                            'AbortIncompleteMultipartUpload': {'DaysAfterInitiation': 7}
+                        }
+                    ]
+                }
+            )
+
+            print(f"[OK] Created SAM deployment bucket '{bucket_name}' in {region.value}")
+
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'BucketAlreadyOwnedByYou':
+                print(f"[OK] SAM deployment bucket '{bucket_name}' already exists and is owned by you")
+            elif error_code == 'BucketAlreadyExists':
+                raise Exception(f"[ERROR] Bucket '{bucket_name}' already exists and is owned by someone else")
+            else:
+                raise Exception(f"[ERROR] Failed to create bucket '{bucket_name}': {e}")
 
     def check_stack_status(self, region: Region) -> None:
         """Check if CloudFormation stack is in a valid state for deployment"""
@@ -199,15 +373,18 @@ class SAMExecutor:
         import os
         template_file = self.get_template_path()
         name = self.get_template_name()
+        bucket_name = self.get_sam_bucket_name(region)
         built_template_file = os.path.join(template_builder_root, '.aws-sam', 'build', 'template.yaml')
 
         # Note: Docker daemon must be running in WSL (started by docker_manager.start_ubuntu_docker())
         # SAM CLI runs through WSL to access the WSL Docker daemon
 
+        # Create S3 bucket for SAM deployment artifacts
+        print(f"[S3] Ensuring SAM deployment bucket exists in {region.value}...")
+        self.create_sam_bucket(region)
+
         # Check CloudFormation stack status before proceeding
         self.check_stack_status(region)
-
-        # Note: --resolve-s3 flag will automatically create S3 bucket if needed
 
         # Build using Docker container through WSL
         build_args = [
@@ -216,7 +393,7 @@ class SAMExecutor:
             '--template-file', template_file
         ]
 
-        # Deploy command
+        # Deploy command with specific S3 bucket
         deploy_args = [
             'deploy',
             '--template-file', built_template_file,
@@ -224,7 +401,7 @@ class SAMExecutor:
             '--no-confirm-changeset',
             '--capabilities', 'CAPABILITY_NAMED_IAM',
             '--stack-name', name,
-            '--resolve-s3'  # Let SAM automatically resolve S3 URIs (creates bucket automatically)
+            '--s3-bucket', bucket_name  # Use our dedicated SAM bucket
         ]
 
         try:
@@ -233,6 +410,7 @@ class SAMExecutor:
             self.run_sam_in_wsl(build_args, template_builder_root)
 
             print(f"[DEPLOY] Deploying SAM template to region {region.value} (via WSL)...")
+            print(f"   S3 Bucket: {bucket_name}")
             self.run_sam_in_wsl(deploy_args, template_builder_root)
 
             print(f"[OK] Successfully deployed {name} to {region.value}")
