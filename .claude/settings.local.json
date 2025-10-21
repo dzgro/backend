@@ -50,7 +50,10 @@
       "Bash(git log:*)",
       "Bash(poetry lock:*)",
       "Bash(aws secretsmanager get-secret-value:*)",
-      "Bash(poetry:*)"
+      "Bash(poetry:*)",
+      "Bash(for dir in api dzgroshared sam-deploy secrets utilities tests events)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

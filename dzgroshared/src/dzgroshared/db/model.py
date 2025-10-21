@@ -241,26 +241,34 @@ class AddMarketplaceRequest(BaseModel):
     profileid: int
 
 DataCollections: list[CollectionType] = [
-            # CollectionType.ORDERS,
-            # CollectionType.ORDER_ITEMS,
-            # CollectionType.SETTLEMENTS,
-            CollectionType.ADV_PERFORMANCE,
-            # CollectionType.PRODUCTS,
-            # CollectionType.ADV_ASSETS,
-            CollectionType.ADV_ADS,
-            CollectionType.ADV_RULE_RUNS,
-            CollectionType.ADV_RULE_RUN_RESULTS,
-            CollectionType.STATE_ANALYTICS,
-            CollectionType.DATE_ANALYTICS,
-            CollectionType.PERFORMANCE_PERIOD_RESULTS,
-            CollectionType.DZGRO_REPORT_DATA,
-            CollectionType.DZGRO_REPORTS,
-            CollectionType.HEALTH,
-            # CollectionType.TRAFFIC,
-            CollectionType.QUEUE_MESSAGES,
-            CollectionType.DAILY_REPORT_GROUP,
-            CollectionType.DAILY_REPORT_ITEM,
-        ]
+    CollectionType.ORDERS,
+    CollectionType.ORDER_ITEMS,
+    CollectionType.SETTLEMENTS,
+    CollectionType.ADV_PERFORMANCE,
+    CollectionType.PRODUCTS,
+    CollectionType.ADV_ASSETS,
+    CollectionType.ADV_ADS,
+    CollectionType.ADV_RULE_RUNS,
+    CollectionType.ADV_RULE_RUN_RESULTS,
+    CollectionType.STATE_ANALYTICS,
+    CollectionType.DATE_ANALYTICS,
+    CollectionType.PERFORMANCE_PERIOD_RESULTS,
+    CollectionType.DZGRO_REPORT_DATA,
+    CollectionType.DZGRO_REPORTS,
+    CollectionType.HEALTH,
+    CollectionType.TRAFFIC,
+    CollectionType.QUEUE_MESSAGES,
+    CollectionType.DAILY_REPORT_GROUP,
+    CollectionType.DAILY_REPORT_ITEM,
+]
+
+USER_COLLECTIONS: list[CollectionType] = [
+    CollectionType.USERS,
+    CollectionType.MARKETPLACE_GSTIN,
+    CollectionType.MARKETPLACE_PLANS,
+    CollectionType.SPAPI_ACCOUNTS,
+    CollectionType.ADVERTISING_ACCOUNTS,
+]
 
 class StartEndDate(BaseModel):
     startdate: datetime
