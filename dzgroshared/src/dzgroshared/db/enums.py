@@ -5,7 +5,6 @@ class ENVIRONMENT(str, Enum):
     PROD = "prod"
     STAGING = "staging"
     DEV = "dev"
-    LOCAL = "local"
     
     @staticmethod
     def all():

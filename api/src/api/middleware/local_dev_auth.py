@@ -6,7 +6,7 @@ when running in LOCAL environment. It detects requests from Swagger UI/ReDoc and
 provides the necessary Authorization and marketplace headers transparently.
 
 Only active when:
-- Environment is ENVIRONMENT.LOCAL
+- Environment is ENVIRONMENT.DEV
 - Request is detected as coming from FastAPI UI (Swagger/ReDoc)
 
 Constants are self-contained - no dependency on test project.
@@ -158,7 +158,7 @@ class LocalDevAuthMiddleware(BaseHTTPMiddleware):
         """Main middleware dispatch method"""
         
         # Only process requests in LOCAL environment
-        if self.environment == ENVIRONMENT.LOCAL:
+        if self.environment == ENVIRONMENT.DEV:
             
             # Check if this is a FastAPI UI request
             if self._is_fastapi_ui_request(request):

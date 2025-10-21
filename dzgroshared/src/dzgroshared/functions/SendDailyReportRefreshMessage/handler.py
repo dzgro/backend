@@ -17,7 +17,7 @@ async def sendMessage(client: DzgroSharedClient, event: dict, context: LambdaCon
                 SendMessageRequest(Queue=queueName),
                 MessageBody=message
             )
-            if client.env==ENVIRONMENT.LOCAL:
+            if client.env==ENVIRONMENT.DEV:
                 sqsEvent = client.sqs.mockSQSEvent(messageid, message.model_dump_json())
                 await client.functions(sqsEvent, context).daily_report_refresh
     except Exception as e:

@@ -34,7 +34,7 @@ class SqsHelper:
 
     @catch_sqs_exceptions
     async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> str:
-        if self.client.env!=ENVIRONMENT.LOCAL:
+        if self.client.env!=ENVIRONMENT.DEV:
             client = self.getClient()
             send_args = {
                 "QueueUrl": self.getQueueUrl(payload.Queue),
@@ -68,7 +68,7 @@ class SqsHelper:
         if not req: raise ValueError("Request list cannot be empty")
         dbBatch: list[dict] = []
         res = SQSBatchSendResponse(Success=[], Failed=[])
-        if self.client.env==ENVIRONMENT.LOCAL: res.Success = [SQSBatchSuccessMessage(Id=item.Id, MessageID=str(uuid.uuid4())) for item in req]
+        if self.client.env==ENVIRONMENT.DEV: res.Success = [SQSBatchSuccessMessage(Id=item.Id, MessageID=str(uuid.uuid4())) for item in req]
         else:
             client = self.getClient()
             send_args = {

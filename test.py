@@ -7,12 +7,12 @@ from dzgroshared.db.marketplaces.model import MarketplaceCache
 from dzgroshared.db.enums import ENVIRONMENT, CollateType, CountryCode, MarketplaceId, QueueName
 from dzgroshared.db.model import DataCollections, MockLambdaContext, Paginator, PyObjectId, Sort, StartEndDate
 
-env = ENVIRONMENT.LOCAL
+env = ENVIRONMENT.DEV
 # client = DzgroSharedClient(env)
 uid = "41e34d1a-6031-70d2-9ff3-d1a704240921"
 marketplaceId=  PyObjectId("6895638c452dc4315750e826")
 marketplace = MarketplaceCache(_id=marketplaceId, uid=uid, countrycode=CountryCode.INDIA, marketplaceid=MarketplaceId.IN,profileid=476214271739435, sellerid="AUYWKTHB2JM7A") 
-# DB_NAME = f'dzgro-{env.value.lower()}' if env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+# DB_NAME = f'dzgro-{env.value.lower()}'
 # client.setUid(uid)
 # client.setMarketplace(marketplace)
 # context = MockLambdaContext()

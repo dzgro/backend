@@ -579,7 +579,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             print(f"Published layer ARN: {layer_arn}")
 
             # Clean up old versions after successful deployment
-            self.cleanup_old_layer_versions(layer_name)
+            # self.cleanup_old_layer_versions(layer_name)
 
             return layer_arn
 
@@ -792,9 +792,14 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
 
         # Extract dependencies from pyproject.toml
         try:
-            import toml
-            with open(pyproject_path, 'r') as f:
-                pyproject = toml.load(f)
+            try:
+                import tomllib  # Python 3.11+
+                with open(pyproject_path, 'rb') as f:
+                    pyproject = tomllib.load(f)
+            except ImportError:
+                import toml  # Fallback for older Python or external toml package
+                with open(pyproject_path, 'r') as f:
+                    pyproject = toml.load(f)
 
             deps_dict = pyproject.get('tool', {}).get('poetry', {}).get('dependencies', {})
             deps = []
@@ -889,7 +894,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             print(f"Published custom layer ARN: {layer_arn}")
 
             # Clean up old versions after successful deployment
-            self.cleanup_old_layer_versions(layer_name)
+            # self.cleanup_old_layer_versions(layer_name)
 
             return layer_arn
 

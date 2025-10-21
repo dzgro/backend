@@ -14,7 +14,7 @@ class QueueBuilder:
 
         Args:
             queue_config: Queue property containing name, roles, visibility timeout, etc.
-            env: Environment (DEV, STAGING, PROD, LOCAL)
+            env: Environment (DEV, STAGING & PROD)
 
         Returns:
             Dictionary of CloudFormation resources (main queue and DLQ)
@@ -33,7 +33,25 @@ class QueueBuilder:
 
         # Add optional policy if specified
         if queue_config.policy:
-            resources[f'{queue_config.name.value}Policy'] = queue_config.policy
+            # Create a deep copy of the policy to avoid modifying the original
+            import copy
+            policy = copy.deepcopy(queue_config.policy)
+
+            # Update queue references in the policy to use the actual queue name (with environment suffix)
+            if 'Properties' in policy:
+                # Update "Queues" array
+                if 'Queues' in policy['Properties']:
+                    policy['Properties']['Queues'] = [{'Ref': main_queue_name}]
+
+                # Update "Resource" in PolicyDocument statements
+                if 'PolicyDocument' in policy['Properties'] and 'Statement' in policy['Properties']['PolicyDocument']:
+                    for statement in policy['Properties']['PolicyDocument']['Statement']:
+                        if 'Resource' in statement and isinstance(statement['Resource'], dict):
+                            # Update Fn::GetAtt reference
+                            if 'Fn::GetAtt' in statement['Resource']:
+                                statement['Resource'] = {'Fn::GetAtt': [main_queue_name, 'Arn']}
+
+            resources[f'{queue_config.name.value}Policy'] = policy
 
         return resources
 
@@ -45,31 +63,19 @@ class QueueBuilder:
     ) -> dict[str, dict]:
         """
         Creates EventSourceMapping for Lambda-SQS integration.
-        Skips creation for LOCAL environment.
+        Currently disabled for all environments - Lambda functions are not triggered by queues.
 
         Args:
             queue_config: Queue property containing name and configuration
-            env: Environment (DEV, STAGING, PROD, LOCAL)
+            env: Environment (DEV, STAGING & PROD)
             function_name: Lambda function enum name to attach to queue
 
         Returns:
-            Dictionary with EventSourceMapping resource, or empty dict for LOCAL
+            Empty dict (EventSourceMapping disabled for all environments)
         """
-        # Skip EventSourceMapping for LOCAL environment
-        if env == ENVIRONMENT.LOCAL:
-            return {}
-
-        resources = {}
-        main_queue_name = self.builder.getQueueName(queue_config.name, 'Q')
-        event_mapping_name = self.builder.getQueueName(queue_config.name, 'EventSourceMapping')
-
-        # Create EventSourceMapping using builder helper
-        resources[event_mapping_name] = self.builder.createQEventMapping(
-            main_queue_name,
-            self.builder.getFunctionName(function_name)
-        )
-
-        return resources
+        # Skip EventSourceMapping for all environments
+        # Queues will not automatically trigger Lambda functions
+        return {}
 
     def execute(
         self,
@@ -78,12 +84,12 @@ class QueueBuilder:
         region: Region
     ) -> None:
         """
-        Builds all queues and event source mappings for all 4 environments.
-        Creates queues for DEV, STAGING, PROD, and LOCAL.
-        Creates EventSourceMapping only for non-LOCAL environments.
+        Builds all queues for all 4 environments.
+        Creates queues for DEV, STAGING and PROD.
+        EventSourceMapping is disabled - queues will not trigger Lambda functions automatically.
 
         Args:
-            lambda_name: Lambda function name to attach queues to
+            lambda_name: Lambda function name (not used for triggers, kept for compatibility)
             queues: List of queue configurations
             region: AWS region
         """
@@ -92,7 +98,7 @@ class QueueBuilder:
             queue_resources = self.build_queue(queue_config, self.builder.env)
             self.builder.resources.update(queue_resources)
 
-            # Build EventSourceMapping (skipped for LOCAL)
+            # Build EventSourceMapping (disabled for all environments)
             event_source_resources = self.build_event_source_mapping(
                 queue_config,
                 self.builder.env,

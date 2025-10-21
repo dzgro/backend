@@ -93,12 +93,12 @@ async def lifespan(app: FastAPI):
     secrets = await asyncio.to_thread(get_secrets_from_env_or_ssm, env)
 
     # Setup local development auth middleware with shared secrets
-    if env == ENVIRONMENT.LOCAL:
+    if env == ENVIRONMENT.DEV:
         app.state.local_auth_middleware = create_local_dev_auth_middleware_with_secrets(env, secrets)
         print("🔧 Local development auth middleware configured with shared secrets")
 
 # Middleware registration uses the pre-configured function
-if env == ENVIRONMENT.LOCAL:
+if env == ENVIRONMENT.DEV:
     @app.middleware("http")
     async def local_dev_auth_middleware(request: Request, call_next):
         if hasattr(app.state, 'local_auth_middleware'):

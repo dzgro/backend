@@ -37,11 +37,13 @@ class BucketBuilder:
 
         # Add CORS configuration if specified
         if bucket_config.cors:
-            # Determine allowed origins based on environment
-            if env == ENVIRONMENT.LOCAL:
-                origins = ["https://localhost:4200"]
-            else:
-                origins = [self.builder.envDomain()]
+            # Build allowed origins based on environment
+            # Always include environment domain
+            origins = [f'https://{self.builder.envDomain()}']
+
+            # For DEV and LOCAL environments, also include localhost:4200
+            if env in [ENVIRONMENT.DEV]:
+                origins.append('http://localhost:4200')
 
             properties['CorsConfiguration'] = {
                 "CorsRules": [
@@ -106,7 +108,7 @@ class BucketBuilder:
         region: Region
     ) -> dict[str, dict]:
         """
-        Builds all S3 buckets for all 4 environments (DEV, STAGING, PROD, LOCAL).
+        Builds all S3 buckets for all 4 environments (DEV, STAGING, PROD).
         Configures lifecycle rules, CORS, and S3 trigger events where applicable.
 
         Args:

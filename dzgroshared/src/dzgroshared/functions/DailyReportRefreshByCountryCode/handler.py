@@ -55,7 +55,7 @@ class DailyReportRefreshByCountryCodeProcessor:
             await self.client.db.daily_report_failures.addBatch(batch)
         extras = {'success': len(res.Success), 'failed': len(res.Failed), 'total': len(batchRequests)}
         await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid, extras)
-        if(self.client.env==ENVIRONMENT.LOCAL):
+        if(self.client.env==ENVIRONMENT.DEV):
             for success in res.Success:
                 body = next((doc.Body for doc in batchRequests if doc.Id == success.Id), None)
                 if body:

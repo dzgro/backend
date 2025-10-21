@@ -77,7 +77,7 @@ class CognitoBuilder:
                         {
                             "Name": "phone_number",
                             "AttributeDataType": "String",
-                            "Required": True
+                            "Required": False
                         },
                         {
                             "Name": "name",
@@ -87,16 +87,8 @@ class CognitoBuilder:
                     ],
                     "UsernameAttributes": ["email"],
                 }
-            },
-            f"LambdaInvokePermissionCognitoTrigger{self.builder.envtextTitle}": {
-                "Type": "AWS::Lambda::Permission",
-                "Properties": {
-                    "FunctionName": {"Ref": cognito_trigger_alias_name},
-                    "Action": "lambda:InvokeFunction",
-                    "Principal": "cognito-idp.amazonaws.com",
-                    "SourceArn": {"Fn::GetAtt": [user_pool_resource_name, "Arn"]}
-                }
             }
+            # Note: Lambda permission is created separately in build_lambda_permission()
             # Note: IAM role is created by Lambda builder
             # Cognito-specific permissions are added via managed policy in Lambda builder's _create_lambda_role
         }
@@ -145,7 +137,14 @@ class CognitoBuilder:
                     ],
                     "CallbackURLs": callback_urls,
                     "LogoutURLs": logout_urls,
-                    "SupportedIdentityProviders": ["COGNITO"]
+                    "SupportedIdentityProviders": ["COGNITO"],
+                    "ExplicitAuthFlows": [
+                        "ALLOW_ADMIN_USER_PASSWORD_AUTH",
+                        "ALLOW_CUSTOM_AUTH",
+                        "ALLOW_USER_PASSWORD_AUTH",
+                        "ALLOW_REFRESH_TOKEN_AUTH",
+                        "ALLOW_USER_SRP_AUTH"
+                    ]
                 }
             }
         }
@@ -183,27 +182,54 @@ class CognitoBuilder:
         }
         self.builder.resources.update(resource)
 
+    def build_lambda_permission(self) -> None:
+        """
+        Build Lambda permission for Cognito to invoke the CognitoTrigger function.
+        """
+        user_pool_resource_name = f"UserPool{self.builder.envtextTitle}"
+        cognito_trigger_function_name = self.builder.getFunctionName(LambdaName.CognitoTrigger)
+        cognito_trigger_alias_name = f"{cognito_trigger_function_name}Alias{self.builder.envtextTitle}"
+
+        permission = {
+            f"LambdaInvokePermissionCognitoTrigger{self.builder.envtextTitle}": {
+                "Type": "AWS::Lambda::Permission",
+                "Properties": {
+                    "FunctionName": {"Ref": cognito_trigger_alias_name},
+                    "Action": "lambda:InvokeFunction",
+                    "Principal": "cognito-idp.amazonaws.com",
+                    "SourceArn": {"Fn::GetAtt": [user_pool_resource_name, "Arn"]}
+                }
+            }
+        }
+        self.builder.resources.update(permission)
+
     def execute(self, auth_certificate_arn: str) -> None:
         """
         Build complete Cognito User Pool setup.
 
         Creates all Cognito resources in the correct order:
         1. User Pool with Lambda triggers and email configuration
-        2. Resource Server with custom scopes
-        3. User Pool Client with OAuth configuration
+        2. Lambda permission for Cognito to invoke triggers
+        3. Resource Server with custom scopes
+        4. User Pool Client with OAuth configuration
 
         Note: User Pool Domain creation is handled separately via boto3
         in TemplateBuilder.createUserPoolDomain() after SAM deployment.
 
-        Skips Cognito setup for LOCAL environment as it's not needed
+        Skips Cognito setup for DEV environment as it's not needed
         for local development.
 
         Args:
             auth_certificate_arn: ARN of ACM certificate in us-east-1 for custom domain
         """
-        if self.builder.env == ENVIRONMENT.LOCAL:
-            return  # Skip Cognito for LOCAL environment
 
+        # Always create User Pool in template - CloudFormation will handle create/update
+        # If pool exists with same properties, CloudFormation won't recreate it
         self.build_user_pool(auth_certificate_arn)
+
+        # Always create Lambda permission
+        self.build_lambda_permission()
+
+        # Always create/update Resource Server and Client
         self.build_user_pool_resource_server()
         self.build_user_pool_client()

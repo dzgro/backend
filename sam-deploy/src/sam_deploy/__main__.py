@@ -1,11 +1,12 @@
 """
 SAM Deploy - Main Entry Point
 
-Provides interactive deployment selection with 4 options:
+Provides interactive deployment selection with 5 options:
 1. Core Product Features (All Regions) - Full deployment to all 4 regions
 2. AMS Features (All Regions) - AMS-only deployment to all 4 regions
-3. Deploy to Staging (Requires OTP) - Promotes Lambda aliases from DEV to STAGING
-4. Deploy to Production (Requires OTP) - Promotes Lambda aliases from STAGING to PROD
+3. Deploy to DEV - Points DEV alias to same version as 'live' alias
+4. Deploy to Staging (Requires OTP) - Promotes Lambda aliases from DEV to STAGING
+5. Deploy to Production (Requires OTP) - Promotes Lambda aliases from STAGING to PROD
 """
 
 import sys
@@ -20,12 +21,12 @@ from botocore.exceptions import ClientError
 
 from sam_deploy.config.mapping import ENVIRONMENT, Region, LAMBDAS, LambdaName
 from sam_deploy.builder.template_builder import TemplateBuilder
-from sam_deploy.builder.build_layers import LambdaLayerBuilder
 from sam_deploy.builder.build_lambdas import LambdaBuilder
 from sam_deploy.builder.build_http_apis import HttpApiBuilder
 from sam_deploy.builder.build_queues import QueueBuilder
 from sam_deploy.builder.build_buckets import BucketBuilder
 from sam_deploy.builder.build_cognito import CognitoBuilder
+from sam_deploy.builder.build_assets import AssetsBuilder
 from sam_deploy.executor.sam_executor import SAMExecutor
 from sam_deploy.utils import docker_manager
 
@@ -36,30 +37,53 @@ def select_deployment_type() -> Tuple[str, Optional[List[Region]]]:
 
     Returns:
         Tuple of (deployment_type, regions):
-        - deployment_type: 'core', 'ams', 'promote_staging', 'promote_prod'
+        - deployment_type: 'core', 'ams', 'promote_dev', 'promote_staging', 'promote_prod'
         - regions: List of Region enum values or None for promotions
     """
     print("\n" + "=" * 80)
     print("SAM DEPLOY - Interactive Deployment Selection")
     print("=" * 80)
 
-    # TESTING MODE: Auto-select Core Product Features
-    print("\n[TESTING MODE] Auto-selecting: Core Product Features")
-    selection = "1. Core Product Features (All Regions)"
+    # Interactive menu selection
+    questions = [
+        inquirer.List(
+            'deployment',
+            message="Select deployment type",
+            choices=[
+                '1. Core Product Features (All Regions)',
+                '2. AMS Features (All Regions)',
+                '3. Deploy to DEV (Point DEV alias to live version)',
+                '4. Deploy to Staging (Requires OTP)',
+                '5. Deploy to Production (Requires OTP)'
+            ],
+        ),
+    ]
+
+    answers = inquirer.prompt(questions)
+    if not answers:
+        print("[ERROR] No selection made. Exiting.")
+        sys.exit(1)
+
+    selection = answers['deployment']
 
     if "Core Product" in selection:
         print("\n[OK] Selected: Core Product Features")
         print("   Deploying: All APIs, Lambdas, Queues, Buckets, Cognito, Certificates")
-        print("   Regions: ap-south-1 (TESTING - single region only)")
+        print("   Regions: ap-south-1")
         print("   Auto-publishes to DEV alias")
-        # TESTING: Only deploy to ap-south-1
         return "core", [Region.DEFAULT]
 
     elif "AMS Features" in selection:
         print("\n[OK] Selected: AMS Features")
         print("   Deploying: AMS Lambdas and Queues only")
-        print("   Regions: ap-south-1, eu-west-1, us-east-1, us-west-2 (sequential)")
-        return "ams", Region.all()
+        print("   Regions: eu-west-1, us-east-1, us-west-2 (AMS-only regions)")
+        return "ams", Region.ams_regions()
+
+    elif "Deploy to DEV" in selection:
+        print("\n[OK] Selected: Deploy to DEV")
+        print("   Points DEV alias to the same version as 'live' alias")
+        print("   Applies to: All regions")
+        return "promote_dev", None
 
     elif "Staging" in selection:
         print("\n[OK] Selected: Deploy to Staging")
@@ -151,20 +175,37 @@ def get_all_lambda_functions() -> List[str]:
     return lambda_names
 
 
-def promote_to_staging_with_otp() -> None:
+def promote_lambda_aliases(
+    source_alias: str,
+    target_alias: str,
+    stage_name: str,
+    is_critical: bool = False
+) -> None:
     """
-    Promote Lambda versions from DEV to STAGING with OTP verification.
+    Common function to promote Lambda aliases from source to target with OTP verification.
 
     This function:
-    1. Shows current DEV versions for all Lambdas
+    1. Shows current source alias versions for all Lambdas
     2. Requests confirmation
     3. Sends OTP via SES to dzgrotechnologies@gmail.com
     4. Verifies OTP (3 attempts allowed)
-    5. Updates all Lambda STAGING aliases to point to DEV versions
+    5. Gets version from source alias
+    6. Updates target alias to point to the same version as source alias
 
     Applies to ALL 4 regions sequentially.
+    Secure operation with email OTP verification.
+
+    Args:
+        source_alias: Alias to get version from ('live', 'dev', 'staging')
+        target_alias: Alias to update ('dev', 'staging', 'prod')
+        stage_name: Stage name for display and email ('dev', 'staging', 'production')
+        is_critical: If True, displays extra warnings for critical operations
     """
-    print("\n[CRITICAL] CRITICAL OPERATION: Promote to STAGING")
+    # Display header with appropriate criticality level
+    if is_critical:
+        print(f"\n[CRITICAL][CRITICAL] CRITICAL OPERATION: Promote to {stage_name.upper()} [CRITICAL][CRITICAL]")
+    else:
+        print(f"\n[DEPLOY] Promote to {stage_name.upper()}")
     print("=" * 80)
 
     all_lambdas = get_all_lambda_functions()
@@ -175,40 +216,55 @@ def promote_to_staging_with_otp() -> None:
         print(f"  - {region.value}")
 
     # Show current state for first region (ap-south-1)
-    print(f"\nLambdas to be promoted (DEV → STAGING) in {all_regions[0].value}:")
+    arrow = f"{source_alias.upper()} → {target_alias.upper()}"
+    print(f"\nLambdas to be promoted ({arrow}) in {all_regions[0].value}:")
     lambda_client = boto3.client('lambda', region_name=all_regions[0].value)
 
-    version_map = {}
     for lambda_name in all_lambdas:
         try:
-            dev_alias = lambda_client.get_alias(
+            # Get source alias version
+            source_alias_info = lambda_client.get_alias(
                 FunctionName=lambda_name,
-                Name='dev'
+                Name=source_alias
             )
-            version = dev_alias['FunctionVersion']
-            version_map[lambda_name] = version
-            print(f"  - {lambda_name}: Version {version}")
+            source_version = source_alias_info['FunctionVersion']
+            print(f"  - {lambda_name}: {source_alias}=v{source_version} → {target_alias} will point to v{source_version}")
         except ClientError as e:
             if 'ResourceNotFoundException' in str(e):
-                print(f"  - {lambda_name}: [WARNING] DEV alias not found (may not exist in this region)")
+                print(f"  - {lambda_name}: [WARNING] Function or '{source_alias}' alias not found")
             else:
-                print(f"  - {lambda_name}: [WARNING] Could not get DEV version: {e}")
+                print(f"  - {lambda_name}: [WARNING] Could not get {source_alias} alias: {e}")
 
     # Confirmation
-    confirm = input("\n[WARNING] Proceed with promotion to STAGING across all regions? (yes/no): ")
-    if confirm.lower() != "yes":
+    confirm_message = f"[CRITICAL] Proceed with promotion to {stage_name.upper()} across all regions?" if is_critical else f"Proceed with promotion to {stage_name.upper()} across all regions?"
+    questions = [
+        inquirer.Confirm('confirm',
+                        message=confirm_message,
+                        default=False),
+    ]
+    answers = inquirer.prompt(questions)
+    if not answers or not answers['confirm']:
         print("[ERROR] Promotion cancelled")
         return
 
     # Generate and send OTP
     otp = generate_random_otp()
-    send_otp_via_ses(otp, "dzgrotechnologies@gmail.com", "staging")
+    send_otp_via_ses(otp, "dzgrotechnologies@gmail.com", stage_name)
     print(f"\n[EMAIL] OTP sent to dzgrotechnologies@gmail.com")
     print("Please check your email for the OTP code.")
 
     # Verify OTP (3 attempts)
     for attempt in range(3):
-        user_otp = input(f"\nEnter OTP (Attempt {attempt + 1}/3): ")
+        questions = [
+            inquirer.Text('otp',
+                         message=f"Enter OTP (Attempt {attempt + 1}/3)")
+        ]
+        answers = inquirer.prompt(questions)
+        if not answers:
+            print("[ERROR] OTP entry cancelled")
+            return
+
+        user_otp = answers['otp']
         if user_otp == otp:
             break
         else:
@@ -218,8 +274,8 @@ def promote_to_staging_with_otp() -> None:
                 print("[ERROR] Invalid OTP. Maximum attempts exceeded. Promotion aborted.")
                 return
 
-    # Update Lambda aliases across all regions
-    print("\n[DEPLOY] Updating Lambda aliases to STAGING across all regions...")
+    # Update aliases to point to the same version as source alias
+    print(f"\n[DEPLOY] Updating {target_alias.upper()} aliases to match '{source_alias}' alias across all regions...")
     total_success = 0
     total_attempts = 0
 
@@ -230,20 +286,20 @@ def promote_to_staging_with_otp() -> None:
         for lambda_name in all_lambdas:
             total_attempts += 1
             try:
-                # Get DEV version for this region
-                dev_alias = lambda_client.get_alias(
+                # Step 1: Get the version that source alias points to
+                source_alias_info = lambda_client.get_alias(
                     FunctionName=lambda_name,
-                    Name='dev'
+                    Name=source_alias
                 )
-                version = dev_alias['FunctionVersion']
+                source_version = source_alias_info['FunctionVersion']
 
-                # Update STAGING alias
+                # Step 2: Update target alias to point to the same version as source
                 lambda_client.update_alias(
                     FunctionName=lambda_name,
-                    Name='staging',
-                    FunctionVersion=version
+                    Name=target_alias,
+                    FunctionVersion=source_version
                 )
-                print(f"  [OK] {lambda_name}: staging -> Version {version}")
+                print(f"  [OK] {lambda_name}: {target_alias} -> Version {source_version} (same as {source_alias})")
                 total_success += 1
             except ClientError as e:
                 if 'ResourceNotFoundException' in str(e):
@@ -252,113 +308,54 @@ def promote_to_staging_with_otp() -> None:
                     print(f"  [ERROR] {lambda_name}: Failed - {e}")
 
     print(f"\n{'=' * 80}")
-    print(f"[OK] Promoted {total_success}/{total_attempts} lambdas to STAGING successfully!")
+    print(f"[OK] Promoted {total_success}/{total_attempts} lambdas to {stage_name.upper()} successfully!")
     print(f"{'=' * 80}")
+
+
+def promote_to_dev() -> None:
+    """
+    Promote Lambda code to DEV alias.
+    Points DEV alias to the same version as 'live' alias.
+
+    Version flow: live → dev
+    Note: The 'live' alias is auto-published during SAM deployment via AutoPublishAlias.
+    """
+    promote_lambda_aliases(
+        source_alias='live',
+        target_alias='dev',
+        stage_name='dev',
+        is_critical=False
+    )
+
+
+def promote_to_staging_with_otp() -> None:
+    """
+    Promote Lambda versions from DEV to STAGING.
+    Points STAGING alias to the same version as 'dev' alias.
+
+    Version flow: dev → staging
+    """
+    promote_lambda_aliases(
+        source_alias='dev',
+        target_alias='staging',
+        stage_name='staging',
+        is_critical=False
+    )
 
 
 def promote_to_production_with_otp() -> None:
     """
-    Promote Lambda versions from STAGING to PROD with OTP verification.
+    Promote Lambda versions from STAGING to PROD.
+    Points PROD alias to the same version as 'staging' alias.
 
-    This function:
-    1. Shows current STAGING versions for all Lambdas
-    2. Requests confirmation
-    3. Sends OTP via SES to dzgrotechnologies@gmail.com
-    4. Verifies OTP (3 attempts allowed)
-    5. Updates all Lambda PROD aliases to point to STAGING versions
-
-    Applies to ALL 4 regions sequentially.
+    Version flow: staging → prod
     """
-    print("\n[CRITICAL][CRITICAL] CRITICAL OPERATION: Promote to PRODUCTION [CRITICAL][CRITICAL]")
-    print("=" * 80)
-
-    all_lambdas = get_all_lambda_functions()
-    all_regions = Region.all()
-
-    print(f"\nThis will promote Lambda aliases across {len(all_regions)} regions:")
-    for region in all_regions:
-        print(f"  - {region.value}")
-
-    # Show current state for first region (ap-south-1)
-    print(f"\nLambdas to be promoted (STAGING → PRODUCTION) in {all_regions[0].value}:")
-    lambda_client = boto3.client('lambda', region_name=all_regions[0].value)
-
-    version_map = {}
-    for lambda_name in all_lambdas:
-        try:
-            staging_alias = lambda_client.get_alias(
-                FunctionName=lambda_name,
-                Name='staging'
-            )
-            version = staging_alias['FunctionVersion']
-            version_map[lambda_name] = version
-            print(f"  - {lambda_name}: Version {version}")
-        except ClientError as e:
-            if 'ResourceNotFoundException' in str(e):
-                print(f"  - {lambda_name}: [WARNING] STAGING alias not found (may not exist in this region)")
-            else:
-                print(f"  - {lambda_name}: [WARNING] Could not get STAGING version: {e}")
-
-    # Confirmation
-    confirm = input("\n[WARNING][WARNING] Proceed with promotion to PRODUCTION across all regions? (yes/no): ")
-    if confirm.lower() != "yes":
-        print("[ERROR] Promotion cancelled")
-        return
-
-    # Generate and send OTP
-    otp = generate_random_otp()
-    send_otp_via_ses(otp, "dzgrotechnologies@gmail.com", "production")
-    print(f"\n[EMAIL] OTP sent to dzgrotechnologies@gmail.com")
-    print("Please check your email for the OTP code.")
-
-    # Verify OTP (3 attempts)
-    for attempt in range(3):
-        user_otp = input(f"\nEnter OTP (Attempt {attempt + 1}/3): ")
-        if user_otp == otp:
-            break
-        else:
-            if attempt < 2:
-                print(f"[ERROR] Invalid OTP. {2 - attempt} attempts remaining.")
-            else:
-                print("[ERROR] Invalid OTP. Maximum attempts exceeded. Promotion aborted.")
-                return
-
-    # Update Lambda aliases across all regions
-    print("\n[DEPLOY] Updating Lambda aliases to PRODUCTION across all regions...")
-    total_success = 0
-    total_attempts = 0
-
-    for region in all_regions:
-        print(f"\n[REGION] Region: {region.value}")
-        lambda_client = boto3.client('lambda', region_name=region.value)
-
-        for lambda_name in all_lambdas:
-            total_attempts += 1
-            try:
-                # Get STAGING version for this region
-                staging_alias = lambda_client.get_alias(
-                    FunctionName=lambda_name,
-                    Name='staging'
-                )
-                version = staging_alias['FunctionVersion']
-
-                # Update PROD alias
-                lambda_client.update_alias(
-                    FunctionName=lambda_name,
-                    Name='prod',
-                    FunctionVersion=version
-                )
-                print(f"  [OK] {lambda_name}: prod -> Version {version}")
-                total_success += 1
-            except ClientError as e:
-                if 'ResourceNotFoundException' in str(e):
-                    print(f"  [WARNING] {lambda_name}: Not found in this region (skipped)")
-                else:
-                    print(f"  [ERROR] {lambda_name}: Failed - {e}")
-
-    print(f"\n{'=' * 80}")
-    print(f"[OK] Promoted {total_success}/{total_attempts} lambdas to PRODUCTION successfully!")
-    print(f"{'=' * 80}")
+    promote_lambda_aliases(
+        source_alias='staging',
+        target_alias='prod',
+        stage_name='production',
+        is_critical=True
+    )
 
 
 def deploy_core_product_features(regions: List[Region]) -> None:
@@ -388,8 +385,6 @@ def deploy_core_product_features(regions: List[Region]) -> None:
     # Environments - all will be in the same stack
     environments = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]
 
-    # Build layers ONCE (will be reused across all regions)
-    layer_arns_cache = {}
 
     for region_idx, region in enumerate(regions, 1):
         print(f"\n{'=' * 80}")
@@ -400,27 +395,17 @@ def deploy_core_product_features(regions: List[Region]) -> None:
         # Use DEV as base but builder will create resources for all 3 envs
         builder = TemplateBuilder(ENVIRONMENT.DEV)
 
-        # Step 1: Build Lambda layers (only on first region)
-        if region_idx == 1:
-            print(f"\n[1/10] [PACKAGE] Building Lambda layers (will be cached for other regions)...")
-            layer_builder = LambdaLayerBuilder(ENVIRONMENT.DEV, region)
-            layer_arns_cache[region.value] = layer_builder.execute_optimized()
-            print(f"  [OK] Layers built: {len(layer_arns_cache[region.value])} layers")
-        else:
-            print(f"\n[1/10] [PACKAGE] Publishing Lambda layers to {region.value}...")
-            if region.value not in layer_arns_cache:
-                layer_builder = LambdaLayerBuilder(ENVIRONMENT.DEV, region)
-                layer_arns_cache[region.value] = layer_builder.execute_optimized()
-            print(f"  [OK] Layers published to {region.value}: {len(layer_arns_cache[region.value])} layers")
+        # Step 1: Build Lambda layers (optimized with caching)
+        print(f"\n[1/11] [PACKAGE] Building Lambda layers with optimized caching...")
+        from sam_deploy.builder.build_layers import LambdaLayerBuilder
+        layer_builder = LambdaLayerBuilder(env=ENVIRONMENT.DEV, region=region, max_workers=4)
+        current_layer_arns = layer_builder.execute_optimized()
 
-        # Get layers for current region
-        current_layer_arns = layer_arns_cache[region.value]
-
-        # Step 2: Build certificates for ALL environments together (Auth, API, Webhook)
-        print(f"\n[2/10] [SECURE] Building certificates for all environments (dev, staging, prod)...")
+        # Step 2: Build certificates for ALL environments together (Auth, API, Webhook, Assets)
+        print(f"\n[2/11] [SECURE] Building certificates for all environments (dev, staging, prod)...")
         try:
             # Get all certificates for all environments at once
-            # This creates/retrieves all 9 certificates (3 types × 3 environments) simultaneously
+            # This creates/retrieves all 12 certificates (4 types × 3 environments) simultaneously
             all_certificates = TemplateBuilder.getWildCardCertificateArnsForAllEnvironments(environments, region)
             print(f"  [OK] All certificates ready for all environments")
         except Exception as e:
@@ -428,7 +413,7 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             raise
 
         # Step 3: Build Cognito User Pools (3 pools: dev, staging, prod)
-        print(f"\n[3/10] [USER] Building Cognito User Pools (dev, staging, prod)...")
+        print(f"\n[3/11] [USER] Building Cognito User Pools (dev, staging, prod)...")
         try:
             from sam_deploy.builder.build_cognito import CognitoBuilder
             for env in environments:
@@ -445,7 +430,7 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             raise
 
         # Step 4: Build Lambda functions with aliases (dev, staging, prod)
-        print(f"\n[4/10] [LAMBDA] Building Lambda functions with aliases (dev, staging, prod)...")
+        print(f"\n[4/11] [LAMBDA] Building Lambda functions with aliases (dev, staging, prod)...")
         try:
             lambda_builder = LambdaBuilder(builder)
             lambda_builder.execute_with_aliases(region, current_layer_arns, environments)
@@ -455,7 +440,7 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             raise
 
         # Step 5: Build HTTP APIs with 3 stages (dev, staging, prod)
-        print(f"\n[5/10] [API] Building HTTP APIs with 3 stages (dev, staging, prod)...")
+        print(f"\n[5/11] [API] Building HTTP APIs with 3 stages (dev, staging, prod)...")
         try:
             api_builder = HttpApiBuilder(builder)
             # Pass environment-specific certificates for each domain
@@ -466,7 +451,7 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             raise
 
         # Step 6: Build SQS queues (3 queues per type: dev, staging, prod)
-        print(f"\n[6/10] [QUEUE] Building SQS queues for all environments...")
+        print(f"\n[6/11] [QUEUE] Building SQS queues for all environments...")
         try:
             for env in environments:
                 env_builder = TemplateBuilder(env)
@@ -485,7 +470,7 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             raise
 
         # Step 7: Build S3 buckets (3 buckets per type: dev, staging, prod)
-        print(f"\n[7/10] [STORAGE] Building S3 buckets for all environments...")
+        print(f"\n[7/11] [STORAGE] Building S3 buckets for all environments...")
         try:
             for env in environments:
                 env_builder = TemplateBuilder(env)
@@ -503,8 +488,17 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             print(f"  [ERROR] Bucket build failed: {e}")
             raise
 
-        # Step 8: Save template and check for changes
-        print(f"\n[8/10] [SAVE] Saving SAM template and checking for changes...")
+        # Step 8: Build Assets buckets and CloudFront distributions (3 environments)
+        print(f"\n[8/11] [CDN] Building Assets S3 buckets and CloudFront distributions...")
+        try:
+            assets_builder = AssetsBuilder(builder)
+            assets_builder.execute_for_all_environments(region, all_certificates, environments)
+        except Exception as e:
+            print(f"  [ERROR] Assets infrastructure build failed: {e}")
+            raise
+
+        # Step 9: Save template and check for changes
+        print(f"\n[9/11] [SAVE] Saving SAM template and checking for changes...")
         try:
             executor = SAMExecutor(builder)
             template_path = executor.saveTemplateAsYaml(region)
@@ -532,9 +526,9 @@ def deploy_core_product_features(regions: List[Region]) -> None:
             print(f"  [ERROR] Template save failed: {e}")
             raise
 
-        # Step 9: Deploy (only if template changed)
+        # Step 10: Deploy (only if template changed)
         if has_changed:
-            print(f"\n[9/10] [DEPLOY] Deploying to {region.value}...")
+            print(f"\n[10/11] [DEPLOY] Deploying to {region.value}...")
             try:
                 # Deploy the changed template
                 print(f"  [DEPLOY] Starting CloudFormation deployment...")
@@ -548,31 +542,34 @@ def deploy_core_product_features(regions: List[Region]) -> None:
                 print(f"  [ERROR] Deployment failed: {e}")
                 raise
         else:
-            print(f"\n[9/10] [DEPLOY] Skipping deployment (no changes)")
+            print(f"\n[10/11] [DEPLOY] Skipping deployment (no changes)")
 
-        # Step 10: Create Cognito User Pool custom domains (always run)
-        print(f"\n[10/10] [POST-DEPLOY] Creating Cognito User Pool custom domains for all environments...")
-        for env in environments:
-            try:
-                env_builder = TemplateBuilder(env)
-                auth_cert_arn = all_certificates['Auth'][env.value]
-                print(f"    [COGNITO] Setting up custom domain for {env.value} User Pool...")
-                env_builder.createUserPoolDomain(region, auth_cert_arn)
-                print(f"    [OK] Cognito custom domain created for {env.value}")
-            except Exception as e:
-                print(f"    [WARNING] Cognito domain setup failed for {env.value} (may already exist): {e}")
-                # Don't fail deployment if domain setup has issues - continue to next environment
+        # Step 11: Create Cognito User Pool custom domains (always run - parallel creation)
+        print(f"\n[11/11] [POST-DEPLOY] Creating Cognito User Pool custom domains for all environments...")
+        try:
+            from sam_deploy.builder.build_cognito_domain import CognitoDomainBuilder
+            # Create domains for all environments in parallel with status polling
+            domain_results = CognitoDomainBuilder.createUserPoolDomainsForAllEnvironments(
+                environments=environments,
+                auth_certificate_arns=all_certificates['Auth'],
+                region=region
+            )
+            print(f"  [OK] Cognito custom domains created for all {len(domain_results)} environments")
+        except Exception as e:
+            print(f"  [WARNING] Cognito domain setup failed: {e}")
+            # Don't fail deployment if domain setup has issues
 
     print(f"\n{'=' * 80}")
     print(f"[OK] ALL REGIONS DEPLOYED SUCCESSFULLY!")
     print(f"  - {len(regions)} stacks deployed (1 per region, each with 3 environments)")
     print(f"  - Cognito custom domains configured for all 3 environments")
+    print(f"  - Assets infrastructure with CloudFront CDN for all 3 environments")
     print(f"{'=' * 80}")
 
 
 def deploy_ams_features_multiregion(regions: List[Region]) -> None:
     """
-    Deploy ONLY AMS features to ALL 4 regions sequentially.
+    Deploy ONLY AMS features to AMS-specific regions sequentially (EU, NA, FE).
 
     This includes:
     - Lambda layers (built once, reused for all regions)
@@ -583,11 +580,12 @@ def deploy_ams_features_multiregion(regions: List[Region]) -> None:
     - HTTP APIs
     - S3 Buckets
     - Cognito
-    - Certificates (except for ap-south-1 if needed)
+    - Certificates
     - Core Product Lambdas
+    - ap-south-1 region (Core Product only)
 
     Args:
-        regions: List of regions to deploy to (all 4 regions)
+        regions: List of AMS regions to deploy to (EU, NA, FE)
     """
     print("\n" + "=" * 80)
     print("[AMS] AMS FEATURES - Multi-Region Deployment")
@@ -606,17 +604,31 @@ def deploy_ams_features_multiregion(regions: List[Region]) -> None:
 
         builder = TemplateBuilder()
 
-        # Step 1: Build Lambda layers (only on first region)
-        if region_idx == 1:
-            print(f"\n[1/5] [PACKAGE] Building Lambda layers (will be cached for other regions)...")
-            layer_builder = LambdaLayerBuilder(builder.env, region)
-            layer_arns_cache = layer_builder.execute_optimized()
-            print(f"  [OK] Layers built: {len(layer_arns_cache)} layers")
+        # Step 1: Build ONLY required Lambda layers for AMS (only once, reused across regions)
+        if layer_arns_cache is None:
+            print(f"\n[1/5] [PACKAGE] Building AMS Lambda layers (PYMONGO only)...")
+            from sam_deploy.builder.build_layers import LambdaLayerBuilder
+            from sam_deploy.config.mapping import LAYER_DEPENDENCIES, LAYER_NAME
+
+            # Collect unique layers needed by AMS lambdas
+            ams_layer_names = set()
+            for lambda_config in LAMBDAS:
+                if lambda_config.name in [LambdaName.AmsChange, LambdaName.AmsPerformance]:
+                    ams_layer_names.update(lambda_config.layers)
+
+            # Filter LAYER_DEPENDENCIES to only include AMS layers
+            ams_layer_dependencies = {
+                layer_name: deps
+                for layer_name, deps in LAYER_DEPENDENCIES.items()
+                if layer_name in ams_layer_names
+            }
+
+            print(f"   Building {len(ams_layer_dependencies)} layers: {', '.join([ln.value for ln in ams_layer_dependencies.keys()])}")
+
+            layer_builder = LambdaLayerBuilder(env=builder.env, region=region, max_workers=4)
+            layer_arns_cache = layer_builder.build_layers_parallel(ams_layer_dependencies)
         else:
-            print(f"\n[1/5] [PACKAGE] Using cached Lambda layers from first region...")
-            layer_builder = LambdaLayerBuilder(builder.env, region)
-            layer_arns_cache = layer_builder.execute_optimized()
-            print(f"  [OK] Layers published to {region.value}: {len(layer_arns_cache)} layers")
+            print(f"\n[1/5] [PACKAGE] Reusing Lambda layers from previous region")
 
         # Step 2: Build ONLY AMS Lambda functions
         print(f"\n[2/5] [LAMBDA] Building AMS Lambda functions (AmsChange, AmsPerformance)...")
@@ -781,46 +793,54 @@ def main():
     Main entry point for SAM Deploy.
 
     Flow:
-    1. Start Docker (required for SAM builds)
-    2. Detect environment (LOCAL vs DEV/STAGING/PROD)
-    3. If LOCAL: Create S3 buckets and SQS queues locally
-    4. If not LOCAL: Interactive deployment selection
-       - Core Product Features (All Regions)
-       - AMS Features (All Regions)
-       - Deploy to Staging (OTP required)
-       - Deploy to Production (OTP required)
-    5. Stop Docker after completion
+    1. Detect environment (LOCAL vs DEV/STAGING/PROD)
+    2. If LOCAL: Start Docker, create S3 buckets and SQS queues locally, stop Docker
+    3. If not LOCAL: Interactive deployment selection
+       - Core Product Features (All Regions) - Requires Docker
+       - AMS Features (All Regions) - Requires Docker
+       - Deploy to DEV (Point DEV alias to live version) - No Docker needed
+       - Deploy to Staging (DEV → STAGING, OTP required) - No Docker needed
+       - Deploy to Production (STAGING → PROD, OTP required) - No Docker needed
+    4. Docker is only started when needed (for layer building and SAM deployments)
     """
     print("\n" + "=" * 80)
     print("SAM DEPLOY - AWS Serverless Application Model Deployment Tool")
     print("=" * 80)
 
     try:
-        # Start Docker
-        print("\n[DOCKER] Starting Docker...")
-        docker_manager.start_ubuntu_docker()
-
         # Create a temporary builder to detect environment
         temp_builder = TemplateBuilder()
+        print(f"\n[OK] Environment: {temp_builder.env.value.upper()}")
 
-        if temp_builder.env == ENVIRONMENT.LOCAL:
-            print(f"\n[OK] Environment: LOCAL")
-            print("   Creating S3 buckets and SQS queues locally...")
-            create_local_resources()
-        else:
-            print(f"\n[OK] Environment: {temp_builder.env.value.upper()}")
+        # Interactive deployment selection
+        deployment_type, regions = select_deployment_type()
 
-            # Interactive deployment selection
-            deployment_type, regions = select_deployment_type()
+        # Only start Docker for deployments that need it (core/ams)
+        docker_started = False
+        if deployment_type in ["core", "ams"]:
+            print("\n[DOCKER] Starting Docker...")
+            docker_manager.start_ubuntu_docker()
+            docker_started = True
 
+        try:
             if deployment_type == "core" and regions:
                 deploy_core_product_features(regions)
             elif deployment_type == "ams" and regions:
                 deploy_ams_features_multiregion(regions)
+            elif deployment_type == "promote_dev":
+                promote_to_dev()
             elif deployment_type == "promote_staging":
                 promote_to_staging_with_otp()
             elif deployment_type == "promote_prod":
                 promote_to_production_with_otp()
+        finally:
+            # Stop Docker if it was started
+            if docker_started:
+                print("\n[DOCKER] Stopping Docker...")
+                try:
+                    docker_manager.stop_ubuntu_docker()
+                except Exception as e:
+                    print(f"[WARNING] Warning: Failed to stop Docker: {e}")
 
         print("\n[OK] Deployment completed successfully!")
 
@@ -832,13 +852,6 @@ def main():
         import traceback
         traceback.print_exc()
         sys.exit(1)
-    finally:
-        # Stop Docker
-        print("\n[DOCKER] Stopping Docker...")
-        try:
-            docker_manager.stop_ubuntu_docker()
-        except Exception as e:
-            print(f"[WARNING] Warning: Failed to stop Docker: {e}")
 
 
 if __name__ == "__main__":

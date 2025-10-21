@@ -10,7 +10,7 @@ from dzgroshared.secrets.client import SecretManager
 from motor.motor_asyncio import AsyncIOMotorClient
 from httpx import AsyncClient
 import pytest, json
-env = ENVIRONMENT.LOCAL
+env = ENVIRONMENT.DEV
 from api.main import app
 from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport

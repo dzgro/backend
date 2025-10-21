@@ -97,7 +97,7 @@ class LambdaBuilder:
         # self._create_lambda_aliases(fn_name, lambda_config.name)
 
         # Create IAM role for Lambda (shared across all aliases)
-        if self.builder.env != ENVIRONMENT.LOCAL:
+        if self.builder.env != ENVIRONMENT.DEV:
             self._create_lambda_role(lambda_config, lambda_region)
 
     def _create_lambda_aliases(self, fn_name: str, lambda_name: LambdaName) -> None:
@@ -326,11 +326,11 @@ class LambdaBuilder:
             if lambda_config.layers:
                 properties['Layers'] = [layer_arns[name] for name in lambda_config.layers]
 
-            # Add S3 event triggers if configured (only for dev environment buckets initially)
+            # Add S3 event triggers if configured (skip dev buckets, use staging instead)
             for s3 in lambda_region.s3:
                 if s3.trigger:
                     event = {
-                        'Bucket': {'Ref': f'{s3.name.value.replace("-", " ").title().replace(" ", "")}DevBucket'},
+                        'Bucket': {'Ref': f'{s3.name.value.replace("-", " ").title().replace(" ", "")}StagingBucket'},
                         'Events': s3.trigger.eventName
                     }
                     if s3.trigger.filter:
@@ -372,8 +372,9 @@ class LambdaBuilder:
         Create IAM role for Lambda function with permissions for ALL environment resources.
 
         Role includes:
-        - SQS permissions for dev, staging, AND prod queues
-        - S3 permissions for dev, staging, AND prod buckets
+        - Cognito permissions for CognitoTrigger Lambda
+        - SQS permissions for dev, staging, AND prod queues (if configured)
+        - S3 permissions for dev, staging, AND prod buckets (if configured)
 
         Args:
             lambda_config: Lambda configuration
@@ -402,68 +403,82 @@ class LambdaBuilder:
             }
         }
 
-        # Skip IAM policies for CognitoTrigger
+        # Add inline policies for SQS, S3, and Cognito access
         if lambda_config.name == LambdaName.CognitoTrigger:
-            self.builder.resources[role_name] = role
-            return
-
-        # Collect queue and bucket ARNs for environments where this lambda is configured
-        queue_arns = []
-        bucket_names = []
-
-        for env in environments:
-            # Only add permissions for environments where this lambda is configured
-            if env not in lambda_config.env:
-                continue
-
-            env_builder = TemplateBuilder(env)
-
-            # Add queue ARNs
-            for q in lambda_region.queue:
-                queue_resource_name = env_builder.getQueueName(q.name, 'Q')
-                queue_arns.append({'Fn::GetAtt': [queue_resource_name, 'Arn']})
-
-            # Add bucket names
-            for s3 in lambda_region.s3:
-                bucket_names.append(env_builder.getBucketName(s3.name))
-
-        # Add policies if we have queues or buckets
-        if queue_arns or bucket_names:
-            role['Properties']['Policies'] = []
-
-        # Add SQS permissions
-        if queue_arns:
-            role['Properties']['Policies'].append({
-                'PolicyName': 'LambdaSQSAccess',
+            # Add Cognito-specific permissions for CognitoTrigger Lambda
+            role['Properties']['Policies'] = [{
+                'PolicyName': 'LambdaCognitoAccess',
                 'PolicyDocument': {
                     'Version': '2012-10-17',
                     'Statement': [{
                         'Effect': 'Allow',
-                        'Action': [x.value for x in QueueRole.all()],
-                        'Resource': queue_arns
+                        'Action': [
+                            'cognito-idp:AdminGetUser',
+                            'cognito-idp:AdminDeleteUser',
+                            'cognito-idp:ListUsers'
+                        ],
+                        'Resource': '*'
                     }]
                 }
-            })
+            }]
+        else:
+            # Collect queue and bucket ARNs for environments where this lambda is configured
+            queue_arns = []
+            bucket_names = []
 
-        # Add S3 permissions
-        if bucket_names:
-            role['Properties']['Policies'].append({
-                'PolicyName': 'LambdaS3Access',
-                'PolicyDocument': {
-                    'Version': '2012-10-17',
-                    'Statement': [
-                        {
+            for env in environments:
+                # Only add permissions for environments where this lambda is configured
+                if env not in lambda_config.env:
+                    continue
+
+                env_builder = TemplateBuilder(env)
+
+                # Add queue ARNs
+                for q in lambda_region.queue:
+                    queue_resource_name = env_builder.getQueueName(q.name, 'Q')
+                    queue_arns.append({'Fn::GetAtt': [queue_resource_name, 'Arn']})
+
+                # Add bucket names
+                for s3 in lambda_region.s3:
+                    bucket_names.append(env_builder.getBucketName(s3.name))
+
+            # Add policies if we have queues or buckets
+            if queue_arns or bucket_names:
+                role['Properties']['Policies'] = []
+
+            # Add SQS permissions
+            if queue_arns:
+                role['Properties']['Policies'].append({
+                    'PolicyName': 'LambdaSQSAccess',
+                    'PolicyDocument': {
+                        'Version': '2012-10-17',
+                        'Statement': [{
                             'Effect': 'Allow',
-                            'Action': [x.value for x in [S3Role.GetObject, S3Role.PutObject, S3Role.DeleteObject]],
-                            'Resource': [{'Fn::Sub': f'arn:aws:s3:::{bucket}/*'} for bucket in bucket_names]
-                        },
-                        {
-                            'Effect': 'Allow',
-                            'Action': [S3Role.ListBucket.value],
-                            'Resource': [{'Fn::Sub': f'arn:aws:s3:::{bucket}'} for bucket in bucket_names]
-                        }
-                    ]
-                }
-            })
+                            'Action': [x.value for x in QueueRole.all()],
+                            'Resource': queue_arns
+                        }]
+                    }
+                })
+
+            # Add S3 permissions
+            if bucket_names:
+                role['Properties']['Policies'].append({
+                    'PolicyName': 'LambdaS3Access',
+                    'PolicyDocument': {
+                        'Version': '2012-10-17',
+                        'Statement': [
+                            {
+                                'Effect': 'Allow',
+                                'Action': [x.value for x in [S3Role.GetObject, S3Role.PutObject, S3Role.DeleteObject]],
+                                'Resource': [{'Fn::Sub': f'arn:aws:s3:::{bucket}/*'} for bucket in bucket_names]
+                            },
+                            {
+                                'Effect': 'Allow',
+                                'Action': [S3Role.ListBucket.value],
+                                'Resource': [{'Fn::Sub': f'arn:aws:s3:::{bucket}'} for bucket in bucket_names]
+                            }
+                        ]
+                    }
+                })
 
         self.builder.resources[role_name] = role

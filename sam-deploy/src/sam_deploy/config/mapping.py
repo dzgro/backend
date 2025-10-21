@@ -150,8 +150,8 @@ class S3Property(BaseModel):
 
     @model_validator(mode="after")
     def validate_lifecycle_and_cors(self):
-        if self.name==S3Bucket.DZGRO_REPORTS and not self.cors:
-            self.cors = S3CorsRule(methods=[S3Method.GET])
+        if self.name in [S3Bucket.DZGRO_REPORTS, S3Bucket.INVOICES] and not self.cors:
+            self.cors = S3CorsRule(methods=[S3Method.GET, S3Method.HEAD])
         return self
 
 class LambdaRegion(BaseModel):
@@ -166,7 +166,7 @@ class LambdaProperty(BaseModel):
     memorySize: int = 128
     timeout: int = 900
     regions: List[LambdaRegion]
-    env: List[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD, ENVIRONMENT.LOCAL]
+    env: List[ENVIRONMENT] = [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]
     layers: List[LAYER_NAME] = []
 
 def createPolicy(region:Region, name:LambdaName, arns: list[str]):

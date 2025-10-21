@@ -62,7 +62,7 @@ class RequestHelper:
     
     @property
     def DB_NAME(self)->str:
-        return f'dzgro-{self.env.value}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+        return f'dzgro-{self.env.value}'
 
     async def _createRazorpayCustomer(self, user:UserBasicDetails, collection: AsyncIOMotorCollection):
         customerReq = RazorpayCreateCustomer(name=user.name, email=user.email, contact=user.phone_number)

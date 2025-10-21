@@ -169,7 +169,7 @@ def custom_openapi():
     openapi_schema["info"]["x-logo"] = {
         "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
     }
-    if env==ENVIRONMENT.LOCAL:
+    if env==ENVIRONMENT.DEV:
         openapi_schema["components"]["securitySchemes"] = {
             "AuthorizationHeader": {
                 "type": "apiKey",
@@ -257,7 +257,7 @@ marketplace_scheme = APIKeyHeader(name="marketplace", auto_error=True)
 
 app = FastAPI(title="FastAPI",separate_input_output_schemas=False, lifespan=lifespan, servers=[{"url": "http://localhost:8000/", "description": "Development environment"}, {"url": "https://api.dzgro.com", "description": "Production environment"}])
 app.openapi = custom_openapi
-origins: list[str] = ["http://localhost:4200"] if env==ENVIRONMENT.LOCAL else ["https://dev.dzgro.com","http://localhost:4200"] if env==ENVIRONMENT.DEV else ["https://staging.dzgro.com"] if env==ENVIRONMENT.STAGING else ["https://dzgro.com", "https://www.dzgro.com"]
+origins: list[str] =  ["https://dev.dzgro.com","http://localhost:4200"] if env==ENVIRONMENT.DEV else ["https://staging.dzgro.com"] if env==ENVIRONMENT.STAGING else ["https://dzgro.com", "https://www.dzgro.com"]
 headers: list[str] = ["Authorization","marketplaceId", "Content-Type", "Accept", "Origin", "X-Requested-With"]
 
 # Add LocalDevAuthMiddleware first (only when NOT running on Lambda)
@@ -341,15 +341,14 @@ async def universal_cors_handler(request: Request, call_next):
     return response
 
 # Enhanced CORS configuration for production only (if needed as backup)
-if env != ENVIRONMENT.LOCAL:
-    app.add_middleware(
-        CORSMiddleware, 
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], 
-        allow_headers=["*"],
-        expose_headers=["*"]
-    )
+app.add_middleware(
+    CORSMiddleware, 
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], 
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 
 @app.middleware("http")

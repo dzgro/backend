@@ -25,7 +25,7 @@ class DzgroSharedClient:
         self.env = env
         self.ACCOUNT_ID = "522814698847"
         self.REGION = "ap-south-1"
-        self.DB_NAME = f'dzgro-{self.env.value}' if self.env != ENVIRONMENT.LOCAL else 'dzgro-dev'
+        self.DB_NAME = f'dzgro-{self.env.value}'
 
         
     def __getattr__(self, item):

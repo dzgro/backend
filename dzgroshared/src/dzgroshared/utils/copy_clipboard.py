@@ -5,7 +5,7 @@ def copy(data):
         load_dotenv()
         from dzgroshared.db.enums import ENVIRONMENT
         env = ENVIRONMENT(os.getenv("ENV", None))
-        if env==ENVIRONMENT.LOCAL:
+        if env==ENVIRONMENT.DEV:
             import subprocess
             subprocess.run("clip", text=True, input=data)
         print(f"/* Pipeline Copied to Clipboard */")

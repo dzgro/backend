@@ -23,13 +23,13 @@
       "jinja": true
     },
     {
-      "name": "Deploy",
+      "name": "Deploy (SAM Deploy)",
       "type": "debugpy",
       "request": "launch",
-      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/deploy-AQqm9Uwi-py3.12/Scripts/python.exe",
-      "program": "${workspaceFolder}/deploy/src/deploy/TemplateBuilder/Builder.py",
-      "cwd": "${workspaceFolder}/deploy",
+      "program": "${workspaceFolder}/sam-deploy/src/sam_deploy/__main__.py",
+      "python": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/sam-deploy-w3iSKFlr-py3.12/Scripts/python.exe",
       "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/sam-deploy",
       "justMyCode": true
     },
     {

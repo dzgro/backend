@@ -28,7 +28,7 @@ class DzgroReportHelper:
             req = SendMessageRequest(Queue=QueueName.DZGRO_REPORTS, DelaySeconds=30)
             message_id = await self.client.sqs.sendMessage(req, message)
             await self.addMessageId(id,message_id)
-            if self.client.env in ENVIRONMENT.LOCAL:
+            if self.client.env in ENVIRONMENT.DEV:
                 message = await self.client.db.sqs_messages.getMessage(message_id)
                 sqsEvent = self.client.sqs.getSQSEventByMessage(message_id, message)
                 from dzgroshared.functions.DzgroReports.handler import DzgroReportProcessor

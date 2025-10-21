@@ -80,7 +80,8 @@ class TemplateBuilder:
             {
                 'Auth': {'dev': arn, 'staging': arn, 'prod': arn},
                 'Api': {'dev': arn, 'staging': arn, 'prod': arn},
-                'Webhook': {'dev': arn, 'staging': arn, 'prod': arn}
+                'Webhook': {'dev': arn, 'staging': arn, 'prod': arn},
+                'Assets': {'dev': arn, 'staging': arn, 'prod': arn}
             }
         """
         import time
@@ -104,11 +105,17 @@ class TemplateBuilder:
             temp_builder = TemplateBuilder(env)
 
             # Iterate over certificate types with proper typing
-            cert_types: list[Literal['Auth', 'Api', 'Webhook']] = ['Auth', 'Api', 'Webhook']
+            cert_types: list[Literal['Auth', 'Api', 'Webhook', 'Assets']] = ['Auth', 'Api', 'Webhook', 'Assets']
             for cert_type in cert_types:
-                domain = temp_builder.getDomainNameByType(cert_type)
-                acm_client = acm_us_east_1 if cert_type == 'Auth' else acm_region
-                cert_region = 'us-east-1' if cert_type == 'Auth' else region.value
+                # Get domain name based on type
+                if cert_type == 'Assets':
+                    domain = temp_builder.getAssetsDomainName()
+                else:
+                    domain = temp_builder.getDomainNameByType(cert_type)
+
+                # Assets and Auth require us-east-1 (CloudFront requirement)
+                acm_client = acm_us_east_1 if cert_type in ['Auth', 'Assets'] else acm_region
+                cert_region = 'us-east-1' if cert_type in ['Auth', 'Assets'] else region.value
 
                 # List existing certificates
                 certificates = acm_client.list_certificates(
@@ -206,43 +213,14 @@ class TemplateBuilder:
         result = {
             'Auth': {},
             'Api': {},
-            'Webhook': {}
+            'Webhook': {},
+            'Assets': {}
         }
 
         for (cert_type, env_val), cert_info in cert_tracker.items():
             result[cert_type][env_val] = cert_info['arn']
 
         return result
-
-    def getAssets(self):
-        import base64
-        import os
-        images_dir = os.path.join(os.path.dirname(__file__), 'images')
-        def file_to_bytes(filename):
-            with open(os.path.join(images_dir, filename), 'rb') as f:
-                return f.read()
-
-        assets = [
-            {
-                'Category': 'PAGE_HEADER_LOGO',
-                'ColorMode': 'LIGHT',
-                'Extension': 'PNG',
-                'Bytes': file_to_bytes('dzgro-logo.png'),
-            },
-            {
-                'Category': 'FAVICON_ICO',
-                'ColorMode': 'LIGHT',
-                'Extension': 'ICO',
-                'Bytes': file_to_bytes('dzgro-ico.ico'),
-            },
-            {
-                'Category': 'PAGE_HEADER_BACKGROUND',
-                'ColorMode': 'LIGHT',
-                'Extension': 'PNG',
-                'Bytes': file_to_bytes('cognito-bg.png'),
-            },
-        ]
-        return assets
 
     def createUserPoolDomain(self, region: Region, authCertificateArn: str):
         idp = boto3.client("cognito-idp", region_name=region.value)
@@ -292,27 +270,9 @@ class TemplateBuilder:
                     if not clientId: raise Exception(f"User Pool Client {self.getUserPoolClientName()} not found in User Pool {self.getUserPoolName()}")
 
 
-                    try:
-                        response = idp.describe_managed_login_branding_by_client(
-                            UserPoolId=userPoolId,
-                            ClientId=clientId,
-                            ReturnMergedResources=True
-                        )
-                        print(f"Managed Login Branding already exists as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
-                        response = idp.update_managed_login_branding(
-                            UserPoolId=userPoolId,
-                            ManagedLoginBrandingId=response['ManagedLoginBranding']['ManagedLoginBrandingId'],
-                            UseCognitoProvidedValues=True,
-                            Assets=self.getAssets()
-                        )
-                    except idp.exceptions.ResourceNotFoundException:
-                        response = idp.create_managed_login_branding(
-                            UserPoolId=userPoolId,
-                            ClientId=clientId,
-                            UseCognitoProvidedValues=True,
-                            Assets=self.getAssets()
-                        )
-                    print(f"Created Managed Login Branding as {response['ManagedLoginBranding']['ManagedLoginBrandingId']}")
+                    # NOTE: This method is deprecated - use CognitoDomainBuilder.createUserPoolDomainsForAllEnvironments() instead
+                    # Branding is now handled by the new parallel domain builder
+                    print(f"[DEPRECATED] This sequential domain creation method is deprecated. Use CognitoDomainBuilder instead.")
 
 
 
@@ -349,6 +309,14 @@ class TemplateBuilder:
     def getWebhookDomainName(self) -> str:
         """Returns webhook.{env}.dzgro.com"""
         return self.getDomainNameByType('Webhook')
+
+    def getAssetsDomainName(self) -> str:
+        """Returns assets.{env}.dzgro.com (includes .prod for production)"""
+        return f"assets.{self.envtextlower}.dzgro.com"
+
+    def getAssetsBucketName(self) -> str:
+        """Returns dzgro-assets-{env}"""
+        return f'dzgro-assets-{self.envtextlower}'
 
     def getLambdaRoleName(self, name: LambdaName):
         """Returns Lambda role name WITHOUT environment suffix"""
