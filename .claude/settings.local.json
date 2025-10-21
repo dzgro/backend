@@ -53,7 +53,9 @@
       "Bash(poetry:*)",
       "Bash(for dir in api dzgroshared sam-deploy secrets utilities tests events)",
       "Bash(do echo \"=== $dir ===\")",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(for dir in docs/database/collections/*)",
+      "Bash(do ls \"$dir\")"
     ],
     "deny": [],
     "ask": []
