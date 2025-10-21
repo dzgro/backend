@@ -54,7 +54,7 @@ class AmazonReportManager:
             self.client.setMarketplaceId(self.message.marketplace)
             await self.setUserMarketplace()
             messageId, delay = await self.checkMessage()
-            if self.client.env==ENVIRONMENT.DEV:
+            if self.client.secrets.ENV==ENVIRONMENT.DEV:
                 while messageId is not None:
                     print('--------------------------------------------------------')
                     print(f'Messageid: {messageId}, Action: {self.message.step.value}, Date: {self.message.date}')
@@ -121,7 +121,7 @@ class AmazonReportManager:
     
     async def exitAndContinue(self):
         if self.message.step==AmazonDailyReportAggregationStep.CREATE_REPORTS:
-            if self.client.env!=ENVIRONMENT.DEV: 
+            if self.client.secrets.ENV!=ENVIRONMENT.DEV: 
                 await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
                 return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
             return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
@@ -129,7 +129,7 @@ class AmazonReportManager:
             if self.message.date: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PRODUCTS)
             else: 
                 await self.client.db.daily_report_group.markProductsComplete(ObjectId(self.message.index))
-                if self.client.env==ENVIRONMENT.DEV: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
+                if self.client.secrets.ENV==ENVIRONMENT.DEV: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS)
         elif self.message.step==AmazonDailyReportAggregationStep.PROCESS_REPORTS:
             if self.report.productsComplete and self.report.progress==100: return await self.__sendMessage(AmazonDailyReportAggregationStep.ADD_PORTFOLIOS)
             else: return await self.__sendMessage(AmazonDailyReportAggregationStep.PROCESS_REPORTS, delay=120 if not self.report.productsComplete else 60)

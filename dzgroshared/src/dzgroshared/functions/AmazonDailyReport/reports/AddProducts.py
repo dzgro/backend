@@ -47,7 +47,7 @@ class ListingsBuilder:
                 hasMore = res.number_of_results>len(items)
                 print(f'Items : {len(items)}, Remaining: {res.number_of_results-len(items)}, Has More: {hasMore}, Token: {len(token or "")}')
                 shouldContinue = token is not None and len(items)>0
-                if self.client.env!=ENVIRONMENT.DEV:
+                if self.client.secrets.ENV!=ENVIRONMENT.DEV:
                     shouldContinue = shouldContinue and self.context.get_remaining_time_in_millis()>exitBefore
             except DzgroError as e:
                 if e.status_code==429:

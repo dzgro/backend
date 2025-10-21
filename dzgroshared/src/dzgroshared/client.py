@@ -1,7 +1,6 @@
 from bson import ObjectId
 from dzgroshared.db.marketplaces.model import MarketplaceCache
 from dzgroshared.db.users.model import User
-from dzgroshared.db.enums import ENVIRONMENT
 from dzgroshared.db.model import LambdaContext, PyObjectId
 from dzgroshared.razorpay.client import RazorpayClient
 from dzgroshared.secrets.model import DzgroSecrets
@@ -11,7 +10,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 class DzgroSharedClient:
     ACCOUNT_ID: str
     REGION: str
-    env: ENVIRONMENT
     DB_NAME: str
     uid: str
     user: User
@@ -19,14 +17,13 @@ class DzgroSharedClient:
     marketplaceId: ObjectId
     mongoClient: AsyncIOMotorClient
     mongoFedClient: AsyncIOMotorClient
-    secretsClient: DzgroSecrets
+    secrets: DzgroSecrets
 
-    def __init__(self, env: ENVIRONMENT):
-        self.env = env
+    def __init__(self, context=None):
         self.ACCOUNT_ID = "522814698847"
         self.REGION = "ap-south-1"
-        self.DB_NAME = f'dzgro-{self.env.value}'
-
+        from .secrets.client import SecretManager
+        self.secrets = SecretManager(context).secrets
         
     def __getattr__(self, item):
         return None
@@ -53,13 +50,6 @@ class DzgroSharedClient:
 
     def setFedClient(self, mongoFedClient: AsyncIOMotorClient):
         self.mongoFedClient = mongoFedClient
-
-    @property
-    def secrets(self):
-        if self.secretsClient: return self.secretsClient
-        from dzgroshared.secrets.client import SecretManager
-        self.secretsClient = SecretManager(self.env).secrets
-        return self.secretsClient
     
     @property
     def cognito(self):
@@ -85,9 +75,7 @@ class DzgroSharedClient:
     @property
     def razorpay(self):
         if self.razorpayClient: return self.razorpayClient
-        key = self.secrets.RAZORPAY_CLIENT_ID if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_ID
-        secret = self.secrets.RAZORPAY_CLIENT_SECRET if self.env == ENVIRONMENT.PROD else self.secrets.RAZORPAY_CLIENT_SECRET
-        self.razorpayClient = RazorpayClient(key, secret)
+        self.razorpayClient = RazorpayClient(self.secrets.RAZORPAY_CLIENT_ID, self.secrets.RAZORPAY_CLIENT_SECRET)
         return self.razorpayClient
     
     @property

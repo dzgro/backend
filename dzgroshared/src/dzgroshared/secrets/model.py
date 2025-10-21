@@ -1,8 +1,10 @@
 
+from dzgroshared.db.enums import ENVIRONMENT
 from pydantic import BaseModel
 
 
 class DzgroSecrets(BaseModel):
+    ENV: ENVIRONMENT
     COGNITO_APP_CLIENT_ID: str
     COGNITO_USER_POOL_ID: str
     RAZORPAY_CLIENT_ID: str

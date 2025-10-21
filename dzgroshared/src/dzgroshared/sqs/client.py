@@ -24,7 +24,7 @@ class SqsHelper:
         return self.sqsclient
     
     def getQueueUrl(self, queue: QueueName) -> str:
-        return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.env.value.title()}Q"
+        return f"https://sqs.{self.client.REGION}.amazonaws.com/{self.client.ACCOUNT_ID}/{queue.value}{self.client.secrets.ENV.value.title()}Q"
     
     def mockSQSEvent(self, messageId: str, body: dict|str):
         import json
@@ -34,7 +34,7 @@ class SqsHelper:
 
     @catch_sqs_exceptions
     async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> str:
-        # if self.client.env!=ENVIRONMENT.DEV:
+        # if self.client.secrets.ENV!=ENVIRONMENT.DEV:
         client = self.getClient()
         send_args = {
             "QueueUrl": self.getQueueUrl(payload.Queue),

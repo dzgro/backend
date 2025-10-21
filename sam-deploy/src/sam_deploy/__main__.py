@@ -398,7 +398,7 @@ def deploy_core_product_features(regions: List[Region]) -> None:
         # Step 1: Build Lambda layers (optimized with caching)
         print(f"\n[1/11] [PACKAGE] Building Lambda layers with optimized caching...")
         from sam_deploy.builder.build_layers import LambdaLayerBuilder
-        layer_builder = LambdaLayerBuilder(env=ENVIRONMENT.DEV, region=region, max_workers=4)
+        layer_builder = LambdaLayerBuilder(region=region, max_workers=4)
         current_layer_arns = layer_builder.execute_optimized()
 
         # Step 2: Build certificates for ALL environments together (Auth, API, Webhook, Assets)
@@ -625,7 +625,7 @@ def deploy_ams_features_multiregion(regions: List[Region]) -> None:
 
             print(f"   Building {len(ams_layer_dependencies)} layers: {', '.join([ln.value for ln in ams_layer_dependencies.keys()])}")
 
-            layer_builder = LambdaLayerBuilder(env=builder.env, region=region, max_workers=4)
+            layer_builder = LambdaLayerBuilder(region=region, max_workers=4)
             layer_arns_cache = layer_builder.build_layers_parallel(ams_layer_dependencies)
         else:
             print(f"\n[1/5] [PACKAGE] Reusing Lambda layers from previous region")

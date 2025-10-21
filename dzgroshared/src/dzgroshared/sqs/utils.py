@@ -31,7 +31,7 @@ class SQSUtils:
         
     async def executeAmazonReportsByCountryCode(self, countryCode: CountryCode):
         res, batchRequests = await self._startAmazonReports(countryCode)
-        if(self.client.env==ENVIRONMENT.DEV):
+        if(self.client.secrets.ENV==ENVIRONMENT.DEV):
             for success in res.Success:
                 body = next((doc.Body for doc in batchRequests if doc.Id == success.Id), None)
                 if body:
@@ -44,7 +44,7 @@ class SQSUtils:
         messageRequest = SendMessageRequest(Queue=QueueName.INVOICE_GENERATOR)
         body = GenerateInvoiceQM(orderid=orderid, paymentid=paymentid, uid=self.client.uid)
         messageId =  await self.client.sqs.sendMessage(messageRequest, body)
-        if(self.client.env==ENVIRONMENT.DEV):
+        if(self.client.secrets.ENV==ENVIRONMENT.DEV):
             sqsEvent = await self.getMessageFromDevQueue(QueueName.INVOICE_GENERATOR, messageId)
             await self.client.functions(sqsEvent, self.context).invoice_generator
         
@@ -54,7 +54,7 @@ class SQSUtils:
         req = SendMessageRequest(Queue=QueueName.AMAZON_REPORTS)
         body = AmazoMarketplaceDailyReportQM(marketplace=marketplace, step=AmazonDailyReportAggregationStep.CREATE_REPORTS, uid=self.client.uid)
         messageId = await self.client.sqs.sendMessage(req, body)
-        if(self.client.env==ENVIRONMENT.DEV):
+        if(self.client.secrets.ENV==ENVIRONMENT.DEV):
             sqsEvent = await self.getMessageFromDevQueue(QueueName.AMAZON_REPORTS, messageId)
             await self.client.functions(sqsEvent, self.context).amazon_daily_report
         

@@ -20,7 +20,9 @@ pyyaml = "6.0.2"
 
 
 [tool.poetry.group.dev.dependencies]
+dzgro-secrets = { path = "../secrets", develop = true }
 dzgroshared = { path = "../dzgroshared", develop = true }
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

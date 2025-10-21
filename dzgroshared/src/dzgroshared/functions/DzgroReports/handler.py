@@ -29,7 +29,7 @@ class DzgroReportProcessor:
                     self.filename = f'{self.message.uid}/{str(self.message.marketplace)}/{self.report.reporttype.name}/{self.message.index}/{self.report.reporttype.value.replace(' ','_')}'
                     count = await self.getCount()
                     if count==0: return await self.client.db.dzgro_reports.addError(self.report.id, "No data found")
-                    # elif count<12000 or self.client.env==ENVIRONMENT.DEV: await self.executeHere()
+                    # elif count<12000 or self.client.secrets.ENV==ENVIRONMENT.DEV: await self.executeHere()
                     else: await self.runFedQuery()
                     await self.client.db.sqs_messages.setMessageAsCompleted(self.messageid)
                     await self.client.db.dzgro_reports_data.deleteReportData(self.report.id)
@@ -80,7 +80,7 @@ class DzgroReportProcessor:
         projections = await self.getProjections()
         pipeline = self.getPipeline(projections)
         await self.client.fedDb.createReport(self.filename, pipeline, S3Bucket.DZGRO_REPORTS)
-        if self.client.env==ENVIRONMENT.DEV:
+        if self.client.secrets.ENV==ENVIRONMENT.DEV:
             await self.triggerLocal()
 
     def getPipeline(self, projections: dict):

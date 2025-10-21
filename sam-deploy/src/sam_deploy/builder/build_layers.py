@@ -15,7 +15,7 @@ Performance improvements over original implementation:
 - Comprehensive cache hit tracking
 """
 
-from sam_deploy.config.mapping import LAYER_DEPENDENCIES, LAYER_NAME, Region, ENVIRONMENT
+from sam_deploy.config.mapping import LAYER_DEPENDENCIES, LAYER_NAME, Region
 import os
 import hashlib
 import json
@@ -49,10 +49,7 @@ class LambdaLayerBuilder:
     Optimized Lambda Layer Builder with advanced caching and parallel processing
     """
 
-    def __init__(self, env: ENVIRONMENT, region: Region, max_workers: int = 4):
-        self.env = env
-        self.envtextlower = env.value
-        self.envtextTitle = env.value.title()
+    def __init__(self, region: Region, max_workers: int = 4):
         self.region = region
         self.max_workers = max_workers
 
@@ -72,7 +69,6 @@ class LambdaLayerBuilder:
         self._lock = threading.Lock()
 
         print(f"Initialized OptimizedLambdaLayerBuilder")
-        print(f"   Environment: {env.value}")
         print(f"   Region: {region.value}")
         print(f"   Max Workers: {max_workers}")
         print(f"   Cache Directory: {self.cache_dir}")
@@ -110,8 +106,8 @@ class LambdaLayerBuilder:
         sorted_deps = sorted(deps)
         deps_string = "|".join(sorted_deps)
 
-        # Include environment and Python version in hash (no region needed)
-        hash_input = f"{deps_string}|{self.envtextTitle}|python3.12"
+        # Include Python version in hash (no region or environment needed)
+        hash_input = f"{deps_string}|python3.12"
 
         return hashlib.sha256(hash_input.encode()).hexdigest()
 
@@ -161,15 +157,14 @@ class LambdaLayerBuilder:
 
         # Handle both enum and string values for layer_name
         layer_name_str = layer_name.value if hasattr(layer_name, 'value') else str(layer_name)
-        env_str = self.envtextTitle if hasattr(self.env, 'value') else str(self.env)
 
         if source_path:
             # For custom layers, include both dependency and code hashes
             code_hash = self.generate_code_hash(source_path)
-            combined_input = f"{deps_hash}|{code_hash}|{layer_name_str}|{env_str}"
+            combined_input = f"{deps_hash}|{code_hash}|{layer_name_str}"
         else:
             # For requirement-only layers, only use dependency hash
-            combined_input = f"{deps_hash}|{layer_name_str}|{env_str}"
+            combined_input = f"{deps_hash}|{layer_name_str}"
 
         return hashlib.sha256(combined_input.encode()).hexdigest()
 
@@ -237,9 +232,9 @@ class LambdaLayerBuilder:
         combined_hash = self.generate_combined_hash(layer_name, deps, source_path)
 
         if source_path:
-            return f"Dependencies + Code for {layer_name.value} in {self.envtextTitle}: {deps_string} [Hash: {combined_hash[:8]}]"
+            return f"Dependencies + Code for {layer_name.value}: {deps_string} [Hash: {combined_hash[:8]}]"
         else:
-            return f"Dependencies for {layer_name.value} in {self.envtextTitle}: {deps_string} [Hash: {combined_hash[:8]}]"
+            return f"Dependencies for {layer_name.value}: {deps_string} [Hash: {combined_hash[:8]}]"
 
     def get_layer_name(self, layer_name: LAYER_NAME) -> str:
         """Generate standardized layer name"""
@@ -251,6 +246,8 @@ class LambdaLayerBuilder:
             return "dzgroshared"
         elif layer_name == LAYER_NAME.API:
             return "api"
+        elif layer_name == LAYER_NAME.SECRETS:
+            return "secrets"
         else:
             # Fallback to standard naming
             return f"{layer_name.value.lower()}"
@@ -697,9 +694,10 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
     RUN python3 -c "import toml; pyproject = toml.load('/tmp/pyproject.toml'); deps = pyproject.get('tool', {{}}).get('poetry', {{}}).get('dependencies', {{}}); [print(f'{{pkg}}=={{ver}}' if isinstance(ver, str) and not ver.startswith(('^', '~', '>=')) else pkg) for pkg, ver in deps.items() if pkg.lower() != 'python']" > /tmp/requirements.txt
     RUN cat /tmp/requirements.txt
     RUN pip install -r /tmp/requirements.txt -t /tmp/layer/python/lib/python3.12/site-packages/
-    RUN cp -r /tmp/src/{source_folder} /tmp/layer/python/lib/python3.12/site-packages/
+    RUN python3 -c "import toml; pyproject = toml.load('/tmp/pyproject.toml'); packages = pyproject.get('tool', {{}}).get('poetry', {{}}).get('packages', []); package_name = packages[0].get('include') if packages else '{source_folder}'; print(package_name)" > /tmp/package_name.txt
+    RUN PACKAGE_NAME=$(cat /tmp/package_name.txt) && cp -r /tmp/src/$PACKAGE_NAME /tmp/layer/python/lib/python3.12/site-packages/
     WORKDIR /tmp/layer
-    RUN zip -r {source_folder}-{self.envtextTitle.lower()}.zip python/
+    RUN zip -r {source_folder}.zip python/
     RUN ls -la /tmp/layer/
     '''
 
@@ -720,7 +718,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             )
 
             # Copy the zip file out of the container
-            layer_zip_name = f'{layer_name}-{self.envtextTitle.lower()}.zip'
+            layer_zip_name = f'{layer_name}.zip'
             container_id = docker_manager.run_docker_command_in_wsl(
                 ['create', 'lambda-layer-builder'],
                 capture_output=True,
@@ -818,6 +816,8 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
             layer_enum = LAYER_NAME.DZGRO_SHARED
         elif layer_name == 'api':
             layer_enum = LAYER_NAME.API
+        elif layer_name == 'secrets':
+            layer_enum = LAYER_NAME.SECRETS
         else:
             print(f"Unknown custom layer: {layer_name}")
             return None
@@ -1047,7 +1047,7 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
                 else:
                     # Cache miss - need to deploy the zip file
                     custom_layer_arns[LAYER_NAME.DZGRO_SHARED] = self.deploy_custom_layer(
-                        dzgroshared_zip, 'dzgroshared', f"DzgroShared Layer for {self.envtextTitle} environment"
+                        dzgroshared_zip, 'dzgroshared', "DzgroShared Layer"
                     )
 
             # Build api layer
@@ -1060,7 +1060,20 @@ RUN echo "Installed packages:" && pip list --path /tmp/layer/python/lib/python3.
                 else:
                     # Cache miss - need to deploy the zip file
                     custom_layer_arns[LAYER_NAME.API] = self.deploy_custom_layer(
-                        api_zip, 'api', f"API Layer for {self.envtextTitle} environment"
+                        api_zip, 'api', "API Layer"
+                    )
+
+            # Build secrets layer
+            secrets_zip = self.build_custom_layer_optimized('secrets', 'secrets')
+            if secrets_zip:
+                # Check if result is already an AWS ARN (cache hit) or a zip file path
+                if secrets_zip.startswith('arn:aws:lambda:'):
+                    # Cache hit - already an AWS layer ARN
+                    custom_layer_arns[LAYER_NAME.SECRETS] = secrets_zip
+                else:
+                    # Cache miss - need to deploy the zip file
+                    custom_layer_arns[LAYER_NAME.SECRETS] = self.deploy_custom_layer(
+                        secrets_zip, 'secrets', "Secrets Layer"
                     )
 
             custom_layer_time = time.time() - custom_layer_start

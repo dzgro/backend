@@ -38,7 +38,7 @@ class S3Storage:
         return None
 
     def getBucketName(self, bucket: S3Bucket):
-        return f"{bucket.value}-{self.client.env.value.lower()}"
+        return f"{bucket.value}-{self.client.secrets.ENV.value.lower()}"
     
     def getS3TriggerObject(self, data: dict):
         return {'Records': [

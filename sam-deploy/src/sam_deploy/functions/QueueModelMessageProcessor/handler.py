@@ -1,17 +1,12 @@
 import os, asyncio
 all_vars = dict(os.environ)
-from dzgroshared.db.queue_messages.model import QueueMessageModelType
 client=None
 
 def getClient():
     global client
     if client: return client
-    from dzgroshared.db.enums import ENVIRONMENT
-    ENV = ENVIRONMENT(os.environ.get("ENV"))
-    from dzgroshared.secrets.model import DzgroSecrets
     from dzgroshared.client import DzgroSharedClient
-    client = DzgroSharedClient(ENV)
-    client.setSecretsClient(DzgroSecrets.model_validate(all_vars))
+    client = DzgroSharedClient()
     return client
 
 
@@ -29,6 +24,7 @@ async def execute(event: dict, context):
     try:
         parsed = SQSEvent.model_validate(event)
         fn = client.functions(event, context)
+        from dzgroshared.db.queue_messages.model import QueueMessageModelType
         for record in parsed.Records:
             fn.setRecord(record)
             try:

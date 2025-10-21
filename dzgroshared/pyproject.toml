@@ -21,6 +21,9 @@ pymongo = "4.10.1"
 pytz = "2025.2"
 
 
+[tool.poetry.group.dev.dependencies]
+dzgro-secrets = { path = "../secrets", develop = true }
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

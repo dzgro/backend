@@ -23,6 +23,7 @@ class LAYER_NAME(str, Enum):
     PYMONGO = "PymongoLayer"
     INVOICE_GENERATOR = "InvoiceGeneratorLayer"
     PANDAS = "PandasLayer"
+    SECRETS = "SecretsLayer"
 
 LAYER_DEPENDENCIES = {
     LAYER_NAME.PYMONGO: ["pymongo==4.15.0"],
@@ -222,7 +223,7 @@ LAMBDAS = [
         description="Handles Cognito triggers for user sign-up, confirmation, and token generation.",
         memorySize=512,
         timeout=10,
-        layers = [LAYER_NAME.PYMONGO],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT
@@ -235,7 +236,7 @@ LAMBDAS = [
         description="Main API Lambda function behind API Gateway.",
         memorySize=1024,
         timeout=30,
-        layers = [LAYER_NAME.API,LAYER_NAME.MANGUM, LAYER_NAME.DZGRO_SHARED],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.API, LAYER_NAME.MANGUM, LAYER_NAME.DZGRO_SHARED],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
@@ -261,7 +262,7 @@ LAMBDAS = [
         description="Processes messages from SQS queues based on their model type.",
         memorySize=1024,
         timeout=900,
-        layers = [LAYER_NAME.DZGRO_SHARED, LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.PANDAS],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.DZGRO_SHARED, LAYER_NAME.INVOICE_GENERATOR, LAYER_NAME.PANDAS],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
@@ -292,7 +293,7 @@ LAMBDAS = [
         description="Triggered by S3 events to process Dzgro reports.",
         memorySize=1024,
         timeout=900,
-        layers = [LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.DZGRO_SHARED, LAYER_NAME.PANDAS],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,
@@ -319,7 +320,7 @@ LAMBDAS = [
     LambdaProperty(
         name=LambdaName.AmsChange,
         description="Processes AMS Change Set notifications from SNS.",
-        layers = [LAYER_NAME.PYMONGO],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(
                 region=region,
@@ -334,7 +335,7 @@ LAMBDAS = [
     LambdaProperty(
         name=LambdaName.AmsPerformance,
         description="Processes AMS Performance notifications from SNS.",
-        layers = [LAYER_NAME.PYMONGO],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.PYMONGO],
         regions=[
             LambdaRegion(
                 region=region,
@@ -351,7 +352,7 @@ LAMBDAS = [
         description="Handles Razorpay webhook events directly from HTTP API.",
         memorySize=512,
         timeout=30,
-        layers = [LAYER_NAME.DZGRO_SHARED],
+        layers = [LAYER_NAME.SECRETS, LAYER_NAME.DZGRO_SHARED],
         regions=[
             LambdaRegion(
                 region=Region.DEFAULT,

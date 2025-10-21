@@ -8,13 +8,9 @@ client=None
 def getMongoClient()->Collection|None:
     global client
     if client: return client
-    mongo_uri = os.environ.get("MONGO_DB_CONNECT_URI")
-    env = os.environ.get("ENV")
-    if not mongo_uri or not env:
-        print("MONGO_DB_CONNECT_URI or ENV not set in environment variables")
-    else:
-        db_name = f"dzgro-{env.lower()}"
-        return MongoClient(mongo_uri)[db_name]['users']
+    from dzgro_secrets.client import SecretManager
+    secrets = SecretManager()
+    return MongoClient(secrets.MONGO_DB_CONNECT_URI)[secrets.DB_NAME]['users']
     
 def checkSignUp(event):
     client = boto3.client('cognito-idp')
