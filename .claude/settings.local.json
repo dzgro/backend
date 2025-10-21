@@ -48,7 +48,8 @@
       "Bash(xargs:*)",
       "Bash(cmd /c:*)",
       "Bash(git log:*)",
-      "Bash(poetry lock:*)"
+      "Bash(poetry lock:*)",
+      "Bash(aws secretsmanager get-secret-value:*)"
     ],
     "deny": [],
     "ask": []

@@ -62,8 +62,11 @@ class QueueBuilder:
         function_name: LambdaName
     ) -> dict[str, dict]:
         """
-        Creates EventSourceMapping for Lambda-SQS integration.
-        Currently disabled for all environments - Lambda functions are not triggered by queues.
+        Creates EventSourceMapping for Lambda-SQS integration with proper alias support.
+
+        - DEV: No event source mapping (queues only, no triggers)
+        - STAGING: Event source mapping points to Lambda's staging alias
+        - PROD: Event source mapping points to Lambda's prod alias
 
         Args:
             queue_config: Queue property containing name and configuration
@@ -71,11 +74,37 @@ class QueueBuilder:
             function_name: Lambda function enum name to attach to queue
 
         Returns:
-            Empty dict (EventSourceMapping disabled for all environments)
+            Dictionary with EventSourceMapping resource (empty for DEV)
         """
-        # Skip EventSourceMapping for all environments
-        # Queues will not automatically trigger Lambda functions
-        return {}
+        # Skip EventSourceMapping for DEV environment - queues only, no triggers
+        if env == ENVIRONMENT.DEV:
+            return {}
+
+        # Create EventSourceMapping for STAGING and PROD with alias support
+        resources = {}
+
+        # Get queue and function names
+        queue_resource_name = self.builder.getQueueName(queue_config.name, 'Q')
+        fn_name = self.builder.getFunctionName(function_name)
+
+        # Get alias name based on environment (staging or prod)
+        alias_name = self.builder.getLambdaAliasName(env)
+
+        # Event source mapping resource name
+        mapping_name = self.builder.getQueueName(queue_config.name, 'EventSourceMapping')
+
+        # Create EventSourceMapping pointing to Lambda alias
+        resources[mapping_name] = {
+            'Type': 'AWS::Lambda::EventSourceMapping',
+            'Properties': {
+                'EventSourceArn': {'Fn::GetAtt': [queue_resource_name, 'Arn']},
+                'FunctionName': self.builder.getLambdaArnWithAlias(fn_name, alias_name),
+                'Enabled': True,
+                'BatchSize': 1  # Process one message at a time
+            }
+        }
+
+        return resources
 
     def execute(
         self,
@@ -84,12 +113,15 @@ class QueueBuilder:
         region: Region
     ) -> None:
         """
-        Builds all queues for all 4 environments.
-        Creates queues for DEV, STAGING and PROD.
-        EventSourceMapping is disabled - queues will not trigger Lambda functions automatically.
+        Builds all queues for all environments with environment-specific trigger configuration.
+
+        Creates queues for DEV, STAGING and PROD with the following behavior:
+        - DEV: Queue only (no Lambda triggers)
+        - STAGING: Queue + EventSourceMapping pointing to Lambda's staging alias
+        - PROD: Queue + EventSourceMapping pointing to Lambda's prod alias
 
         Args:
-            lambda_name: Lambda function name (not used for triggers, kept for compatibility)
+            lambda_name: Lambda function name to attach event source mappings to
             queues: List of queue configurations
             region: AWS region
         """
@@ -98,7 +130,7 @@ class QueueBuilder:
             queue_resources = self.build_queue(queue_config, self.builder.env)
             self.builder.resources.update(queue_resources)
 
-            # Build EventSourceMapping (disabled for all environments)
+            # Build EventSourceMapping with alias support (DEV: none, STAGING/PROD: with alias)
             event_source_resources = self.build_event_source_mapping(
                 queue_config,
                 self.builder.env,

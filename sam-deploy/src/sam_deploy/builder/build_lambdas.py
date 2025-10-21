@@ -1,29 +1,29 @@
 from sam_deploy.config.mapping import LambdaName, ENVIRONMENT, LambdaProperty, LAMBDAS, Region, QueueProperty, QueueRole, S3Property, S3Role
 from sam_deploy.builder.template_builder import TemplateBuilder
 from typing import Dict
+import boto3
+import json
 
 
 class LambdaBuilder:
     builder: TemplateBuilder
-    environment_secrets: Dict[str, Dict[str, str]]
+    secrets: Dict[str, str]
 
     def __init__(self, builder: TemplateBuilder) -> None:
         self.builder = builder
 
-        # Pre-load secrets for all environments to avoid repeated SecretManager calls
-        # Secrets are environment-specific (e.g., different DB credentials per environment)
-        self.environment_secrets = {}
-        print(f"[SECRETS] Pre-loading secrets for all environments...")
+        # Load secrets once (secrets are the same across all environments)
+        print(f"[SECRETS] Loading secrets from AWS...")
 
-        from dzgroshared.secrets.client import SecretManager
-        for env in [ENVIRONMENT.DEV, ENVIRONMENT.STAGING, ENVIRONMENT.PROD]:
-            try:
-                secrets = SecretManager(env).secrets.model_dump(mode="json")
-                self.environment_secrets[env.value] = secrets
-                print(f"  [OK] Loaded {len(secrets)} secrets for {env.value}")
-            except Exception as e:
-                print(f"  [WARNING] Failed to load secrets for {env.value}: {e}")
-                self.environment_secrets[env.value] = {}
+        secrets_client = boto3.client('secretsmanager')
+        try:
+            secret_id = "dzgro/prod"
+            response = secrets_client.get_secret_value(SecretId=secret_id)
+            self.secrets = json.loads(response['SecretString'])
+            print(f"  [OK] Loaded {len(self.secrets)} secrets")
+        except Exception as e:
+            print(f"  [WARNING] Failed to load secrets: {e}")
+            self.secrets = {}
 
     def build_lambda_with_aliases(self, lambda_config: LambdaProperty, layer_arns: Dict, region: Region) -> None:
         """
@@ -41,15 +41,11 @@ class LambdaBuilder:
         if not lambda_region:
             return
 
-        # Load secrets for environment variables
-        from dzgroshared.secrets.client import SecretManager
-        secrets = SecretManager(self.builder.env).secrets.model_dump(mode="json")
-
         # Function name WITHOUT environment suffix (e.g., "ApiFunction")
         fn_name = self.builder.getFunctionName(lambda_config.name)
 
-        # Build environment variables
-        env_variables = {"ENV": self.builder.env.value, **secrets}
+        # Build environment variables (secrets only, no ENV or other variables)
+        env_variables = {**self.secrets}
 
         # Base Lambda function properties
         properties = {
@@ -285,26 +281,8 @@ class LambdaBuilder:
             # Function name WITHOUT environment suffix
             fn_name = self.builder.getFunctionName(lambda_config.name)
 
-            # Build environment variables with ALL environment secrets (prefixed by environment)
-            # Lambda code should detect which alias invoked it (via context.invoked_function_arn)
-            # and use the appropriate environment-prefixed variables
-            #
-            # Example: If invoked via 'dev' alias, use DEV_DATABASE_URL
-            #          If invoked via 'staging' alias, use STAGING_DATABASE_URL
-            env_variables = {}
-
-            # Add environment-specific secrets with prefixes
-            for env in environments:
-                if env not in lambda_config.env:
-                    continue
-
-                env_prefix = env.value.upper()
-                env_secrets = self.environment_secrets.get(env.value, {})
-
-                # Add each secret with environment prefix
-                for key, value in env_secrets.items():
-                    prefixed_key = f"{env_prefix}_{key}"
-                    env_variables[prefixed_key] = value
+            # Build environment variables (secrets only, no ENV or other variables)
+            env_variables = {**self.secrets}
 
             # Base Lambda function properties
             properties = {

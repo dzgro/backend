@@ -34,31 +34,31 @@ class SqsHelper:
 
     @catch_sqs_exceptions
     async def sendMessage(self, payload: SendMessageRequest, MessageBody: BaseModel, extras: dict | None = None) -> str:
-        if self.client.env!=ENVIRONMENT.DEV:
-            client = self.getClient()
-            send_args = {
-                "QueueUrl": self.getQueueUrl(payload.Queue),
-                "MessageBody": MessageBody.model_dump_json(),
-                "DelaySeconds": payload.DelaySeconds or 0,
+        # if self.client.env!=ENVIRONMENT.DEV:
+        client = self.getClient()
+        send_args = {
+            "QueueUrl": self.getQueueUrl(payload.Queue),
+            "MessageBody": MessageBody.model_dump_json(),
+            "DelaySeconds": payload.DelaySeconds or 0,
+        }
+        payload.MessageAttributes.update({"model":SendMessageAttribute(StringValue=MessageBody.__class__.__name__, DataType=MessageAttributeDataType.STRING)})
+        if payload.MessageAttributes: 
+            send_args["MessageAttributes"] = { 
+                key: attr.model_dump(mode="json", exclude_none=True)
+                for key, attr in payload.MessageAttributes.items() 
             }
-            payload.MessageAttributes.update({"model":SendMessageAttribute(StringValue=MessageBody.__class__.__name__, DataType=MessageAttributeDataType.STRING)})
-            if payload.MessageAttributes: 
-                send_args["MessageAttributes"] = { 
-                    key: attr.model_dump(mode="json", exclude_none=True)
-                    for key, attr in payload.MessageAttributes.items() 
-                }
-            
-            response = client.send_message(**send_args)
-            res = SQSSendMessageResponse(
-                success=True,
-                message_id=response.get("MessageId", ""),
-                sequence_number=response.get("SequenceNumber")
-            )
-        else:
-            res = SQSSendMessageResponse(
+        
+        response = client.send_message(**send_args)
+        res = SQSSendMessageResponse(
             success=True,
-            message_id=str(uuid.uuid4())
+            message_id=response.get("MessageId", ""),
+            sequence_number=response.get("SequenceNumber")
         )
+        # else:
+        #     res = SQSSendMessageResponse(
+        #     success=True,
+        #     message_id=str(uuid.uuid4())
+        # )
 
         await self.client.db.sqs_messages.addMessageToDb(res.message_id, payload.Queue, MessageBody, extras)
         return res.message_id
@@ -68,32 +68,30 @@ class SqsHelper:
         if not req: raise ValueError("Request list cannot be empty")
         dbBatch: list[dict] = []
         res = SQSBatchSendResponse(Success=[], Failed=[])
-        if self.client.env==ENVIRONMENT.DEV: res.Success = [SQSBatchSuccessMessage(Id=item.Id, MessageID=str(uuid.uuid4())) for item in req]
-        else:
-            client = self.getClient()
-            send_args = {
-                "QueueUrl": self.getQueueUrl(queue),
-                "Entries": [
-                    {
-                        "Id": entry.Id,
-                        "MessageBody": entry.Body.model_dump_json(),
-                        "DelaySeconds": entry.DelaySeconds or 0,
-                        "MessageAttributes": {
-                            key: attr.model_dump(exclude_none=True)
-                            for key, attr in entry.MessageAttributes.items()
-                        } if entry.MessageAttributes else None
-                    }
-                    for entry in req
-                ]
-            }
-            response = client.send_message_batch(**send_args)
-            res.Failed = [SQSBatchFailedMessage(Id=item['Id'], Code=item['Code'], Message=item.get('Message')) for item in (response.get('Failed', []))]
-            res.Success = [SQSBatchSuccessMessage(Id=item['Id'], MessageID=item.get('MessageId')) for item in (response.get('Successful', []))]
+        client = self.getClient()
+        send_args = {
+            "QueueUrl": self.getQueueUrl(queue),
+            "Entries": [
+                {
+                    "Id": entry.Id,
+                    "MessageBody": entry.Body.model_dump_json(),
+                    "DelaySeconds": entry.DelaySeconds or 0,
+                    "MessageAttributes": {
+                        key: attr.model_dump(exclude_none=True)
+                        for key, attr in entry.MessageAttributes.items()
+                    } if entry.MessageAttributes else None
+                }
+                for entry in req
+            ]
+        }
+        response = client.send_message_batch(**send_args)
+        res.Failed = [SQSBatchFailedMessage(Id=item['Id'], Code=item['Code'], Message=item.get('Message')) for item in (response.get('Failed', []))]
+        res.Success = [SQSBatchSuccessMessage(Id=item['Id'], MessageID=item.get('MessageId')) for item in (response.get('Successful', []))]
             
         for item in res.Success:
             entry = next((e for e in req if e.Id == item.Id), None)
             if entry:
-                body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True), "_id": item.MessageID, "status": SQSMessageStatus.PENDING.value}
+                body = { "model": entry.Body.__class__.__name__, "body": entry.Body.model_dump(exclude_none=True, mode="json"), "_id": item.MessageID, "status": SQSMessageStatus.PENDING.value}
                 dbBatch.append(body)
         await self.client.db.sqs_messages.addBatchMessageToDb(dbBatch)
         return res

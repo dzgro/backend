@@ -246,10 +246,9 @@ LAMBDAS = [
                 queue = [
                     QueueProperty(name=QueueName.AMAZON_REPORTS, roles=QueueRole.all()),
                     QueueProperty(name=QueueName.DZGRO_REPORTS, roles=QueueRole.all()),
-                    QueueProperty(name=QueueName.AMS_CHANGE, roles=QueueRole.all()),
-                    QueueProperty(name=QueueName.AMS_PERFORMANCE, roles=QueueRole.all()),
                     QueueProperty(name=QueueName.INVOICE_GENERATOR, roles=QueueRole.all()),
                     QueueProperty(name=QueueName.DAILY_REPORT_REFRESH_BY_COUNTRY_CODE, roles=QueueRole.all())
+                    # Note: AMS_CHANGE and AMS_PERFORMANCE queues only exist in AMS regions (EU, NA, FE)
                     # Note: RAZORPAY_WEBHOOK queue removed - now handled by RazorPayWebhook Lambda
                 ],
                 s3 = [S3Property(name=name, roles=S3Role.all()) for name in S3Bucket.all()]
