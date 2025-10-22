@@ -2,7 +2,8 @@ from pydantic import BaseModel, Field
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
 from typing import Literal
-from dzgroshared.db.model import ObjectIdStr, Paginator
+from enum import Enum
+from dzgroshared.db.model import ObjectIdStr, Paginator, StartEndDate
 
 class SettlementOrderRefund(BaseModel):
     order: float|SkipJsonSchema[None] = None
@@ -108,4 +109,59 @@ class DbOrderItem(BaseModel):
     giftwraptax: float|SkipJsonSchema[None]=None
     itempromotiondiscount: float|SkipJsonSchema[None]=None
     shippromotiondiscount: float|SkipJsonSchema[None]=None
+
+# Payment Reconciliation Models
+
+class PaymentStatus(str, Enum):
+    PAID = "PAID"
+    UNPAID = "UNPAID"
+    PENDING_SETTLEMENT = "PENDING_SETTLEMENT"
+    OVERDUE = "OVERDUE"
+
+class ShippingStatus(str, Enum):
+    DELIVERED = "DELIVERED"
+    RETURNED = "RETURNED"
+    PARTIAL_RETURNED = "PARTIAL_RETURNED"
+
+class SettlementAmountType(BaseModel):
+    amountdescription: str
+    orderAmount: float|SkipJsonSchema[None] = None
+    refundAmount: float|SkipJsonSchema[None] = None
+
+class OrderItemSettlement(BaseModel):
+    sku: str
+    asin: str|SkipJsonSchema[None] = None
+    image: str|SkipJsonSchema[None] = None
+    amountTypes: list[SettlementAmountType]
+
+class NonSkuSettlement(BaseModel):
+    amountTypes: list[SettlementAmountType]
+
+class OrderPaymentDetail(ObjectIdStr):
+    orderid: str
+    orderdate: datetime
+    orderstatus: str
+    paymentStatus: PaymentStatus|SkipJsonSchema[None] = None
+    shippingStatus: ShippingStatus|SkipJsonSchema[None] = None
+    orderTotal: float
+    settlementTotal: float
+    payoutPercentage: float
+    items: list[OrderItemSettlement]
+    nonSkuSettlements: NonSkuSettlement|SkipJsonSchema[None] = None
+
+class OrderPaymentList(BaseModel):
+    count: int|SkipJsonSchema[None] = None
+    data: list[OrderPaymentDetail]
+
+class PaymentStatusFacet(BaseModel):
+    status: PaymentStatus
+    count: int
+
+class OrderPaymentFacets(BaseModel):
+    total: int
+    byStatus: list[PaymentStatusFacet]
+
+class OrderPaymentRequest(BaseModel):
+    dates: StartEndDate|SkipJsonSchema[None] = None
+    paginator: Paginator
 

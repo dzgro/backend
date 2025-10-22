@@ -369,7 +369,7 @@ from api.routers import (
     gstin, advertising_accounts, razorpay_orders, spapi_accounts, 
     users, marketplaces, performance_periods, performance_results, 
     state_analytics, date_analytics, products, payments, ad, 
-    health, analytics, dzgro_reports, pricing
+    health, analytics, dzgro_reports, pricing, orders
 )
 
 register_exception_handlers(app)
@@ -379,6 +379,7 @@ app.include_router(analytics.router)
 app.include_router(date_analytics.router)
 app.include_router(dzgro_reports.router)
 app.include_router(gstin.router)
+app.include_router(orders.router)
 app.include_router(health.router)
 app.include_router(marketplaces.router)
 app.include_router(payments.router)
