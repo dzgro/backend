@@ -1,6 +1,7 @@
 # settlements - Structure
 
 ## Overview
+
 - **Collection**: `settlements`
 - **Document Count**: 22,246
 - **Average Document Size**: 326 bytes
@@ -77,13 +78,12 @@
 ### `transactiontype`
 
 - **Type**: `str`
-- **Enum Values**: `Order`, `Other`
+- **Enum Values**: `Order`, `Other`, `Refund`
 
 ### `uid`
 
 - **Type**: `str`
 - **Sample Values**: `41e34d1a-6031-70d2-9ff3-d1a704240921`, `41e34d1a-6031-70d2-9ff3-d1a704240921`, `41e34d1a-6031-70d2-9ff3-d1a704240921`
-
 
 ## Sample Documents
 
@@ -123,4 +123,3 @@
   "amount": 311.61
 }
 ```
-

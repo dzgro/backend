@@ -117,7 +117,7 @@ class RequestHelper:
     @property
     async def client(self):
         from dzgroshared.client import DzgroSharedClient
-        client = DzgroSharedClient(self.env)
+        client = DzgroSharedClient()
         if not self.excludedPath:
             user = await self.__userCache()
             client.setUser(user)

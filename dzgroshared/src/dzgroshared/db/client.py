@@ -17,7 +17,7 @@ class DbClient:
         if inspect.iscoroutine(self.client.mongoClient):
             raise ValueError(f"MongoDB client is a coroutine, not a client instance: {type(self.client.mongoClient)}")
             
-        self.database = self.client.mongoClient[client.DB_NAME]
+        self.database = self.client.mongoClient[f'dzgro-{self.client.secrets.ENV.value}']
 
     def __getattr__(self, item):
         return None

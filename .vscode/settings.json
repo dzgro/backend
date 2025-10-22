@@ -1,6 +1,6 @@
 {
-  // "python.defaultInterpreterPath": "C:\\Users\\Kshitiz\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\api-v2GU_GZ9-py3.12\\Scripts\\python.exe",
-  "python.defaultInterpreterPath": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/sam-deploy-w3iSKFlr-py3.12/Scripts/python.exe",
+  "python.defaultInterpreterPath": "C:\\Users\\Kshitiz\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\api-v2GU_GZ9-py3.12\\Scripts\\python.exe",
+  // "python.defaultInterpreterPath": "C:/Users/Kshitiz/AppData/Local/pypoetry/Cache/virtualenvs/sam-deploy-w3iSKFlr-py3.12/Scripts/python.exe",
   // "python.defaultInterpreterPath": "C:\\Users\\Kshitiz\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\sam-app-tests-WdN2Mmyc-py3.12\\Scripts\\python.exe",
   "postman.settings.dotenv-detection-notification-visibility": false
 }

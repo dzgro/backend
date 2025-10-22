@@ -7,7 +7,10 @@ from api.Util import RequestHelper
 router = APIRouter(prefix="/marketplaces", tags=["Marketplaces"])
 
 async def db(request: Request):
-    return (await RequestHelper(request).client).db.marketplaces
+    helper = RequestHelper(request)
+    client = await helper.client
+    db = client.db
+    return db.marketplaces
 
 @router.get('/months/list', response_model=list[Month], response_model_exclude_none=True, response_model_by_alias=False)
 async def listMonths(request: Request):

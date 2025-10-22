@@ -16,4 +16,3 @@ class SecretManager:
 
         # Cast to DzgroSecrets model and set to self
         self.secrets = DzgroSecrets(**secrets_dict)
-\
