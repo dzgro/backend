@@ -2,14 +2,12 @@ from dzgroshared.db.enums import CollateType, DzgroReportType, DzroReportPayment
 from pydantic import BaseModel, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
-from dzgroshared.db.model import ItemId, ItemId, Paginator
+from dzgroshared.db.model import ItemId, ItemId, StartEndDate
 
-class DzgroReportDates(BaseModel):
-    startDate: datetime
-    endDate: datetime
+class DzgroReportDates(StartEndDate):
     @model_validator(mode="after")
     def validate_dates(self):
-        if self.startDate > self.endDate:
+        if self.startdate > self.enddate:
             raise ValueError("Start Date must be before or equal to End Date")
         return self
 
@@ -29,7 +27,7 @@ class DzgroInventoryPlanningRequest(BaseModel):
         if self.configuration == DzgroInventoryPlanningRequestConfiguration.DATES:
             if not self.dates:
                 raise ValueError("Start Date and End Date are required")
-            self.dayCount = (self.dates.endDate - self.dates.startDate).days + 1
+            self.dayCount = (self.dates.enddate - self.dates.startdate).days + 1
         elif not self.days or self.days == 0:
             raise ValueError("Days must be greater than 0")
         if not self.dayCount: self.dayCount = self.days

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from datetime import datetime
 from typing import Literal
@@ -112,56 +112,116 @@ class DbOrderItem(BaseModel):
 
 # Payment Reconciliation Models
 
-class PaymentStatus(str, Enum):
-    PAID = "PAID"
-    UNPAID = "UNPAID"
-    PENDING_SETTLEMENT = "PENDING_SETTLEMENT"
-    OVERDUE = "OVERDUE"
+class OrderPaymentStatus(str, Enum):
+    PAID = "Paid"
+    UNPAID = "Unpaid"
+    PENDING_SETTLEMENT = "Pending Settlement"
+    OVERDUE = "Overdue"
+    CANCELLED = "Cancelled"
+    
+    @staticmethod
+    def list():
+        return [x.value for x in OrderPaymentStatus]
+    
+class OrderPaymentSettlementFacet(str,Enum):
+    PAID = "Paid"
+    UNPAID = "Unpaid"
+    PENDING_SETTLEMENT = "Pending Settlement"
+    OVERDUE = "Overdue"
+    CANCELLED = "Cancelled"
+    TOTAL = "Total Orders"
+    
 
-class ShippingStatus(str, Enum):
-    DELIVERED = "DELIVERED"
-    RETURNED = "RETURNED"
-    PARTIAL_RETURNED = "PARTIAL_RETURNED"
+class OrderShippingStatus(str, Enum):
+    DELIVERED = "Delivered"
+    RETURNED = "Returned"
+    PARTIAL_RETURNED = "Partial Returned"
+    CANCELLED = "Cancelled"
+    
+    @staticmethod
+    def list():
+        return [x.value for x in OrderShippingStatus]
+    
 
-class SettlementAmountType(BaseModel):
-    amountdescription: str
+class OrderShippingStatusSettlementFacet(str,Enum):
+    DELIVERED = "Delivered"
+    RETURNED = "Returned"
+    PARTIAL_RETURNED = "Partial Returned"
+    CANCELLED = "Cancelled"
+    TOTAL = "Total Orders"
+    
+class SettlementAmountDescription(BaseModel):
+    title:str
     orderAmount: float|SkipJsonSchema[None] = None
     refundAmount: float|SkipJsonSchema[None] = None
 
-class OrderItemSettlement(BaseModel):
+class SettlementAmountType(BaseModel):
+    title: str
+    rowSpan: int
+    items: list[SettlementAmountDescription]
+    
+    @model_validator(mode="after")
+    def setRowSpan(self):
+        self.rowSpan = max(self.rowSpan, 1)
+        return self
+    
+class OrderProduct(BaseModel):
     sku: str
-    asin: str|SkipJsonSchema[None] = None
+    asin: str
     image: str|SkipJsonSchema[None] = None
-    amountTypes: list[SettlementAmountType]
+    
 
-class NonSkuSettlement(BaseModel):
-    amountTypes: list[SettlementAmountType]
+class OrderItemSettlement(BaseModel):
+    product: OrderProduct|SkipJsonSchema[None]=None
+    rowSpan: int
+    settlements: list[SettlementAmountType]
+    
+    @model_validator(mode="after")
+    def setRowSpan(self):
+        self.rowSpan = max(self.rowSpan, 1)
+        return self
+    
+class OrderPaymentItemsDetail(BaseModel):
+    columns: list[str]
+    rows: list[OrderItemSettlement]
 
-class OrderPaymentDetail(ObjectIdStr):
+class OrderPaymentDetail(BaseModel):
     orderid: str
     orderdate: datetime
-    orderstatus: str
-    paymentStatus: PaymentStatus|SkipJsonSchema[None] = None
-    shippingStatus: ShippingStatus|SkipJsonSchema[None] = None
-    orderTotal: float
-    settlementTotal: float
-    payoutPercentage: float
-    items: list[OrderItemSettlement]
-    nonSkuSettlements: NonSkuSettlement|SkipJsonSchema[None] = None
+    fulfillment:str
+    paymentStatus: OrderPaymentStatus|SkipJsonSchema[None] = None
+    shippingStatus: OrderShippingStatus|SkipJsonSchema[None] = None
+    revenue: float
+    settlement: float
+    payoutPercent: str
+    items: OrderPaymentItemsDetail
 
 class OrderPaymentList(BaseModel):
-    count: int|SkipJsonSchema[None] = None
     data: list[OrderPaymentDetail]
+    dates: StartEndDate
 
 class PaymentStatusFacet(BaseModel):
-    status: PaymentStatus
+    title: OrderPaymentSettlementFacet
     count: int
+    
+class OrderShippingStatusFacet(BaseModel):
+    title: OrderShippingStatusSettlementFacet
+    count: int
+    
 
 class OrderPaymentFacets(BaseModel):
-    total: int
-    byStatus: list[PaymentStatusFacet]
+    count: int
+    paymentStatuses: list[PaymentStatusFacet]
+    shippingStatuses: list[OrderShippingStatusFacet]
 
 class OrderPaymentRequest(BaseModel):
-    dates: StartEndDate|SkipJsonSchema[None] = None
+    dates: StartEndDate|SkipJsonSchema[None]=None
     paginator: Paginator
+    paymentStatus: OrderPaymentSettlementFacet|SkipJsonSchema[None]=None
+    shippingStatus: OrderShippingStatusSettlementFacet|SkipJsonSchema[None]=None
+
+class OrderPaymentFacetRequest(BaseModel):
+    paymentStatus: OrderPaymentSettlementFacet|SkipJsonSchema[None]=None
+    shippingStatus: OrderShippingStatusSettlementFacet|SkipJsonSchema[None]=None
+    dates: StartEndDate|SkipJsonSchema[None]=None
 

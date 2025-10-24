@@ -98,6 +98,22 @@ def pipeline(uid:str, paginator: Paginator, marketplace: PyObjectId|None = None)
             'as': 'sales'
         }
     }, {
+        '$lookup': {
+            'from': 'country_details', 
+            'localField': 'countrycode', 
+            'foreignField': '_id', 
+            'pipeline': [
+                {
+                    '$project': {
+                        'country': '$country', 
+                        'currency': '$currencyCode', 
+                        '_id': 0
+                    }
+                }
+            ], 
+            'as': 'country'
+        }
+    }, {
         '$replaceRoot': {
             'newRoot': {
                 '_id': '$_id', 
@@ -109,7 +125,7 @@ def pipeline(uid:str, paginator: Paginator, marketplace: PyObjectId|None = None)
                 'plantype': '$plantype', 
                 'dates': '$dates', 
                 'lastrefresh': '$lastrefresh', 
-                'createdat': '$createdat', 
+                'settlementdate': '$settlementdate', 
                 'seller': {
                     '$first': '$seller.name'
                 }, 
@@ -121,6 +137,12 @@ def pipeline(uid:str, paginator: Paginator, marketplace: PyObjectId|None = None)
                 }, 
                 'sales': {
                     '$first': '$sales'
+                }, 
+                'country': {
+                    '$first': '$country.country'
+                }, 
+                'currency': {
+                    '$first': '$country.currency'
                 }
             }
         }

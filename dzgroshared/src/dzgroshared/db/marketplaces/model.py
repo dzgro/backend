@@ -6,7 +6,7 @@ from dzgroshared.db.state_analytics.model import StateMonthDataResponse, StateMo
 from pydantic import BaseModel, Field,model_validator
 from dzgroshared.db.model import Count, CountryDetails, DashboardKeyMetricGroup, ItemId, ItemId, MarketplacePlan, Month, PeriodDataResponse, PyObjectId, StartEndDate
 from pydantic.json_schema import SkipJsonSchema
-from dzgroshared.db.enums import AmazonAccountType, CollateType, MarketplaceId, CountryCode, MarketplaceStatus, PlanName
+from dzgroshared.db.enums import AmazonAccountType, CollateType, CurrencyCode, MarketplaceId, CountryCode, MarketplaceStatus, PlanName
 from datetime import datetime
 from typing import Literal
 
@@ -65,6 +65,9 @@ class UserMarketplaceBasic(SellerMarketplace, ItemId):
 
 class UserMarketplace(UserMarketplaceBasic):
     createdat: datetime
+    country: str
+    currency: CurrencyCode
+    settlementdate: datetime|SkipJsonSchema[None]=None
     seller: str|SkipJsonSchema[None]=None
     dates: StartEndDate|SkipJsonSchema[None]=None
     plan: MarketplacePlan|SkipJsonSchema[None]=None

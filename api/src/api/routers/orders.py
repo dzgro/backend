@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 from api.Util import RequestHelper
-from dzgroshared.db.orders.model import OrderPaymentRequest, OrderPaymentList, OrderPaymentFacets
+from dzgroshared.db.orders.model import OrderPaymentRequest, OrderPaymentList, OrderPaymentFacets, OrderPaymentFacetRequest
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -35,7 +35,7 @@ async def getOrderPayments(request: Request, req: OrderPaymentRequest):
     response_model_by_alias=False,
     summary="Get payment status facet counts"
 )
-async def getOrderPaymentFacets(request: Request, req: OrderPaymentRequest):
+async def getOrderPaymentFacets(request: Request, req: OrderPaymentFacetRequest):
     """
     Get counts of orders grouped by payment status.
     Used for dashboard summary cards.
