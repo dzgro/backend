@@ -189,8 +189,8 @@ class OrderPaymentDetail(BaseModel):
     orderid: str
     orderdate: datetime
     fulfillment:str
-    paymentStatus: OrderPaymentStatus|SkipJsonSchema[None] = None
-    shippingStatus: OrderShippingStatus|SkipJsonSchema[None] = None
+    paymentStatus: OrderPaymentStatus
+    shippingStatus: OrderShippingStatus
     revenue: float
     settlement: float
     payoutPercent: str
